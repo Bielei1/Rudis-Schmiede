@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rudis Schmiede - Live Verwaltung</title>
+    <!-- Firebase SDK für echte Echtzeit-Synchronisation -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-color: #d97706;
+            --primary-hover: #b45309;
+            --text-color: #e5e7eb;
+            --text-muted: #9ca3af;
+            --border-color: #2d2d2d;
+            --danger-color: #ef4444;
+            --success-color: #10b981;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.25;
+        }
+        h1, h2 {
+            color: var(--primary-color);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        th {
+            background-color: #252525;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        input, select, button {
+            background-color: #2a2a2a;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+        .status-bar {
+            background: #1e293b;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="status-bar">
+        <div>🟢 <span id="connection-status">Verbinde mit Live-Server...</span></div>
+        <button onclick="navigator.clipboard.writeText(window.location.href); alert('Webseiten-Link kopiert! Schicke diesen Link an dein Team.');">🔗 Website-Link für Team kopieren</button>
+    </div>
+
+    <h1>Rudis Schmiede - Live Verwaltung</h1>
+
+    <!-- Lagerbestand -->
+    <div class="card">
+        <h2>Lagerbestand</h2>
+        <div>
+            <input type="text" id="new-item-name" placeholder="Artikelname">
+            <input type="number" id="new-item-stock" placeholder="Anfangsbestand" value="0">
+            <button onclick="addItem()">+ Neuen Artikel hinzufügen</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Artikel</th>
+                    <th>Bestand</th>
+                    <th>Bestand ändern (Neuer Gesamtwert)</th>
+                    <th>Aktion</th>
+                    <th>Letzte Änderung</th>
+                </tr>
+            </thead>
+            <tbody id="inventory-table">
+                <!-- Wird dynamisch gefüllt -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Bestellungen -->
+    <div class="card">
+        <h2>Aktive Kundenbestellungen</h2>
+        <div>
+            <input type="text" id="order-customer" placeholder="Kundenname">
+            <input type="text" id="order-details" placeholder="Bestellte Artikel & Menge">
+            <button onclick="addOrder()">+ Neue Bestellung erfassen</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Kunde</th>
+                    <th>Bestellte Artikel</th>
+                    <th>Aufgenommen am</th>
+                    <th>Aktion</th>
+                </tr>
+            </thead>
+            <tbody id="orders-table">
+                <!-- Wird dynamisch gefüllt -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Konfiguration für die Live-Echtzeit-Datenbank
+    const firebaseConfig = {
+        databaseURL: "https://rudis-schmiede-live-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Verbindungsstatus überwachen
+    const statusEl = document.getElementById("connection-status");
+    db.ref(".info/connected").on("value", (snap) => {
+        if (snap.val() === true) {
+            statusEl.innerText = "Verbunden mit Live-Server (Echtzeit aktiv)";
+            statusEl.style.color = "#10b981";
+        } else {
+            statusEl.innerText = "Verbindung getrennt - Versuche wiederzuverbinden...";
+            statusEl.style.color = "#ef4444";
+        }
+    });
+
+    // --- LAGERBESTAND LOGIK ---
+    function addItem() {
+        const name = document.getElementById("new-item-name").value.trim();
+        const stock = parseInt(document.getElementById("new-item-stock").value) || 0;
+        if(!name) return alert("Bitte Artikelname eingeben!");
+
+        db.ref('inventory/' + name).set({
+            stock: stock,
+            lastModified: new Date().toLocaleString()
+        });
+        document.getElementById("new-item-name").value = "";
+    }
+
+    function updateStock(name) {
+        const inputVal = document.getElementById("stock-input-" + CSS.escape(name)).value;
+        const newStock = parseInt(inputVal);
+        if(isNaN(newStock)) return;
+
+        db.ref('inventory/' + name).update({
+            stock: newStock,
+            lastModified: new Date().toLocaleString()
+        });
+    }
+
+    function deleteItem(name) {
+        if(confirm("Artikel wirklich löschen?")) {
+            db.ref('inventory/' + name).remove();
+        }
+    }
+
+    db.ref('inventory').on('value', (snapshot) => {
+        const data = snapshot.val() || {};
+        const tbody = document.getElementById("inventory-table");
+        tbody.innerHTML = "";
+        
+        Object.keys(data).forEach(name => {
+            const item = data[name];
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${name}</b></td>
+                    <td>${item.stock}</td>
+                    <td>
+                        <input type="number" id="stock-input-${CSS.escape(name)}" value="${item.stock}" style="width: 80px;">
+                        <button onclick="updateStock('${name}')">Speichern</button>
+                    </td>
+                    <td><button class="btn-danger" onclick="deleteItem('${name}')">Löschen</button></td>
+                    <td><small style="color: #9ca3af;">${item.lastModified || '-'}</small></td>
+                </tr>
+            `;
+        });
+    });
+
+    // --- BESTELLUNGEN LOGIK ---
+    function addOrder() {
+        const customer = document.getElementById("order-customer").value.trim();
+        const details = document.getElementById("order-details").value.trim();
+        if(!customer || !details) return alert("Bitte Kundenname und Details eingeben!");
+
+        const newOrderRef = db.ref('orders').push();
+        newOrderRef.set({
+            customer: customer,
+            details: details,
+            date: new Date().toLocaleString()
+        });
+        document.getElementById("order-customer").value = "";
+        document.getElementById("order-details").value = "";
+    }
+
+    function removeOrder(id) {
+        db.ref('orders/' + id).remove();
+    }
+
+    db.ref('orders').on('value', (snapshot) => {
+        const data = snapshot.val() || {};
+        const tbody = document.getElementById("orders-table");
+        tbody.innerHTML = "";
+        
+        Object.keys(data).forEach(id => {
+            const order = data[id];
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${order.customer}</b></td>
+                    <td>${order.details}</td>
+                    <td>${order.date}</td>
+                    <td><button class="btn-danger" onclick="removeOrder('${id}')">Erledigt / Löschen</button></td>
+                </tr>
+            `;
+        });
+    });
+</script>
+
+</body>
+</html>
