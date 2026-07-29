@@ -791,6 +791,7 @@
             renderRecipes();
         } else if (tabName === 'bestellungen') {
             updateOrderCustomerDatalist();
+            updateAllOrderPositionDropdowns();
             renderOrders();
         } else if (tabName === 'archiv') {
             renderArchive();
@@ -849,6 +850,7 @@
     function renderTables() {
         renderStockTable();
         updateOrderCustomerDatalist();
+        updateAllOrderPositionDropdowns();
         renderOrders();
         renderArchive();
         updateCustomerFilterOptions();
@@ -968,6 +970,24 @@
         });
     }
 
+    function getSalesPricesOptionsHtml(selectedName = "") {
+        const sortedPrices = [...salesPricesList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+        let options = '<option value="" disabled selected>Artikel auswählen...</option>';
+        sortedPrices.forEach(sp => {
+            const isSel = (sp.name.toLowerCase() === selectedName.toLowerCase()) ? 'selected' : '';
+            options += `<option value="${sp.name}" ${isSel}>${sp.name}</option>`;
+        });
+        return options;
+    }
+
+    function updateAllOrderPositionDropdowns() {
+        const selects = document.querySelectorAll('.ord-name-select');
+        selects.forEach(select => {
+            const currentVal = select.value;
+            select.innerHTML = getSalesPricesOptionsHtml(currentVal);
+        });
+    }
+
     function initOrderPositionInputs() {
         const container = document.getElementById('order-items-container');
         container.innerHTML = '';
@@ -980,7 +1000,9 @@
         const div = document.createElement('div');
         div.className = 'order-item-row';
         div.innerHTML = `
-            <input type="text" class="ord-name" placeholder="Artikel" value="${defaultName}" required style="flex:2;" />
+            <select class="ord-name-select" required style="flex:2;">
+                ${getSalesPricesOptionsHtml(defaultName)}
+            </select>
             <input type="number" class="ord-qty" placeholder="Anzahl" min="1" value="${defaultQty || 1}" required style="flex:1; max-width: 100px;" />
             <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="height: 42px;">✕</button>
         `;
@@ -996,7 +1018,7 @@
         const items = [];
 
         rows.forEach(row => {
-            const name = capitalizeText(row.querySelector('.ord-name').value.trim());
+            const name = row.querySelector('.ord-name-select').value;
             const qty = parseInt(row.querySelector('.ord-qty').value, 10);
             if (name && !isNaN(qty) && qty > 0) items.push({ name, qty });
         });
@@ -1299,6 +1321,7 @@
             item.priceUpdated = getCurrentTimeString();
             inputEl.value = '';
             renderPriceTable();
+            updateAllOrderPositionDropdowns();
             renderOrders();
         }
     }
@@ -1307,6 +1330,7 @@
         if (confirm("Verkaufspreis löschen?")) {
             salesPricesList = salesPricesList.filter(i => i.id !== id);
             renderPriceTable();
+            updateAllOrderPositionDropdowns();
             renderOrders();
         }
     }
@@ -1330,6 +1354,7 @@
         nameInput.value = '';
         priceInput.value = '';
         renderPriceTable();
+        updateAllOrderPositionDropdowns();
         renderOrders();
     }
 
