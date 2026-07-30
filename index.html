@@ -294,7 +294,7 @@
             white-space: nowrap;
         }
 
-        .filter-card select {
+        .filter-card select, .filter-card input {
             max-width: 300px;
         }
 
@@ -788,6 +788,15 @@
         </details>
 
         <h2>Verfügbare Rezepte & Herstellung</h2>
+
+        <!-- Kombiniertes Dropdown- und Suchfeld für Rezepte mit "Suche leeren"-Button -->
+        <div class="filter-card" style="margin-top: 16px;">
+            <label for="recipe-search-input">Rezept suchen / auswählen:</label>
+            <input type="text" id="recipe-search-input" list="recipe-search-datalist" placeholder="Rezept aus Dropdown wählen oder frei eintippen..." oninput="renderRecipes()" />
+            <button type="button" class="btn" style="background-color: #334155; height: 42px; font-size: 0.85rem;" onclick="clearRecipeSearch()">Suche leeren</button>
+            <datalist id="recipe-search-datalist"></datalist>
+        </div>
+
         <div class="table-container" style="margin-top: 16px;">
             <table>
                 <thead>
@@ -918,6 +927,7 @@
         }
 
         if (tabName === 'herstellung') {
+            updateRecipeSearchDatalist();
             renderRecipes();
         } else if (tabName === 'bestellungen') {
             updateOrderCustomerDatalist();
@@ -1033,6 +1043,7 @@
         renderCostTable();
         updateShoppingBusinessFilterOptions();
         renderShoppingList();
+        updateRecipeSearchDatalist();
         renderRecipes();
         renderNotes();
     }
@@ -2110,6 +2121,7 @@
         document.getElementById('recipe-output-input').value = '';
         document.getElementById('recipe-output-qty').value = '1';
         initRecipeIngredientInputs();
+        updateRecipeSearchDatalist();
         renderRecipes();
         renderCalculatedPricesTable();
         updateStandardPriceRecipeDatalist();
@@ -2122,6 +2134,7 @@
             if (!error) {
                 recipesList = recipesList.filter(r => r.id !== id);
                 delete recipeTargetAmounts[id];
+                updateRecipeSearchDatalist();
                 renderRecipes();
                 renderCalculatedPricesTable();
                 updateStandardPriceRecipeDatalist();
@@ -2135,16 +2148,46 @@
         return item ? item.quantity : 0;
     }
 
+    function updateRecipeSearchDatalist() {
+        const datalistEl = document.getElementById('recipe-search-datalist');
+        if (!datalistEl) return;
+        datalistEl.innerHTML = '';
+
+        const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+        sortedRecipes.forEach(recipe => {
+            const opt = document.createElement('option');
+            opt.value = recipe.outputName;
+            datalistEl.appendChild(opt);
+        });
+    }
+
+    function clearRecipeSearch() {
+        const searchInput = document.getElementById('recipe-search-input');
+        if (searchInput) {
+            searchInput.value = '';
+            renderRecipes();
+        }
+    }
+
     function renderRecipes() {
         const tbody = document.getElementById('recipes-table-body');
         if (!tbody) return;
         tbody.innerHTML = '';
-        if (recipesList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte vorhanden.</td></tr>`;
+
+        const searchInput = document.getElementById('recipe-search-input');
+        const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+        let filteredRecipes = recipesList;
+        if (searchTerm !== '') {
+            filteredRecipes = recipesList.filter(recipe => recipe.outputName.toLowerCase().includes(searchTerm));
+        }
+
+        if (filteredRecipes.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte gefunden.</td></tr>`;
             return;
         }
 
-        recipesList.forEach(recipe => {
+        filteredRecipes.forEach(recipe => {
             const targetInputId = `craft-target-${recipe.id}`;
             const currentVal = recipeTargetAmounts[recipe.id] !== undefined ? recipeTargetAmounts[recipe.id] : recipe.outputQty;
 
