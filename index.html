@@ -730,6 +730,14 @@
             <h2>Einkaufsliste & Gesamtkosten</h2>
             <button class="btn btn-danger" onclick="clearShoppingList()">Mengen zurücksetzen</button>
         </div>
+
+        <div class="filter-card">
+            <label for="shopping-business-filter">Gewerbe / Lieferant filtern:</label>
+            <select id="shopping-business-filter" onchange="renderShoppingList()">
+                <option value="ALL">Alle Gewerbe anzeigen</option>
+            </select>
+        </div>
+
         <div class="table-container">
             <table>
                 <thead>
@@ -922,6 +930,7 @@
             updateSalesPricesDatalist();
             renderCustomerPricesTable();
         } else if (tabName === 'einkaufsliste') {
+            updateShoppingBusinessFilterOptions();
             renderShoppingList();
         } else if (tabName === 'verkaufspreise') {
             updateStandardPriceRecipeDatalist();
@@ -1022,6 +1031,7 @@
         renderPriceTable();
         updateBusinessFilterOptions();
         renderCostTable();
+        updateShoppingBusinessFilterOptions();
         renderShoppingList();
         renderRecipes();
         renderNotes();
@@ -1873,6 +1883,7 @@
                     inputCostEl.value = '';
                     updateBusinessFilterOptions();
                     renderCostTable();
+                    updateShoppingBusinessFilterOptions();
                     renderShoppingList();
                     renderCalculatedPricesTable();
                 }
@@ -1887,6 +1898,7 @@
                 purchasePricesList = purchasePricesList.filter(i => i.id !== id);
                 updateBusinessFilterOptions();
                 renderCostTable();
+                updateShoppingBusinessFilterOptions();
                 renderShoppingList();
                 renderCalculatedPricesTable();
             }
@@ -1934,11 +1946,28 @@
         costInput.value = '';
         updateBusinessFilterOptions();
         renderCostTable();
+        updateShoppingBusinessFilterOptions();
         renderShoppingList();
         renderCalculatedPricesTable();
     }
 
     /* EINKAUFSLISTE */
+    function updateShoppingBusinessFilterOptions() {
+        const filterSelect = document.getElementById('shopping-business-filter');
+        if (!filterSelect) return;
+        const currentSelected = filterSelect.value;
+        const businesses = [...new Set(purchasePricesList.map(item => item.business))].sort((a, b) => a.localeCompare(b, 'de'));
+
+        filterSelect.innerHTML = '<option value="ALL">Alle Gewerbe anzeigen</option>';
+        businesses.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b;
+            opt.innerText = b;
+            filterSelect.appendChild(opt);
+        });
+        filterSelect.value = businesses.includes(currentSelected) ? currentSelected : "ALL";
+    }
+
     function updateShoppingQty(purchaseItemId, inputEl) {
         let val = parseInt(inputEl.value, 10);
         if (isNaN(val) || val < 0) val = 0;
@@ -1981,10 +2010,16 @@
         if (!tbody) return;
         tbody.innerHTML = '';
 
-        const sortedList = [...purchasePricesList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+        const selectedFilter = document.getElementById('shopping-business-filter').value;
+        let filteredList = purchasePricesList;
+        if (selectedFilter !== "ALL") {
+            filteredList = purchasePricesList.filter(item => item.business === selectedFilter);
+        }
+
+        const sortedList = [...filteredList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
         if (sortedList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Einkaufspreise hinterlegt. Bitte zuerst im Tab „Einkaufspreise“ Artikel hinzufügen.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Einkaufspreise für dieses Gewerbe hinterlegt.</td></tr>`;
             updateShoppingTotalSum();
             return;
         }
