@@ -648,8 +648,9 @@
                 <h2>+ Neuen Standard-Verkaufspreis hinzufügen</h2>
                 <form class="add-form" onsubmit="handleAddPriceItem(event)">
                     <div class="form-group">
-                        <label for="price-add-name">Artikelname</label>
-                        <input type="text" id="price-add-name" placeholder="z. B. Messingblech" required />
+                        <label for="price-add-name">Artikelname (Auswahl oder freier Text)</label>
+                        <input type="text" id="price-add-name" list="recipes-datalist" placeholder="Rezept wählen oder frei eintippen..." required />
+                        <datalist id="recipes-datalist"></datalist>
                     </div>
                     <div class="form-group" style="max-width: 200px;">
                         <label for="price-add-price">Standard-Verkaufspreis ($)</label>
@@ -923,6 +924,7 @@
         } else if (tabName === 'einkaufsliste') {
             renderShoppingList();
         } else if (tabName === 'verkaufspreise') {
+            updateStandardPriceRecipeDatalist();
             renderCalculatedPricesTable();
             renderPriceTable();
         } else if (tabName === 'notizen') {
@@ -1015,6 +1017,7 @@
         updateCustomerFilterOptions();
         updateSalesPricesDatalist();
         renderCustomerPricesTable();
+        updateStandardPriceRecipeDatalist();
         renderCalculatedPricesTable();
         renderPriceTable();
         updateBusinessFilterOptions();
@@ -1679,6 +1682,19 @@
     }
 
     /* VERKAUFSPREISE (STANDARD) */
+    function updateStandardPriceRecipeDatalist() {
+        const datalistEl = document.getElementById('recipes-datalist');
+        if (!datalistEl) return;
+        datalistEl.innerHTML = '';
+        
+        const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+        sortedRecipes.forEach(rec => {
+            const opt = document.createElement('option');
+            opt.value = rec.outputName;
+            datalistEl.appendChild(opt);
+        });
+    }
+
     function renderPriceTable() {
         const tbody = document.getElementById('prices-body');
         if (!tbody) return;
@@ -1741,11 +1757,11 @@
 
     async function handleAddPriceItem(event) {
         event.preventDefault();
-        const nameInput = document.getElementById('price-add-name');
+        const inputEl = document.getElementById('price-add-name');
         const priceInput = document.getElementById('price-add-price');
-        const name = capitalizeText(nameInput.value.trim());
+        const name = capitalizeText(inputEl.value.trim());
         const price = parseFloat(priceInput.value);
-        if (!name || isNaN(price)) return;
+        if (!name || isNaN(price)) return alert("Bitte Artikelnamen und Preis eingeben.");
 
         const priceUpdated = getCurrentTimeString();
         const existing = salesPricesList.find(i => i.name.toLowerCase() === name.toLowerCase());
@@ -1770,7 +1786,7 @@
                 salesPricesList.push(data[0]);
             }
         }
-        nameInput.value = '';
+        inputEl.value = '';
         priceInput.value = '';
         renderPriceTable();
         updateSalesPricesDatalist();
@@ -2061,6 +2077,7 @@
         initRecipeIngredientInputs();
         renderRecipes();
         renderCalculatedPricesTable();
+        updateStandardPriceRecipeDatalist();
         updateOrderRecipeSelects();
     }
 
@@ -2072,6 +2089,7 @@
                 delete recipeTargetAmounts[id];
                 renderRecipes();
                 renderCalculatedPricesTable();
+                updateStandardPriceRecipeDatalist();
                 updateOrderRecipeSelects();
             }
         }
