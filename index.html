@@ -1371,7 +1371,10 @@
             return;
         }
 
-        ordersList.forEach(order => {
+        // Sortiert die Bestellungen so, dass die neueste (höchste ID) immer ganz oben steht[cite: 11]
+        const sortedOrders = [...ordersList].sort((a, b) => b.id - a.id);
+
+        sortedOrders.forEach(order => {
             const tr = document.createElement('tr');
             let itemsHtml = '';
             let allOk = true;
