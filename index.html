@@ -581,9 +581,9 @@
                     <input type="text" id="cust-price-name" placeholder="z. B. Kunde A" required />
                 </div>
                 <div class="form-group">
-                    <label for="cust-price-item">Artikelname</label>
-                    <input type="text" id="cust-price-item" list="sales-prices-datalist" oninput="handleCustomerItemInput()" placeholder="Artikel wählen oder eintippen..." required />
-                    <datalist id="sales-prices-datalist"></datalist>
+                    <label for="cust-price-item">Artikelname (Auswahl oder freier Text)</label>
+                    <input type="text" id="cust-price-item" list="customer-recipes-datalist" placeholder="Rezept wählen oder frei eintippen..." oninput="handleCustomerItemInput()" required />
+                    <datalist id="customer-recipes-datalist"></datalist>
                 </div>
                 <div class="form-group" style="max-width: 180px;">
                     <label for="cust-price-val">Sonderpreis ($)</label>
@@ -939,7 +939,7 @@
             renderArchive();
         } else if (tabName === 'kunden') {
             updateCustomerFilterOptions();
-            updateSalesPricesDatalist();
+            updateCustomerPricesRecipeSelect();
             renderCustomerPricesTable();
         } else if (tabName === 'einkaufsliste') {
             updateShoppingBusinessFilterOptions();
@@ -1036,7 +1036,7 @@
         renderOrders();
         renderArchive();
         updateCustomerFilterOptions();
-        updateSalesPricesDatalist();
+        updateCustomerPricesRecipeSelect();
         renderCustomerPricesTable();
         updateStandardPriceRecipeDatalist();
         renderCalculatedPricesTable();
@@ -1504,15 +1504,16 @@
         filterSelect.value = customers.includes(currentSelected) ? currentSelected : "ALL";
     }
 
-    function updateSalesPricesDatalist() {
-        const datalistEl = document.getElementById('sales-prices-datalist');
+    function updateCustomerPricesRecipeSelect() {
+        const datalistEl = document.getElementById('customer-recipes-datalist');
         if (!datalistEl) return;
+        
         datalistEl.innerHTML = '';
         
-        const sortedSalesPrices = [...salesPricesList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
-        sortedSalesPrices.forEach(sp => {
+        const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+        sortedRecipes.forEach(rec => {
             const opt = document.createElement('option');
-            opt.value = sp.name;
+            opt.value = rec.outputName;
             datalistEl.appendChild(opt);
         });
     }
@@ -1604,11 +1605,11 @@
     async function handleAddCustomerPrice(event) {
         event.preventDefault();
         const custInput = document.getElementById('cust-price-name');
-        const nameInput = document.getElementById('cust-price-item');
+        const itemInput = document.getElementById('cust-price-item');
         const valInput = document.getElementById('cust-price-val');
 
         const customerName = capitalizeText(custInput.value.trim());
-        const name = capitalizeText(nameInput.value.trim());
+        const name = capitalizeText(itemInput.value.trim());
         const price = parseFloat(valInput.value);
 
         if (!customerName || !name || isNaN(price)) return;
@@ -1638,7 +1639,7 @@
         }
 
         custInput.value = '';
-        nameInput.value = '';
+        itemInput.value = '';
         valInput.value = '';
         updateCustomerFilterOptions();
         updateOrderCustomerDatalist();
@@ -2170,6 +2171,7 @@
         document.getElementById('recipe-output-qty').value = '1';
         initRecipeIngredientInputs();
         updateRecipeSearchDatalist();
+        updateCustomerPricesRecipeSelect();
         renderRecipes();
         renderCalculatedPricesTable();
         updateStandardPriceRecipeDatalist();
@@ -2183,6 +2185,7 @@
                 recipesList = recipesList.filter(r => r.id !== id);
                 delete recipeTargetAmounts[id];
                 updateRecipeSearchDatalist();
+                updateCustomerPricesRecipeSelect();
                 renderRecipes();
                 renderCalculatedPricesTable();
                 updateStandardPriceRecipeDatalist();
