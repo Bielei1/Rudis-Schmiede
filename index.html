@@ -46,11 +46,12 @@
 
         .container {
             width: 100%;
-            max-width: 1400px;
+            /* Hier angepasst für eine deutlich breitere Ansicht */
+            max-width: 1800px;
             background: var(--card-bg);
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            padding: 24px;
+            padding: 30px;
             border: 1px solid var(--border-color);
         }
 
@@ -529,13 +530,14 @@
             </div>
         </details>
 
-        <h2>Aktive Kundenbestellungen & Preise</h2>
+        <h2>Aktive Kundenbestellungen & Rohmaterial-Bedarf</h2>
         <div class="table-container" style="margin-top: 16px;">
             <table>
                 <thead>
                     <tr>
                         <th>Kunde</th>
                         <th>Bestellte Artikel, Stückpreis & Gesamt</th>
+                        <th>Benötigte Rohmaterialien (Zutaten)</th>
                         <th>Aufgenommen am</th>
                         <th>Lager-Status</th>
                         <th>Aktion</th>
@@ -1077,6 +1079,29 @@
         return lowest;
     }
 
+    /* REKURSIVE FUNKTION ZUR ERMITTLUNG DER REINEN ROHMATERIALIEN */
+    function resolveRawMaterials(itemName, neededQty, accumulator = {}) {
+        const recipe = recipesList.find(r => r.outputName.toLowerCase() === itemName.toLowerCase());
+        
+        // Wenn kein Rezept existiert, ist es ein reines Rohmaterial / Basisartikel
+        if (!recipe || !recipe.ingredients || recipe.ingredients.length === 0 || recipe.outputQty <= 0) {
+            if (!accumulator[itemName]) {
+                accumulator[itemName] = 0;
+            }
+            accumulator[itemName] += neededQty;
+            return accumulator;
+        }
+
+        // Wenn ein Rezept existiert, wird der Bedarf auf die Durchläufe umgerechnet und rekursiv aufgelöst
+        let multiplier = Math.ceil(neededQty / recipe.outputQty);
+        recipe.ingredients.forEach(ing => {
+            let subNeeded = ing.qty * multiplier;
+            resolveRawMaterials(ing.name, subNeeded, accumulator);
+        });
+
+        return accumulator;
+    }
+
     /* LAGERBESTAND */
     function renderStockTable() {
         const tbody = document.getElementById('inventory-body');
@@ -1342,7 +1367,7 @@
         const tbody = document.getElementById('orders-table-body');
         tbody.innerHTML = '';
         if (ordersList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine aktiven Bestellungen.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine aktiven Bestellungen.</td></tr>`;
             return;
         }
 
@@ -1351,6 +1376,9 @@
             let itemsHtml = '';
             let allOk = true;
             let totalOrderSum = 0;
+
+            // Rekursiver Aggregator für reine Rohmaterialien über alle Bestellpositionen hinweg
+            let rawMaterialMap = {};
 
             order.items.forEach(ordItem => {
                 const available = getStockAmount(ordItem.name);
@@ -1364,15 +1392,35 @@
                 let badgeColor = priceInfo.type === 'Sonderpreis' ? '#38bdf8' : '#94a3b8';
 
                 itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${ordItem.qty}x</strong> ${ordItem.name} à $${priceInfo.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${priceInfo.type}</span> = <span style="color: #34d399; font-weight: 600;">$${itemTotal.toFixed(2)}</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${isEnough ? '#34d399' : '#f87171'}">${available}</span>)</span></div>`;
+
+                // Aufschlüsselung in reine Rohmaterialien via Rekursion
+                resolveRawMaterials(ordItem.name, ordItem.qty, rawMaterialMap);
             });
 
             itemsHtml += `<div style="margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 6px; font-weight: 700; color: #f59e0b;">Gesamtsumme Bestellung: $${totalOrderSum.toFixed(2)}</div>`;
 
-            let statusHtml = allOk ? `<span class="req-status status-ok">✓ Alles im Lager</span>` : `<span class="req-status status-missing">✕ Artikel fehlen</span>`;
+            // Rohmaterial-HTML zusammenbauen & Lagerbestand der reinen Rohmaterialien prüfen
+            let rawMaterialsHtml = '';
+            const rawKeys = Object.keys(rawMaterialMap);
+            if (rawKeys.length > 0) {
+                rawKeys.forEach(matName => {
+                    let reqQty = rawMaterialMap[matName];
+                    let stockQty = getStockAmount(matName);
+                    let hasEnoughMat = stockQty >= reqQty;
+                    if (!hasEnoughMat) allOk = false; // Status schlägt fehl, wenn ein reines Rohmaterial fehlt
+
+                    rawMaterialsHtml += `<div>• <strong>${reqQty}x</strong> ${matName} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${hasEnoughMat ? '#34d399' : '#f87171'}">${stockQty}</span>)</span></div>`;
+                });
+            } else {
+                rawMaterialsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Rohmaterialien definiert</span>`;
+            }
+
+            let statusHtml = allOk ? `<span class="req-status status-ok">✓ Alles im Lager</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
 
             tr.innerHTML = `
                 <td><div class="material-name" style="color: #38bdf8; font-size: 1.05rem;">${order.customerName}</div></td>
                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${itemsHtml}</div></td>
+                <td><div style="font-size: 0.9rem; line-height: 1.4;">${rawMaterialsHtml}</div></td>
                 <td class="time-text">${order.createdAt || '-'}</td>
                 <td>${statusHtml}</td>
                 <td>
