@@ -676,12 +676,10 @@
 </div>
 
 <script>
-    
     // Supabase Initialisierung
     const SUPABASE_URL = 'https://cobndqltfctyaihzqatt.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_GJhsLbNkikl3XCCO47sCCA_08NREIgY';
     
-    // Globalen Client sicher initialisieren, ohne Konflikte mit dem globalen 'supabase' Objekt
     if (!window.supabaseClient) {
         window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
