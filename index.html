@@ -896,7 +896,7 @@
                 <td>
                     <button class="btn btn-danger" onclick="deleteStockItem(${item.id})">Löschen</button>
                 </td>
-                <td class="time-text">${item.stockUpdated || '-'}</td>
+                <td class="time-text">${item.stockupdated || '-'}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -910,14 +910,14 @@
         const updatedTime = getCurrentTimeString();
         const { error } = await supabaseClient
             .from('inventory')
-            .update({ quantity: value, stockUpdated: updatedTime })
+            .update({ quantity: value, stockupdated: updatedTime })
             .eq('id', id);
 
         if (!error) {
             const item = inventoryList.find(i => i.id === id);
             if (item) {
                 item.quantity = value;
-                item.stockUpdated = updatedTime;
+                item.stockupdated = updatedTime;
                 renderStockTable();
                 renderRecipes();
                 renderOrders();
@@ -955,17 +955,17 @@
         if (existing) {
             const { error } = await supabaseClient
                 .from('inventory')
-                .update({ quantity: qty, stockUpdated: updatedTime })
+                .update({ quantity: qty, stockupdated: updatedTime })
                 .eq('id', existing.id);
 
             if (!error) {
                 existing.quantity = qty;
-                existing.stockUpdated = updatedTime;
+                existing.stockupdated = updatedTime;
             }
         } else {
             const { data, error } = await supabaseClient
                 .from('inventory')
-                .insert([{ name, quantity: qty, stockUpdated: updatedTime }])
+                .insert([{ name, quantity: qty, stockupdated: updatedTime }])
                 .select();
 
             if (!error && data) {
