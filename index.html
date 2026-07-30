@@ -46,7 +46,7 @@
 
         .container {
             width: 100%;
-            max-width: 1100px;
+            max-width: 1400px;
             background: var(--card-bg);
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
@@ -95,7 +95,18 @@
             gap: 6px;
             border-bottom: 2px solid var(--border-color);
             margin-bottom: 24px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+
+        .tabs::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .tabs::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
         }
 
         .tab-btn {
@@ -112,6 +123,7 @@
             transition: background-color 0.2s, color 0.2s;
             margin-bottom: -2px;
             user-select: none;
+            white-space: nowrap;
         }
 
         .tab-btn:active {
@@ -178,7 +190,7 @@
             color: var(--text-muted);
         }
 
-        input[type="number"], input[type="text"], select {
+        input[type="number"], input[type="text"], select, textarea {
             padding: 10px 14px;
             background-color: var(--input-bg);
             color: var(--text-color);
@@ -190,8 +202,13 @@
             width: 100%;
         }
 
-        input[type="number"]:focus, input[type="text"]:focus, select:focus {
+        input[type="number"]:focus, input[type="text"]:focus, select:focus, textarea:focus {
             border-color: var(--primary-color);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
         }
 
         .btn {
@@ -366,6 +383,50 @@
             color: var(--text-muted);
             font-size: 0.85rem;
         }
+
+        details {
+            background-color: #162032;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            transition: background-color 0.2s;
+        }
+
+        details[open] {
+            background-color: #162032;
+        }
+
+        summary {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-color);
+            cursor: pointer;
+            outline: none;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        summary::-webkit-details-marker {
+            display: none;
+        }
+
+        summary::after {
+            content: '▼';
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            transition: transform 0.2s;
+        }
+
+        details[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        details > *:not(summary) {
+            margin-top: 16px;
+        }
     </style>
 </head>
 <body>
@@ -394,7 +455,7 @@
             <form class="add-form" onsubmit="handleAddStockItem(event)">
                 <div class="form-group">
                     <label for="stock-add-name">Artikelname</label>
-                    <input type="text" id="stock-add-name" placeholder="z. B. Kupferbarren, Eisenbarren" required />
+                    <input type="text" id="stock-add-name" placeholder="z. B. Lagerprodukt" required />
                 </div>
                 <div class="form-group" style="max-width: 200px;">
                     <label for="stock-add-qty">Anfangsbestand</label>
@@ -422,26 +483,29 @@
 
     <!-- TAB 2: BESTELLUNGEN -->
     <div id="tab-bestellungen" class="tab-content">
-        <div class="add-card">
-            <h2>+ Neue Kundenbestellung erfassen</h2>
-            <form id="order-add-form" onsubmit="handleAddOrder(event)">
-                <div class="add-form" style="margin-bottom: 12px;">
-                    <div class="form-group">
-                        <label for="order-customer-input">Kundenname (Auswählen oder neu eintippen)</label>
-                        <input type="text" id="order-customer-input" list="customer-datalist" placeholder="Bestehenden wählen oder neuen Namen tippen..." required />
-                        <datalist id="customer-datalist"></datalist>
+        <details>
+            <summary>+ Neue Kundenbestellung erfassen</summary>
+            <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
+                <h2>+ Neue Kundenbestellung erfassen</h2>
+                <form id="order-add-form" onsubmit="handleAddOrder(event)">
+                    <div class="add-form" style="margin-bottom: 12px;">
+                        <div class="form-group">
+                            <label for="order-customer-input">Kundenname (Auswählen oder neu eintippen)</label>
+                            <input type="text" id="order-customer-input" list="customer-datalist" placeholder="Bestehenden wählen oder neuen Namen tippen..." required />
+                            <datalist id="customer-datalist"></datalist>
+                        </div>
                     </div>
-                </div>
 
-                <div style="margin-bottom: 12px;">
-                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Bestellte Artikel</label>
-                    <div id="order-items-container"></div>
-                    <button type="button" class="btn" style="background-color: #334155; height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addOrderPositionInput()">+ Artikel hinzufügen</button>
-                </div>
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Bestellte Artikel</label>
+                        <div id="order-items-container"></div>
+                        <button type="button" class="btn" style="background-color: #334155; height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addOrderPositionInput()">+ Artikel hinzufügen</button>
+                    </div>
 
-                <button type="submit" class="btn btn-success">Bestellung speichern</button>
-            </form>
-        </div>
+                    <button type="submit" class="btn btn-success">Bestellung speichern</button>
+                </form>
+            </div>
+        </details>
 
         <h2>Aktive Kundenbestellungen & Preise</h2>
         <div class="table-container" style="margin-top: 16px;">
@@ -494,7 +558,8 @@
                 </div>
                 <div class="form-group">
                     <label for="cust-price-item">Artikelname</label>
-                    <input type="text" id="cust-price-item" placeholder="z. B. Eisenbarren" required />
+                    <input type="text" id="cust-price-item" list="sales-prices-datalist" oninput="handleCustomerItemInput()" placeholder="Artikel wählen oder eintippen..." required />
+                    <datalist id="sales-prices-datalist"></datalist>
                 </div>
                 <div class="form-group" style="max-width: 180px;">
                     <label for="cust-price-val">Sonderpreis ($)</label>
@@ -530,21 +595,50 @@
 
     <!-- TAB 5: VERKAUFSPREISE -->
     <div id="tab-verkaufspreise" class="tab-content">
-        <div class="add-card">
-            <h2>+ Neuen Standard-Verkaufspreis hinzufügen</h2>
-            <form class="add-form" onsubmit="handleAddPriceItem(event)">
-                <div class="form-group">
-                    <label for="price-add-name">Artikelname</label>
-                    <input type="text" id="price-add-name" placeholder="z. B. Messingblech" required />
-                </div>
-                <div class="form-group" style="max-width: 200px;">
-                    <label for="price-add-price">Standard-Verkaufspreis ($)</label>
-                    <input type="number" id="price-add-price" step="0.01" placeholder="0.00" min="0" required />
-                </div>
-                <button type="submit" class="btn btn-success">Artikel hinzufügen</button>
-            </form>
-        </div>
+        
+        <!-- Sektion 1: Automatische Verkaufspreise (Einklappbar) -->
+        <details>
+            <summary>Automatische Verkaufspreise (Rechner)</summary>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; margin-top: 10px;">
+                Hier werden die Kosten für Rezepte anhand des <strong>günstigsten Einkaufspreises</strong> der Zutaten ermittelt. Trage deinen gewünschten Gewinnaufschlag in Prozent ein, um den Verkaufspreis automatisch zu berechnen.
+            </div>
 
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Endprodukt (aus Rezepten)</th>
+                            <th>Herstellungskosten (Stk.)</th>
+                            <th>Gewinn-Marge (%)</th>
+                            <th>Berechneter VK ($)</th>
+                            <th>Aktion</th>
+                        </tr>
+                    </thead>
+                    <tbody id="calculated-prices-body"></tbody>
+                </table>
+            </div>
+        </details>
+
+        <!-- Sektion 2: Manuelle Standard-Verkaufspreise & Neuer Standardverkaufspreis -->
+        <details>
+            <summary>Neuen Standard-Verkaufspreis hinzufügen</summary>
+            <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
+                <h2>+ Neuen Standard-Verkaufspreis hinzufügen</h2>
+                <form class="add-form" onsubmit="handleAddPriceItem(event)">
+                    <div class="form-group">
+                        <label for="price-add-name">Artikelname</label>
+                        <input type="text" id="price-add-name" placeholder="z. B. Messingblech" required />
+                    </div>
+                    <div class="form-group" style="max-width: 200px;">
+                        <label for="price-add-price">Standard-Verkaufspreis ($)</label>
+                        <input type="number" id="price-add-price" step="0.01" placeholder="0.00" min="0" required />
+                    </div>
+                    <button type="submit" class="btn btn-success">Artikel hinzufügen</button>
+                </form>
+            </div>
+        </details>
+
+        <h2 style="font-size: 1.1rem; margin-top: 24px; margin-bottom: 12px; color: var(--text-color);">Manuelle Standard-Verkaufspreise</h2>
         <div class="table-container">
             <table>
                 <thead>
@@ -559,6 +653,7 @@
                 <tbody id="prices-body"></tbody>
             </table>
         </div>
+
     </div>
 
     <!-- TAB 6: EINKAUFSPREISE -->
@@ -634,37 +729,40 @@
 
     <!-- TAB 8: HERSTELLUNG -->
     <div id="tab-herstellung" class="tab-content">
-        <div class="add-card">
-            <h2>+ Neues Rezept hinzufügen</h2>
-            <form id="recipe-add-form" onsubmit="handleAddRecipe(event)">
-                <div class="add-form" style="margin-bottom: 12px;">
-                    <div class="form-group">
-                        <label for="recipe-output-name">Endprodukt-Name</label>
-                        <input type="text" id="recipe-output-name" placeholder="z. B. Messingblech" required />
+        <details>
+            <summary>+ Neues Rezept hinzufügen</summary>
+            <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
+                <h2>+ Neues Rezept hinzufügen</h2>
+                <form id="recipe-add-form" onsubmit="handleAddRecipe(event)">
+                    <div class="add-form" style="margin-bottom: 12px;">
+                        <div class="form-group">
+                            <label for="recipe-output-input">Endproduktartikel</label>
+                            <input type="text" id="recipe-output-input" placeholder="Endprodukt eintragen..." required />
+                        </div>
+                        <div class="form-group" style="max-width: 180px;">
+                            <label for="recipe-output-qty">Ertrag (Stk.)</label>
+                            <input type="number" id="recipe-output-qty" placeholder="1" min="1" value="1" required />
+                        </div>
                     </div>
-                    <div class="form-group" style="max-width: 180px;">
-                        <label for="recipe-output-qty">Ertrag (Stück)</label>
-                        <input type="number" id="recipe-output-qty" placeholder="1" min="1" value="1" required />
+
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Benötigte Zutaten</label>
+                        <div id="recipe-ingredients-container"></div>
+                        <button type="button" class="btn" style="background-color: #334155; height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addRecipeIngredientInput()">+ Zutat hinzufügen</button>
                     </div>
-                </div>
 
-                <div style="margin-bottom: 12px;">
-                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Benötigte Zutaten</label>
-                    <div id="recipe-ingredients-container"></div>
-                    <button type="button" class="btn" style="background-color: #334155; height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addRecipeIngredientInput()">+ Zutat hinzufügen</button>
-                </div>
-
-                <button type="submit" class="btn btn-success">Rezept speichern</button>
-            </form>
-        </div>
+                    <button type="submit" class="btn btn-success">Rezept speichern</button>
+                </form>
+            </div>
+        </details>
 
         <h2>Verfügbare Rezepte & Herstellung</h2>
         <div class="table-container" style="margin-top: 16px;">
             <table>
                 <thead>
                     <tr>
-                        <th>Endprodukt</th>
-                        <th>Gewünschte Menge & Bedarf</th>
+                        <th>Endprodukt & Gewünschte Menge</th>
+                        <th>Bedarf</th>
                         <th>Status im Lager</th>
                         <th>Aktion</th>
                     </tr>
@@ -733,6 +831,8 @@
     let purchasePricesList = [];
     let shoppingListQuantities = {};
     let recipesList = [];
+    let recipeMargins = {};
+    let recipeTargetAmounts = {}; // Speichert die gewünschten Mengen pro Rezept-ID
 
     function getCurrentTimeString() {
         const now = new Date();
@@ -757,14 +857,19 @@
             renderRecipes();
         } else if (tabName === 'bestellungen') {
             updateOrderCustomerDatalist();
+            updateOrderRecipeSelects();
             renderOrders();
         } else if (tabName === 'archiv') {
             renderArchive();
         } else if (tabName === 'kunden') {
             updateCustomerFilterOptions();
+            updateSalesPricesDatalist();
             renderCustomerPricesTable();
         } else if (tabName === 'einkaufsliste') {
             renderShoppingList();
+        } else if (tabName === 'verkaufspreise') {
+            renderCalculatedPricesTable();
+            renderPriceTable();
         }
     }
 
@@ -844,10 +949,13 @@
     function renderTables() {
         renderStockTable();
         updateOrderCustomerDatalist();
+        updateOrderRecipeSelects();
         renderOrders();
         renderArchive();
         updateCustomerFilterOptions();
+        updateSalesPricesDatalist();
         renderCustomerPricesTable();
+        renderCalculatedPricesTable();
         renderPriceTable();
         updateBusinessFilterOptions();
         renderCostTable();
@@ -872,6 +980,16 @@
         }
 
         return { price: 0.00, type: 'Kein Preis' };
+    }
+
+    function getLowestPurchaseCost(itemName) {
+        const matches = purchasePricesList.filter(p => p.name.toLowerCase() === itemName.toLowerCase());
+        if (matches.length === 0) return 0.00;
+        let lowest = matches[0].cost;
+        matches.forEach(m => {
+            if (m.cost < lowest) lowest = m.cost;
+        });
+        return lowest;
     }
 
     /* LAGERBESTAND */
@@ -993,19 +1111,45 @@
         });
     }
 
+    function updateOrderRecipeSelects() {
+        const selects = document.querySelectorAll('.ord-name-select');
+        const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+
+        selects.forEach(select => {
+            const currentValue = select.value;
+            select.innerHTML = '<option value="" disabled selected>-- Artikel wählen --</option>';
+            sortedRecipes.forEach(rec => {
+                const opt = document.createElement('option');
+                opt.value = rec.outputName;
+                opt.innerText = rec.outputName;
+                if (rec.outputName === currentValue) opt.selected = true;
+                select.appendChild(opt);
+            });
+        });
+    }
+
     function initOrderPositionInputs() {
         const container = document.getElementById('order-items-container');
         container.innerHTML = '';
-        addOrderPositionInput("Eisenbarren", 10);
-        addOrderPositionInput("Stahlbarren", 20);
+        addOrderPositionInput();
     }
 
     function addOrderPositionInput(defaultName = "", defaultQty = "") {
         const container = document.getElementById('order-items-container');
         const div = document.createElement('div');
         div.className = 'order-item-row';
+        
+        const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+        let optionsHtml = '<option value="" disabled selected>-- Artikel wählen --</option>';
+        sortedRecipes.forEach(rec => {
+            const isSelected = rec.outputName === defaultName ? 'selected' : '';
+            optionsHtml += `<option value="${rec.outputName}" ${isSelected}>${rec.outputName}</option>`;
+        });
+
         div.innerHTML = `
-            <input type="text" class="ord-name" placeholder="Artikel" value="${defaultName}" required style="flex:2;" />
+            <select class="ord-name-select" required style="flex:2;">
+                ${optionsHtml}
+            </select>
             <input type="number" class="ord-qty" placeholder="Anzahl" min="1" value="${defaultQty || 1}" required style="flex:1; max-width: 100px;" />
             <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="height: 40px;">✕</button>
         `;
@@ -1021,12 +1165,16 @@
         const items = [];
 
         rows.forEach(row => {
-            const name = capitalizeText(row.querySelector('.ord-name').value.trim());
-            const qty = parseInt(row.querySelector('.ord-qty').value, 10);
-            if (name && !isNaN(qty) && qty > 0) items.push({ name, qty });
+            const nameSelect = row.querySelector('.ord-name-select');
+            const qtyInput = row.querySelector('.ord-qty');
+            if (nameSelect && qtyInput) {
+                const name = nameSelect.value;
+                const qty = parseInt(qtyInput.value, 10);
+                if (name && !isNaN(qty) && qty > 0) items.push({ name, qty });
+            }
         });
 
-        if (items.length === 0) return alert("Mindestens einen Artikel angeben.");
+        if (items.length === 0) return alert("Mindestens einen Artikel aus dem Dropdown angeben.");
 
         const createdAt = getCurrentTimeString();
         const { data, error } = await supabaseClient
@@ -1223,6 +1371,31 @@
         filterSelect.value = customers.includes(currentSelected) ? currentSelected : "ALL";
     }
 
+    function updateSalesPricesDatalist() {
+        const datalistEl = document.getElementById('sales-prices-datalist');
+        if (!datalistEl) return;
+        datalistEl.innerHTML = '';
+        
+        const sortedSalesPrices = [...salesPricesList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+        sortedSalesPrices.forEach(sp => {
+            const opt = document.createElement('option');
+            opt.value = sp.name;
+            datalistEl.appendChild(opt);
+        });
+    }
+
+    function handleCustomerItemInput() {
+        const itemInput = document.getElementById('cust-price-item');
+        const priceInput = document.getElementById('cust-price-val');
+        if (!itemInput || !priceInput) return;
+
+        const typedName = itemInput.value.trim().toLowerCase();
+        const found = salesPricesList.find(sp => sp.name.toLowerCase() === typedName);
+        if (found) {
+            priceInput.value = found.price.toFixed(2);
+        }
+    }
+
     function renderCustomerPricesTable() {
         const tbody = document.getElementById('customer-prices-body');
         tbody.innerHTML = '';
@@ -1340,9 +1513,114 @@
         renderOrders();
     }
 
-    /* VERKAUFSPREISE */
+    /* AUTOMATISCHER PREIS-RECHNER FÜR VERKAUFSPREISE */
+    function renderCalculatedPricesTable() {
+        const tbody = document.getElementById('calculated-prices-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (recipesList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte vorhanden. Bitte erst im Tab „Herstellung“ Rezepte anlegen.</td></tr>`;
+            return;
+        }
+
+        const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+
+        sortedRecipes.forEach(recipe => {
+            let totalIngredientCost = 0;
+            recipe.ingredients.forEach(ing => {
+                const bestCost = getLowestPurchaseCost(ing.name);
+                totalIngredientCost += ing.qty * bestCost;
+            });
+
+            let costPerUnit = recipe.outputQty > 0 ? (totalIngredientCost / recipe.outputQty) : 0;
+            let margin = recipeMargins[recipe.id] !== undefined ? recipeMargins[recipe.id] : 20;
+            let calculatedPrice = costPerUnit * (1 + (margin / 100));
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div class="material-name" style="color: #38bdf8;">${recipe.outputName} <span style="font-size: 0.85rem; color: #34d399; font-weight: 600; margin-left: 8px;">(${recipe.outputQty} Stk.)</span></div>
+                </td>
+                <td><span class="current-cost">$${costPerUnit.toFixed(2)}</span></td>
+                <td>
+                    <div class="adjust-box">
+                        <input type="number" id="margin-input-${recipe.id}" value="${margin}" step="1" oninput="updateCalculatedPriceRow(${recipe.id})" style="width: 90px;" /> %
+                    </div>
+                </td>
+                <td><span id="calc-price-display-${recipe.id}" class="current-price">$${calculatedPrice.toFixed(2)}</span></td>
+                <td>
+                    <button class="btn btn-success" onclick="applyCalculatedPrice('${recipe.outputName}', ${recipe.id})" style="height: 38px; font-size: 0.85rem;">Als Standard-VK übernehmen</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function updateCalculatedPriceRow(recipeId) {
+        const recipe = recipesList.find(r => r.id === recipeId);
+        const marginInput = document.getElementById(`margin-input-${recipeId}`);
+        const displayEl = document.getElementById(`calc-price-display-${recipeId}`);
+        if (!recipe || !marginInput || !displayEl) return;
+
+        let margin = parseFloat(marginInput.value);
+        if (isNaN(margin)) margin = 0;
+        recipeMargins[recipeId] = margin;
+
+        let totalIngredientCost = 0;
+        recipe.ingredients.forEach(ing => {
+            const bestCost = getLowestPurchaseCost(ing.name);
+            totalIngredientCost += ing.qty * bestCost;
+        });
+
+        let costPerUnit = recipe.outputQty > 0 ? (totalIngredientCost / recipe.outputQty) : 0;
+        let calculatedPrice = costPerUnit * (1 + (margin / 100));
+        displayEl.innerText = `$${calculatedPrice.toFixed(2)}`;
+    }
+
+    async function applyCalculatedPrice(itemName, recipeId) {
+        const displayEl = document.getElementById(`calc-price-display-${recipeId}`);
+        if (!displayEl) return;
+        const priceVal = parseFloat(displayEl.innerText.replace('$', ''));
+        if (isNaN(priceVal)) return;
+
+        const priceUpdated = getCurrentTimeString();
+        const existing = salesPricesList.find(i => i.name.toLowerCase() === itemName.toLowerCase());
+
+        if (existing) {
+            const { error } = await supabaseClient
+                .from('sales_prices')
+                .update({ price: priceVal, priceUpdated })
+                .eq('id', existing.id);
+
+            if (!error) {
+                existing.price = priceVal;
+                existing.priceUpdated = priceUpdated;
+                alert(`Verkaufspreis für "${itemName}" auf $${priceVal.toFixed(2)} aktualisiert!`);
+                renderPriceTable();
+                updateSalesPricesDatalist();
+                renderOrders();
+            }
+        } else {
+            const { data, error } = await supabaseClient
+                .from('sales_prices')
+                .insert([{ name: itemName, price: priceVal, priceUpdated }])
+                .select();
+
+            if (!error && data) {
+                salesPricesList.push(data[0]);
+                alert(`Verkaufspreis für "${itemName}" mit $${priceVal.toFixed(2)} neu angelegt!`);
+                renderPriceTable();
+                updateSalesPricesDatalist();
+                renderOrders();
+            }
+        }
+    }
+
+    /* VERKAUFSPREISE (STANDARD) */
     function renderPriceTable() {
         const tbody = document.getElementById('prices-body');
+        if (!tbody) return;
         tbody.innerHTML = '';
         const sortedList = [...salesPricesList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
@@ -1382,6 +1660,7 @@
                 item.priceUpdated = priceUpdated;
                 inputEl.value = '';
                 renderPriceTable();
+                updateSalesPricesDatalist();
                 renderOrders();
             }
         }
@@ -1393,6 +1672,7 @@
             if (!error) {
                 salesPricesList = salesPricesList.filter(i => i.id !== id);
                 renderPriceTable();
+                updateSalesPricesDatalist();
                 renderOrders();
             }
         }
@@ -1432,6 +1712,7 @@
         nameInput.value = '';
         priceInput.value = '';
         renderPriceTable();
+        updateSalesPricesDatalist();
         renderOrders();
     }
 
@@ -1453,6 +1734,7 @@
 
     function renderCostTable() {
         const tbody = document.getElementById('costs-body');
+        if (!tbody) return;
         tbody.innerHTML = '';
         const selectedFilter = document.getElementById('business-filter').value;
 
@@ -1515,6 +1797,7 @@
                     updateBusinessFilterOptions();
                     renderCostTable();
                     renderShoppingList();
+                    renderCalculatedPricesTable();
                 }
             }
         }
@@ -1528,6 +1811,7 @@
                 updateBusinessFilterOptions();
                 renderCostTable();
                 renderShoppingList();
+                renderCalculatedPricesTable();
             }
         }
     }
@@ -1574,6 +1858,7 @@
         updateBusinessFilterOptions();
         renderCostTable();
         renderShoppingList();
+        renderCalculatedPricesTable();
     }
 
     /* EINKAUFSLISTE */
@@ -1650,18 +1935,19 @@
     /* HERSTELLUNG */
     function initRecipeIngredientInputs() {
         const container = document.getElementById('recipe-ingredients-container');
+        if (!container) return;
         container.innerHTML = '';
-        addRecipeIngredientInput("Kupferbarren", 1);
-        addRecipeIngredientInput("Eisenbarren", 1);
+        addRecipeIngredientInput("", "");
     }
 
     function addRecipeIngredientInput(defaultName = "", defaultQty = "") {
         const container = document.getElementById('recipe-ingredients-container');
+        if (!container) return;
         const div = document.createElement('div');
         div.className = 'recipe-ingredient-row';
         div.style.cssText = 'display: flex; gap: 8px; align-items: center; margin-bottom: 8px;';
         div.innerHTML = `
-            <input type="text" class="rec-ing-name" placeholder="Zutaten-Artikel" value="${defaultName}" required style="flex:2;" />
+            <input type="text" class="rec-ing-name" placeholder="Zutatenartikel" value="${defaultName}" required style="flex:2;" />
             <input type="number" class="rec-ing-qty" placeholder="Anzahl" min="1" value="${defaultQty || 1}" required style="flex:1; max-width: 100px;" />
             <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="height: 40px;">✕</button>
         `;
@@ -1670,7 +1956,7 @@
 
     async function handleAddRecipe(event) {
         event.preventDefault();
-        const outputName = capitalizeText(document.getElementById('recipe-output-name').value.trim());
+        const outputName = capitalizeText(document.getElementById('recipe-output-input').value.trim());
         const outputQty = parseInt(document.getElementById('recipe-output-qty').value, 10);
 
         if (!outputName || isNaN(outputQty) || outputQty < 1) return alert("Bitte gültiges Endprodukt und Ertrag eingeben.");
@@ -1709,10 +1995,12 @@
             }
         }
 
-        document.getElementById('recipe-output-name').value = '';
+        document.getElementById('recipe-output-input').value = '';
         document.getElementById('recipe-output-qty').value = '1';
         initRecipeIngredientInputs();
         renderRecipes();
+        renderCalculatedPricesTable();
+        updateOrderRecipeSelects();
     }
 
     async function deleteRecipe(id) {
@@ -1720,7 +2008,10 @@
             const { error } = await supabaseClient.from('recipes').delete().eq('id', id);
             if (!error) {
                 recipesList = recipesList.filter(r => r.id !== id);
+                delete recipeTargetAmounts[id];
                 renderRecipes();
+                renderCalculatedPricesTable();
+                updateOrderRecipeSelects();
             }
         }
     }
@@ -1732,6 +2023,7 @@
 
     function renderRecipes() {
         const tbody = document.getElementById('recipes-table-body');
+        if (!tbody) return;
         tbody.innerHTML = '';
         if (recipesList.length === 0) {
             tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte vorhanden.</td></tr>`;
@@ -1740,17 +2032,20 @@
 
         recipesList.forEach(recipe => {
             const targetInputId = `craft-target-${recipe.id}`;
+            const currentVal = recipeTargetAmounts[recipe.id] !== undefined ? recipeTargetAmounts[recipe.id] : recipe.outputQty;
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <div class="material-name" style="color: #38bdf8;">${recipe.outputName}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">Ertrag: ${recipe.outputQty}x pro Durchgang</div>
+                    <div class="material-name" style="color: #38bdf8; font-size: 1.15rem; font-weight: 700; margin-bottom: 10px;">
+                        ${recipe.outputName} <span style="font-size: 1.1rem; color: #34d399; font-weight: 700; margin-left: 8px;">${recipe.outputQty} Stk.</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="number" id="${targetInputId}" min="1" value="${currentVal}" style="width: 90px;" oninput="updateRecipeDynamicView(${recipe.id})" />
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Gewünschte Menge</span>
+                    </div>
                 </td>
                 <td>
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                        <input type="number" id="${targetInputId}" min="1" value="${recipe.outputQty}" style="width: 90px;" oninput="updateRecipeDynamicView(${recipe.id})" />
-                        <span style="font-size: 0.85rem; color: var(--text-muted);">Gewünscht</span>
-                    </div>
                     <div id="ingredients-view-${recipe.id}" style="font-size: 0.9rem;"></div>
                 </td>
                 <td><div id="status-box-${recipe.id}"></div></td>
@@ -1768,13 +2063,18 @@
         if (!recipe) return;
 
         const targetInput = document.getElementById(`craft-target-${recipeId}`);
+        if (!targetInput) return;
+        
         let targetAmount = parseInt(targetInput.value, 10);
         if (isNaN(targetAmount) || targetAmount < 1) targetAmount = 1;
+
+        recipeTargetAmounts[recipeId] = targetAmount;
 
         let multiplier = Math.ceil(targetAmount / recipe.outputQty);
         let actualProduced = multiplier * recipe.outputQty;
         const ingredientsView = document.getElementById(`ingredients-view-${recipeId}`);
         const statusBox = document.getElementById(`status-box-${recipeId}`);
+        if (!ingredientsView || !statusBox) return;
 
         let detailsHtml = '';
         let canCraft = true;
@@ -1791,51 +2091,32 @@
         statusBox.innerHTML = canCraft ? `<span class="req-status status-ok">✓ Genug Material</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
     }
 
-// Automatische Live-Synchronisation via Supabase Realtime einrichten
-const tablesToWatch = [
-    'inventory', 
-    'orders', 
-    'archive', 
-    'customer_prices', 
-    'sales_prices', 
-    'purchase_prices', 
-    'recipes'
-];
+    const tablesToWatch = [
+        'inventory', 
+        'orders', 
+        'archive', 
+        'customer_prices', 
+        'sales_prices', 
+        'purchase_prices', 
+        'recipes'
+    ];
 
-tablesToWatch.forEach(tableName => {
-    supabaseClient
-        .channel(`public:${tableName}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: tableName }, payload => {
-            // Sobald sich in der Tabelle etwas ändert, Daten im Hintergrund neu laden und Ansicht aktualisieren
-            loadDataFromSupabase();
-        })
-        .subscribe();
-});
+    tablesToWatch.forEach(tableName => {
+        supabaseClient
+            .channel(`public:${tableName}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: tableName }, payload => {
+                loadDataFromSupabase();
+            })
+            .subscribe();
+    });
     
     initOrderPositionInputs();
     initRecipeIngredientInputs();
     loadDataFromSupabase();
 
-    // --- Hier den Realtime-Listener oder den Polling-Fallback einfügen ---
-
-// Methode A: Polling (lädt die Daten alle 5 Sekunden sicher neu)
-setInterval(() => {
-    loadDataFromSupabase();
-}, 5000);
-
-// ODER Methode B: Supabase Realtime (wobei 'supabase' der Name deines Clients sein muss)
-/*
-supabase
-  .channel('custom-all-changes')
-  .on(
-    'postgres_changes',
-    { event: '*', schema: 'public' },
-    (payload) => {
-      loadDataFromSupabase();
-    }
-  )
-  .subscribe();
-*/
+    setInterval(() => {
+        loadDataFromSupabase();
+    }, 5000);
 </script>
 
 </body>
