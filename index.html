@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rudis Schmiede - Verwaltung</title>
-    <!-- Supabase Client Bibliothek per CDN einbinden -->
+    <!-- Supabase JS Client per CDN einbinden -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg-color: #0b1120;
-            --card-bg: #111c30;
-            --box-bg: #17253e;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
             --text-color: #f8fafc;
             --text-muted: #94a3b8;
             --primary-color: #3b82f6;
@@ -19,11 +18,11 @@
             --success-hover: #059669;
             --danger-color: #ef4444;
             --danger-hover: #dc2626;
-            --border-color: #223354;
-            --table-header-bg: #111c30;
-            --input-bg: #0b1120;
-            --tab-active-bg: #17253e;
-            --tab-inactive-bg: #0b1120;
+            --border-color: #334155;
+            --table-header-bg: #0f172a;
+            --input-bg: #0f172a;
+            --tab-active-bg: #1e293b;
+            --tab-inactive-bg: #0f172a;
         }
 
         * {
@@ -36,26 +35,27 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            padding: 40px 20px;
+            padding: 30px 20px;
             display: flex;
             justify-content: center;
         }
 
         .container {
             width: 100%;
-            max-width: 1200px;
+            max-width: 1100px;
             background: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            padding: 24px;
             border: 1px solid var(--border-color);
         }
 
+        /* Bearbeitbare Überschrift */
         .editable-title-container {
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 28px;
+            margin-bottom: 20px;
         }
 
         h1 {
@@ -70,7 +70,7 @@
         }
 
         h1:hover {
-            background-color: var(--box-bg);
+            background-color: #162032;
             border-color: var(--border-color);
         }
 
@@ -87,11 +87,12 @@
             max-width: 400px;
         }
 
+        /* Tabs Styles */
         .tabs {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             border-bottom: 2px solid var(--border-color);
-            margin-bottom: 28px;
+            margin-bottom: 24px;
             flex-wrap: wrap;
         }
 
@@ -100,7 +101,7 @@
             color: var(--text-muted);
             border: 1px solid var(--border-color);
             border-bottom: none;
-            padding: 10px 18px;
+            padding: 10px 16px;
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
             cursor: grab;
@@ -117,7 +118,7 @@
 
         .tab-btn:hover {
             color: var(--text-color);
-            background-color: var(--box-bg);
+            background-color: #1a2332;
         }
 
         .tab-btn.active {
@@ -138,26 +139,27 @@
             display: block;
         }
 
+        /* Formular Karten */
         .add-card {
-            background-color: var(--box-bg);
+            background-color: #162032;
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 28px;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
         }
 
         .add-card h2 {
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             color: var(--text-muted);
-            margin-bottom: 14px;
+            margin-bottom: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 0.5px;
         }
 
         .add-form {
             display: flex;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: 12px;
             align-items: flex-end;
         }
 
@@ -166,7 +168,7 @@
             flex-direction: column;
             gap: 6px;
             flex: 1;
-            min-width: 180px;
+            min-width: 160px;
         }
 
         .form-group label {
@@ -180,7 +182,7 @@
             background-color: var(--input-bg);
             color: var(--text-color);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 6px;
             font-size: 0.95rem;
             outline: none;
             transition: border-color 0.2s;
@@ -196,7 +198,7 @@
             color: white;
             border: none;
             padding: 10px 18px;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
             font-size: 0.9rem;
@@ -225,7 +227,6 @@
             padding: 6px 12px;
             height: auto;
             font-size: 0.8rem;
-            border-radius: 6px;
         }
 
         .btn-danger:hover {
@@ -236,12 +237,13 @@
             transform: scale(0.98);
         }
 
+        /* Filter Section */
         .filter-card {
-            background-color: var(--box-bg);
+            background-color: #162032;
             border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 14px 18px;
-            margin-bottom: 20px;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -258,38 +260,39 @@
             max-width: 300px;
         }
 
-        .order-item-row {
+        .ingredient-row, .order-item-row {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .req-status {
             font-size: 0.82rem;
             font-weight: 600;
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 4px 8px;
+            border-radius: 4px;
             display: inline-block;
+            margin-top: 4px;
         }
 
         .status-ok {
-            background-color: rgba(16, 185, 129, 0.15);
+            background-color: rgba(16, 185, 129, 0.2);
             color: #34d399;
             border: 1px solid #10b981;
         }
 
         .status-missing {
-            background-color: rgba(239, 68, 68, 0.15);
+            background-color: rgba(239, 68, 68, 0.2);
             color: #f87171;
             border: 1px solid #ef4444;
         }
 
+        /* Table Styles */
         .table-container {
             overflow-x: auto;
-            border-radius: 10px;
+            border-radius: 8px;
             border: 1px solid var(--border-color);
-            background-color: var(--box-bg);
         }
 
         table {
@@ -299,7 +302,7 @@
         }
 
         th, td {
-            padding: 16px 18px;
+            padding: 14px 16px;
             border-bottom: 1px solid var(--border-color);
             vertical-align: middle;
         }
@@ -308,9 +311,9 @@
             background-color: var(--table-header-bg);
             font-weight: 600;
             color: var(--text-muted);
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 0.5px;
         }
 
         tr:last-child td {
@@ -324,7 +327,7 @@
 
         .business-badge {
             display: inline-block;
-            background-color: var(--border-color);
+            background-color: #334155;
             color: #cbd5e1;
             padding: 4px 10px;
             border-radius: 12px;
@@ -375,18 +378,18 @@
 
     <!-- Haupt-Tabs -->
     <div class="tabs" id="tabs-container">
-        <button class="tab-btn" draggable="true" data-tab="lagerbestand" onclick="switchTab('lagerbestand')">Lagerbestand</button>
+        <button class="tab-btn active" draggable="true" data-tab="lagerbestand" onclick="switchTab('lagerbestand')">Lagerbestand</button>
         <button class="tab-btn" draggable="true" data-tab="bestellungen" onclick="switchTab('bestellungen')">Bestellungen</button>
         <button class="tab-btn" draggable="true" data-tab="archiv" onclick="switchTab('archiv')">Bestellung Archiv</button>
         <button class="tab-btn" draggable="true" data-tab="kunden" onclick="switchTab('kunden')">Kunden-Preise</button>
         <button class="tab-btn" draggable="true" data-tab="verkaufspreise" onclick="switchTab('verkaufspreise')">Verkaufspreise</button>
         <button class="tab-btn" draggable="true" data-tab="einkaufspreise" onclick="switchTab('einkaufspreise')">Einkaufspreise</button>
         <button class="tab-btn" draggable="true" data-tab="einkaufsliste" onclick="switchTab('einkaufsliste')">Einkaufsliste</button>
-        <button class="tab-btn active" draggable="true" data-tab="herstellung" onclick="switchTab('herstellung')">Herstellung</button>
+        <button class="tab-btn" draggable="true" data-tab="herstellung" onclick="switchTab('herstellung')">Herstellung</button>
     </div>
 
     <!-- TAB 1: LAGERBESTAND -->
-    <div id="tab-lagerbestand" class="tab-content">
+    <div id="tab-lagerbestand" class="tab-content active">
         <div class="add-card">
             <h2>+ Neuen Artikel hinzufügen</h2>
             <form class="add-form" onsubmit="handleAddStockItem(event)">
@@ -431,18 +434,18 @@
                     </div>
                 </div>
 
-                <div style="margin-bottom: 14px;">
+                <div style="margin-bottom: 12px;">
                     <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Bestellte Artikel</label>
                     <div id="order-items-container"></div>
-                    <button type="button" class="btn" style="background-color: var(--border-color); height: 34px; font-size: 0.8rem; margin-top: 6px;" onclick="addOrderPositionInput()">+ Artikel hinzufügen</button>
+                    <button type="button" class="btn" style="background-color: #334155; height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addOrderPositionInput()">+ Artikel hinzufügen</button>
                 </div>
 
                 <button type="submit" class="btn btn-success">Bestellung speichern</button>
             </form>
         </div>
 
-        <h2 style="font-size: 1.1rem; margin-bottom: 16px;">Aktive Kundenbestellungen & Preise</h2>
-        <div class="table-container">
+        <h2>Aktive Kundenbestellungen & Preise</h2>
+        <div class="table-container" style="margin-top: 16px;">
             <table>
                 <thead>
                     <tr>
@@ -461,7 +464,7 @@
     <!-- TAB 3: BESTELLUNG ARCHIV -->
     <div id="tab-archiv" class="tab-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h2 style="font-size: 1.1rem;">Ausgelieferte Bestellungen (Archiv)</h2>
+            <h2>Ausgelieferte Bestellungen (Archiv)</h2>
             <button class="btn btn-danger" onclick="clearArchive()" id="clear-archive-btn">Archiv leeren</button>
         </div>
         <div class="table-container">
@@ -607,7 +610,7 @@
     <!-- TAB 7: EINKAUFSLISTE -->
     <div id="tab-einkaufsliste" class="tab-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h2 style="font-size: 1.1rem;">Einkaufsliste & Gesamtkosten</h2>
+            <h2>Einkaufsliste & Gesamtkosten</h2>
             <button class="btn btn-danger" onclick="clearShoppingList()">Mengen zurücksetzen</button>
         </div>
         <div class="table-container">
@@ -624,18 +627,18 @@
                 <tbody id="shopping-list-body"></tbody>
             </table>
         </div>
-        <div style="margin-top: 16px; background: var(--box-bg); border: 1px solid var(--border-color); padding: 18px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="margin-top: 16px; background: #162032; border: 1px solid var(--border-color); padding: 16px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 1.1rem; font-weight: 600; color: var(--text-muted);">Gesamtsumme Einkauf:</span>
             <span id="shopping-total-sum" style="font-size: 1.4rem; font-weight: 700; color: #34d399;">$0.00</span>
         </div>
     </div>
 
     <!-- TAB 8: HERSTELLUNG -->
-    <div id="tab-herstellung" class="tab-content active">
+    <div id="tab-herstellung" class="tab-content">
         <div class="add-card">
             <h2>+ Neues Rezept hinzufügen</h2>
             <form id="recipe-add-form" onsubmit="handleAddRecipe(event)">
-                <div class="add-form" style="margin-bottom: 14px;">
+                <div class="add-form" style="margin-bottom: 12px;">
                     <div class="form-group">
                         <label for="recipe-output-name">Endprodukt-Name</label>
                         <input type="text" id="recipe-output-name" placeholder="z. B. Messingblech" required />
@@ -646,18 +649,18 @@
                     </div>
                 </div>
 
-                <div style="margin-bottom: 14px;">
+                <div style="margin-bottom: 12px;">
                     <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Benötigte Zutaten</label>
                     <div id="recipe-ingredients-container"></div>
-                    <button type="button" class="btn" style="background-color: var(--border-color); height: 34px; font-size: 0.8rem; margin-top: 6px;" onclick="addRecipeIngredientInput()">+ Zutat hinzufügen</button>
+                    <button type="button" class="btn" style="background-color: #334155; height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addRecipeIngredientInput()">+ Zutat hinzufügen</button>
                 </div>
 
                 <button type="submit" class="btn btn-success">Rezept speichern</button>
             </form>
         </div>
 
-        <h2 style="font-size: 1.1rem; margin-bottom: 16px;">Verfügbare Rezepte & Herstellung</h2>
-        <div class="table-container">
+        <h2>Verfügbare Rezepte & Herstellung</h2>
+        <div class="table-container" style="margin-top: 16px;">
             <table>
                 <thead>
                     <tr>
@@ -674,24 +677,10 @@
 </div>
 
 <script>
-    // ----------------------------------------------------
-    // SUPABASE KONFIGURATION
-    // ----------------------------------------------------
+    // Supabase Initialisierung (Bitte deine Projekt-URL und den anon Key einfügen)
     const SUPABASE_URL = 'https://cobndqltfctyaihzqatt.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_GJhsLbNkikl3XCCO47sCCA_08NREIgY';
-
-    // Wird nur hier einmalig initialisiert
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // Globale Daten-Arrays
-    let inventoryList = [];
-    let ordersList = [];
-    let archivedOrdersList = [];
-    let customerPricesList = [];
-    let salesPricesList = [];
-    let purchasePricesList = [];
-    let shoppingListQuantities = {};
-    let recipesList = [];
 
     function capitalizeText(text) {
         if (!text) return "";
@@ -727,46 +716,26 @@
 
         inputEl.addEventListener('blur', saveTitle);
         inputEl.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') saveTitle();
+            if (e.key === 'Enter') {
+                saveTitle();
+            }
         });
     }
+
+    let inventoryList = [];
+    let ordersList = [];
+    let archivedOrdersList = [];
+    let customerPricesList = [];
+    let salesPricesList = [];
+    let purchasePricesList = [];
+    let shoppingListQuantities = {};
+    let recipesList = [];
 
     function getCurrentTimeString() {
         const now = new Date();
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         return `Heute, ${hours}:${minutes} Uhr`;
-    }
-
-    // ----------------------------------------------------
-    // DATEN AUS SUPABASE LADEN
-    // ----------------------------------------------------
-    async function fetchAllDataFromCloud() {
-        try {
-            const [inv, ord, arch, cp, sp, pp, rec] = await Promise.all([
-                supabase.from('inventory').select('*'),
-                supabase.from('orders').select('*'),
-                supabase.from('archive').select('*'),
-                supabase.from('customer_prices').select('*'),
-                supabase.from('sales_prices').select('*'),
-                supabase.from('purchase_prices').select('*'),
-                supabase.from('recipes').select('*')
-            ]);
-
-            if (inv.data) inventoryList = inv.data;
-            if (ord.data) ordersList = ord.data;
-            if (arch.data) archivedOrdersList = arch.data;
-            if (cp.data) customerPricesList = cp.data;
-            if (sp.data) salesPricesList = sp.data;
-            if (pp.data) purchasePricesList = pp.data;
-            if (rec.data) recipesList = rec.data;
-
-            initOrderPositionInputs();
-            initRecipeIngredientInputs();
-            renderTables();
-        } catch (error) {
-            console.error("Fehler beim Laden der Clouddaten:", error);
-        }
     }
 
     function switchTab(tabName) {
@@ -785,7 +754,6 @@
             renderRecipes();
         } else if (tabName === 'bestellungen') {
             updateOrderCustomerDatalist();
-            updateAllOrderPositionDropdowns();
             renderOrders();
         } else if (tabName === 'archiv') {
             renderArchive();
@@ -841,10 +809,39 @@
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
+    // Daten von Supabase laden
+    async function loadDataFromSupabase() {
+        try {
+            const { data: inv } = await supabase.from('inventory').select('*');
+            if (inv) inventoryList = inv;
+
+            const { data: ord } = await supabase.from('orders').select('*');
+            if (ord) ordersList = ord;
+
+            const { data: arch } = await supabase.from('archived_orders').select('*');
+            if (arch) archivedOrdersList = arch;
+
+            const { data: custP } = await supabase.from('customer_prices').select('*');
+            if (custP) customerPricesList = custP;
+
+            const { data: salesP } = await supabase.from('sales_prices').select('*');
+            if (salesP) salesPricesList = salesP;
+
+            const { data: purchP } = await supabase.from('purchase_prices').select('*');
+            if (purchP) purchasePricesList = purchP;
+
+            const { data: rec } = await supabase.from('recipes').select('*');
+            if (rec) recipesList = rec;
+
+            renderTables();
+        } catch (error) {
+            console.error("Fehler beim Laden der Supabase-Daten:", error);
+        }
+    }
+
     function renderTables() {
         renderStockTable();
         updateOrderCustomerDatalist();
-        updateAllOrderPositionDropdowns();
         renderOrders();
         renderArchive();
         updateCustomerFilterOptions();
@@ -861,10 +858,16 @@
             cp.customerName.toLowerCase() === customerName.toLowerCase() && 
             cp.name.toLowerCase() === itemName.toLowerCase()
         );
-        if (custPriceObj) return { price: custPriceObj.price, type: 'Sonderpreis' };
+        if (custPriceObj) {
+            return { price: custPriceObj.price, type: 'Sonderpreis' };
+        }
 
-        const salesPriceObj = salesPricesList.find(sp => sp.name.toLowerCase() === itemName.toLowerCase());
-        if (salesPriceObj) return { price: salesPriceObj.price, type: 'Standard-VK' };
+        const salesPriceObj = salesPricesList.find(sp => 
+            sp.name.toLowerCase() === itemName.toLowerCase()
+        );
+        if (salesPriceObj) {
+            return { price: salesPriceObj.price, type: 'Standard-VK' };
+        }
 
         return { price: 0.00, type: 'Kein Preis' };
     }
@@ -886,7 +889,9 @@
                         <button class="btn" onclick="updateStock(${item.id})">Bestätigen</button>
                     </div>
                 </td>
-                <td><button class="btn btn-danger" onclick="deleteStockItem(${item.id})">Löschen</button></td>
+                <td>
+                    <button class="btn btn-danger" onclick="deleteStockItem(${item.id})">Löschen</button>
+                </td>
                 <td class="time-text">${item.stockUpdated || '-'}</td>
             `;
             tbody.appendChild(tr);
@@ -898,29 +903,37 @@
         const value = parseInt(inputEl.value, 10);
         if (isNaN(value) || value < 0) return alert("Bitte gültige Zahl eingeben.");
 
-        const item = inventoryList.find(i => i.id === id);
-        if (item) {
-            item.quantity = value;
-            item.stockUpdated = getCurrentTimeString();
+        const updatedTime = getCurrentTimeString();
+        const { error } = await supabase
+            .from('inventory')
+            .update({ quantity: value, stockUpdated: updatedTime })
+            .eq('id', id);
 
-            const { error } = await supabase.from('inventory').update({ quantity: item.quantity, stockUpdated: item.stockUpdated }).eq('id', id);
-            if (error) return alert("Fehler beim Speichern in der Cloud.");
-
-            renderStockTable();
-            renderRecipes();
-            renderOrders();
+        if (!error) {
+            const item = inventoryList.find(i => i.id === id);
+            if (item) {
+                item.quantity = value;
+                item.stockUpdated = updatedTime;
+                renderStockTable();
+                renderRecipes();
+                renderOrders();
+            }
+        } else {
+            alert("Fehler beim Aktualisieren: " + error.message);
         }
     }
 
     async function deleteStockItem(id) {
         if (confirm("Artikel wirklich löschen?")) {
             const { error } = await supabase.from('inventory').delete().eq('id', id);
-            if (error) return alert("Fehler beim Löschen.");
-
-            inventoryList = inventoryList.filter(i => i.id !== id);
-            renderStockTable();
-            renderRecipes();
-            renderOrders();
+            if (!error) {
+                inventoryList = inventoryList.filter(i => i.id !== id);
+                renderStockTable();
+                renderRecipes();
+                renderOrders();
+            } else {
+                alert("Fehler beim Löschen: " + error.message);
+            }
         }
     }
 
@@ -932,16 +945,28 @@
         const qty = parseInt(qtyInput.value, 10);
         if (!name || isNaN(qty)) return;
 
+        const updatedTime = getCurrentTimeString();
         const existing = inventoryList.find(i => i.name.toLowerCase() === name.toLowerCase());
+
         if (existing) {
-            existing.quantity = qty;
-            existing.stockUpdated = getCurrentTimeString();
-            await supabase.from('inventory').update({ quantity: qty, stockUpdated: existing.stockUpdated }).eq('id', existing.id);
+            const { error } = await supabase
+                .from('inventory')
+                .update({ quantity: qty, stockUpdated: updatedTime })
+                .eq('id', existing.id);
+
+            if (!error) {
+                existing.quantity = qty;
+                existing.stockUpdated = updatedTime;
+            }
         } else {
-            const newItem = { name, quantity: qty, stockUpdated: getCurrentTimeString() };
-            const { data, error } = await supabase.from('inventory').insert([newItem]).select();
-            if (error) return alert("Fehler beim Hinzufügen.");
-            if (data) inventoryList.push(data[0]);
+            const { data, error } = await supabase
+                .from('inventory')
+                .insert([{ name, quantity: qty, stockUpdated: updatedTime }])
+                .select();
+
+            if (!error && data) {
+                inventoryList.push(data[0]);
+            }
         }
         nameInput.value = '';
         qtyInput.value = '';
@@ -953,34 +978,16 @@
     /* BESTELLUNGEN */
     function updateOrderCustomerDatalist() {
         const datelistEl = document.getElementById('customer-datalist');
-        const allCustomers = [...new Set([
-            ...customerPricesList.map(i => i.customerName),
-            ...ordersList.map(i => i.customerName),
-            ...archivedOrdersList.map(i => i.customerName)
-        ])].sort((a, b) => a.localeCompare(b, 'de'));
+        const customersFromPrices = customerPricesList.map(item => item.customerName);
+        const customersFromOrders = ordersList.map(item => item.customerName);
+        const customersFromArchive = archivedOrdersList.map(item => item.customerName);
+        const allCustomers = [...new Set([...customersFromPrices, ...customersFromOrders, ...customersFromArchive])].sort((a, b) => a.localeCompare(b, 'de'));
 
         datelistEl.innerHTML = '';
         allCustomers.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c;
             datelistEl.appendChild(opt);
-        });
-    }
-
-    function getSalesPricesOptionsHtml(selectedName = "") {
-        const sortedPrices = [...salesPricesList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
-        let options = '<option value="" disabled selected>Artikel auswählen...</option>';
-        sortedPrices.forEach(sp => {
-            const isSel = (sp.name.toLowerCase() === selectedName.toLowerCase()) ? 'selected' : '';
-            options += `<option value="${sp.name}" ${isSel}>${sp.name}</option>`;
-        });
-        return options;
-    }
-
-    function updateAllOrderPositionDropdowns() {
-        document.querySelectorAll('.ord-name-select').forEach(select => {
-            const currentVal = select.value;
-            select.innerHTML = getSalesPricesOptionsHtml(currentVal);
         });
     }
 
@@ -996,11 +1003,9 @@
         const div = document.createElement('div');
         div.className = 'order-item-row';
         div.innerHTML = `
-            <select class="ord-name-select" required style="flex:2;">
-                ${getSalesPricesOptionsHtml(defaultName)}
-            </select>
+            <input type="text" class="ord-name" placeholder="Artikel" value="${defaultName}" required style="flex:2;" />
             <input type="number" class="ord-qty" placeholder="Anzahl" min="1" value="${defaultQty || 1}" required style="flex:1; max-width: 100px;" />
-            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="height: 42px;">✕</button>
+            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="height: 40px;">✕</button>
         `;
         container.appendChild(div);
     }
@@ -1012,33 +1017,40 @@
 
         const rows = document.querySelectorAll('.order-item-row');
         const items = [];
+
         rows.forEach(row => {
-            const name = row.querySelector('.ord-name-select').value;
+            const name = capitalizeText(row.querySelector('.ord-name').value.trim());
             const qty = parseInt(row.querySelector('.ord-qty').value, 10);
             if (name && !isNaN(qty) && qty > 0) items.push({ name, qty });
         });
 
         if (items.length === 0) return alert("Mindestens einen Artikel angeben.");
 
-        const newOrder = { customerName, createdAt: getCurrentTimeString(), items };
-        const { data, error } = await supabase.from('orders').insert([newOrder]).select();
-        if (error) return alert("Fehler beim Speichern der Bestellung.");
+        const createdAt = getCurrentTimeString();
+        const { data, error } = await supabase
+            .from('orders')
+            .insert([{ customerName, createdAt, items }])
+            .select();
 
-        if (data) ordersList.push(data[0]);
-        document.getElementById('order-customer-input').value = '';
-        initOrderPositionInputs();
-        updateOrderCustomerDatalist();
-        renderOrders();
+        if (!error && data) {
+            ordersList.push(data[0]);
+            document.getElementById('order-customer-input').value = '';
+            initOrderPositionInputs();
+            updateOrderCustomerDatalist();
+            renderOrders();
+        } else {
+            alert("Fehler beim Speichern der Bestellung: " + (error ? error.message : ''));
+        }
     }
 
     async function deleteOrder(id) {
         if (confirm("Bestellung löschen?")) {
             const { error } = await supabase.from('orders').delete().eq('id', id);
-            if (error) return alert("Fehler beim Löschen.");
-
-            ordersList = ordersList.filter(o => o.id !== id);
-            updateOrderCustomerDatalist();
-            renderOrders();
+            if (!error) {
+                ordersList = ordersList.filter(o => o.id !== id);
+                updateOrderCustomerDatalist();
+                renderOrders();
+            }
         }
     }
 
@@ -1047,31 +1059,45 @@
         if (orderIndex === -1) return;
 
         const order = ordersList[orderIndex];
+
         let totalSum = 0;
         const archivedItems = order.items.map(item => {
             const priceInfo = getPriceDetailsForCustomer(order.customerName, item.name);
             const itemTotal = priceInfo.price * item.qty;
             totalSum += itemTotal;
-            return { name: item.name, qty: item.qty, price: priceInfo.price, priceType: priceInfo.type, total: itemTotal };
+            return {
+                name: item.name,
+                qty: item.qty,
+                price: priceInfo.price,
+                priceType: priceInfo.type,
+                total: itemTotal
+            };
         });
 
-        const archivedEntry = {
+        const deliveredAt = getCurrentTimeString();
+        const archivedPayload = {
+            id: order.id,
             customerName: order.customerName,
             items: archivedItems,
             totalSum: totalSum,
             createdAt: order.createdAt,
-            deliveredAt: getCurrentTimeString()
+            deliveredAt: deliveredAt
         };
 
-        const { data, error } = await supabase.from('archive').insert([archivedEntry]).select();
-        if (error) return alert("Fehler beim Archivieren.");
+        const { error: archiveError } = await supabase.from('archived_orders').insert([archivedPayload]);
+        if (archiveError) {
+            return alert("Fehler beim Archivieren: " + archiveError.message);
+        }
 
-        await supabase.from('orders').delete().eq('id', orderId);
+        const { error: deleteError } = await supabase.from('orders').delete().eq('id', orderId);
+        if (deleteError) {
+            return alert("Fehler beim Entfernen der aktiven Bestellung: " + deleteError.message);
+        }
 
-        if (data) archivedOrdersList.unshift(data[0]);
+        archivedOrdersList.unshift(archivedPayload);
         ordersList.splice(orderIndex, 1);
 
-        alert(`Bestellung von ${order.customerName} wurde erfolgreich ausgeliefert!`);
+        alert(`Bestellung von ${order.customerName} wurde erfolgreich ausgeliefert und ins Archiv verschoben!`);
         updateOrderCustomerDatalist();
         renderOrders();
         renderArchive();
@@ -1101,10 +1127,12 @@
                 totalOrderSum += itemTotal;
 
                 let badgeColor = priceInfo.type === 'Sonderpreis' ? '#38bdf8' : '#94a3b8';
+
                 itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${ordItem.qty}x</strong> ${ordItem.name} à $${priceInfo.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${priceInfo.type}</span> = <span style="color: #34d399; font-weight: 600;">$${itemTotal.toFixed(2)}</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${isEnough ? '#34d399' : '#f87171'}">${available}</span>)</span></div>`;
             });
 
             itemsHtml += `<div style="margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 6px; font-weight: 700; color: #f59e0b;">Gesamtsumme Bestellung: $${totalOrderSum.toFixed(2)}</div>`;
+
             let statusHtml = allOk ? `<span class="req-status status-ok">✓ Alles im Lager</span>` : `<span class="req-status status-missing">✕ Artikel fehlen</span>`;
 
             tr.innerHTML = `
@@ -1148,26 +1176,32 @@
                 <td><span class="current-price">$${archivedOrder.totalSum.toFixed(2)}</span></td>
                 <td class="time-text">${archivedOrder.createdAt || '-'}</td>
                 <td class="time-text">${archivedOrder.deliveredAt || '-'}</td>
-                <td><button class="btn btn-danger" onclick="deleteArchivedOrder(${archivedOrder.id})">Eintrag löschen</button></td>
+                <td>
+                    <button class="btn btn-danger" onclick="deleteArchivedOrder(${archivedOrder.id})">Eintrag löschen</button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
     }
 
     async function deleteArchivedOrder(id) {
-        if (confirm("Archivierten Eintrag löschen?")) {
-            await supabase.from('archive').delete().eq('id', id);
-            archivedOrdersList = archivedOrdersList.filter(o => o.id !== id);
-            renderArchive();
+        if (confirm("Archivierte Bestellung löschen?")) {
+            const { error } = await supabase.from('archived_orders').delete().eq('id', id);
+            if (!error) {
+                archivedOrdersList = archivedOrdersList.filter(o => o.id !== id);
+                renderArchive();
+            }
         }
     }
 
     async function clearArchive() {
         if (archivedOrdersList.length === 0) return alert("Das Archiv ist bereits leer.");
         if (confirm("Möchtest du wirklich das gesamte Archiv leeren?")) {
-            await supabase.from('archive').delete().neq('id', 0);
-            archivedOrdersList = [];
-            renderArchive();
+            const { error } = await supabase.from('archived_orders').delete().neq('id', 0);
+            if (!error) {
+                archivedOrdersList = [];
+                renderArchive();
+            }
         }
     }
 
@@ -1193,7 +1227,9 @@
         const selectedFilter = document.getElementById('customer-filter').value;
 
         let filteredList = customerPricesList;
-        if (selectedFilter !== "ALL") filteredList = customerPricesList.filter(item => item.customerName === selectedFilter);
+        if (selectedFilter !== "ALL") {
+            filteredList = customerPricesList.filter(item => item.customerName === selectedFilter);
+        }
 
         const sortedList = [...filteredList].sort((a, b) => a.customerName.localeCompare(b.customerName, 'de') || a.name.localeCompare(b.name, 'de'));
 
@@ -1226,26 +1262,34 @@
         const val = parseFloat(inputEl.value);
         if (isNaN(val) || val < 0) return alert("Gültigen Preis eingeben.");
 
-        const item = customerPricesList.find(i => i.id === id);
-        if (item) {
-            item.price = val;
-            item.priceUpdated = getCurrentTimeString();
-            await supabase.from('customer_prices').update({ price: val, priceUpdated: item.priceUpdated }).eq('id', id);
+        const priceUpdated = getCurrentTimeString();
+        const { error } = await supabase
+            .from('customer_prices')
+            .update({ price: val, priceUpdated })
+            .eq('id', id);
 
-            inputEl.value = '';
-            renderCustomerPricesTable();
-            renderOrders();
+        if (!error) {
+            const item = customerPricesList.find(i => i.id === id);
+            if (item) {
+                item.price = val;
+                item.priceUpdated = priceUpdated;
+                inputEl.value = '';
+                renderCustomerPricesTable();
+                renderOrders();
+            }
         }
     }
 
     async function deleteCustomerPrice(id) {
-        if (confirm("Kundenpreis löschen?")) {
-            await supabase.from('customer_prices').delete().eq('id', id);
-            customerPricesList = customerPricesList.filter(i => i.id !== id);
-            updateCustomerFilterOptions();
-            updateOrderCustomerDatalist();
-            renderCustomerPricesTable();
-            renderOrders();
+        if (confirm("Kundenpreis wirklich löschen?")) {
+            const { error } = await supabase.from('customer_prices').delete().eq('id', id);
+            if (!error) {
+                customerPricesList = customerPricesList.filter(i => i.id !== id);
+                updateCustomerFilterOptions();
+                updateOrderCustomerDatalist();
+                renderCustomerPricesTable();
+                renderOrders();
+            }
         }
     }
 
@@ -1261,16 +1305,28 @@
 
         if (!customerName || !name || isNaN(price)) return;
 
+        const priceUpdated = getCurrentTimeString();
         const existing = customerPricesList.find(i => i.customerName.toLowerCase() === customerName.toLowerCase() && i.name.toLowerCase() === name.toLowerCase());
+
         if (existing) {
-            existing.price = price;
-            existing.priceUpdated = getCurrentTimeString();
-            await supabase.from('customer_prices').update({ price, priceUpdated: existing.priceUpdated }).eq('id', existing.id);
+            const { error } = await supabase
+                .from('customer_prices')
+                .update({ price, priceUpdated })
+                .eq('id', existing.id);
+
+            if (!error) {
+                existing.price = price;
+                existing.priceUpdated = priceUpdated;
+            }
         } else {
-            const newObj = { customerName, name, price, priceUpdated: getCurrentTimeString() };
-            const { data, error } = await supabase.from('customer_prices').insert([newObj]).select();
-            if (error) return alert("Fehler beim Speichern.");
-            if (data) customerPricesList.push(data[0]);
+            const { data, error } = await supabase
+                .from('customer_prices')
+                .insert([{ customerName, name, price, priceUpdated }])
+                .select();
+
+            if (!error && data) {
+                customerPricesList.push(data[0]);
+            }
         }
 
         custInput.value = '';
@@ -1311,26 +1367,32 @@
         const value = parseFloat(inputEl.value);
         if (isNaN(value) || value < 0) return alert("Gültigen Preis eingeben.");
 
-        const item = salesPricesList.find(i => i.id === id);
-        if (item) {
-            item.price = value;
-            item.priceUpdated = getCurrentTimeString();
-            await supabase.from('sales_prices').update({ price: value, priceUpdated: item.priceUpdated }).eq('id', id);
+        const priceUpdated = getCurrentTimeString();
+        const { error } = await supabase
+            .from('sales_prices')
+            .update({ price: value, priceUpdated })
+            .eq('id', id);
 
-            inputEl.value = '';
-            renderPriceTable();
-            updateAllOrderPositionDropdowns();
-            renderOrders();
+        if (!error) {
+            const item = salesPricesList.find(i => i.id === id);
+            if (item) {
+                item.price = value;
+                item.priceUpdated = priceUpdated;
+                inputEl.value = '';
+                renderPriceTable();
+                renderOrders();
+            }
         }
     }
 
     async function deletePriceItem(id) {
         if (confirm("Verkaufspreis löschen?")) {
-            await supabase.from('sales_prices').delete().eq('id', id);
-            salesPricesList = salesPricesList.filter(i => i.id !== id);
-            renderPriceTable();
-            updateAllOrderPositionDropdowns();
-            renderOrders();
+            const { error } = await supabase.from('sales_prices').delete().eq('id', id);
+            if (!error) {
+                salesPricesList = salesPricesList.filter(i => i.id !== id);
+                renderPriceTable();
+                renderOrders();
+            }
         }
     }
 
@@ -1342,21 +1404,32 @@
         const price = parseFloat(priceInput.value);
         if (!name || isNaN(price)) return;
 
+        const priceUpdated = getCurrentTimeString();
         const existing = salesPricesList.find(i => i.name.toLowerCase() === name.toLowerCase());
+
         if (existing) {
-            existing.price = price;
-            existing.priceUpdated = getCurrentTimeString();
-            await supabase.from('sales_prices').update({ price, priceUpdated: existing.priceUpdated }).eq('id', existing.id);
+            const { error } = await supabase
+                .from('sales_prices')
+                .update({ price, priceUpdated })
+                .eq('id', existing.id);
+
+            if (!error) {
+                existing.price = price;
+                existing.priceUpdated = priceUpdated;
+            }
         } else {
-            const newItem = { name, price, priceUpdated: getCurrentTimeString() };
-            const { data, error } = await supabase.from('sales_prices').insert([newItem]).select();
-            if (error) return alert("Fehler beim Speichern.");
-            if (data) salesPricesList.push(data[0]);
+            const { data, error } = await supabase
+                .from('sales_prices')
+                .insert([{ name, price, priceUpdated }])
+                .select();
+
+            if (!error && data) {
+                salesPricesList.push(data[0]);
+            }
         }
         nameInput.value = '';
         priceInput.value = '';
         renderPriceTable();
-        updateAllOrderPositionDropdowns();
         renderOrders();
     }
 
@@ -1420,29 +1493,40 @@
         if (item) {
             let updated = false;
             let updatePayload = {};
-            if (!isNaN(costValue) && costValue >= 0) { item.cost = costValue; updatePayload.cost = costValue; updated = true; }
-            if (businessValue !== "") { item.business = businessValue; updatePayload.business = businessValue; updated = true; }
+            if (!isNaN(costValue) && costValue >= 0) { updatePayload.cost = costValue; updated = true; }
+            if (businessValue !== "") { updatePayload.business = businessValue; updated = true; }
 
             if (updated) {
-                item.costUpdated = getCurrentTimeString();
-                updatePayload.costUpdated = item.costUpdated;
-                await supabase.from('purchase_prices').update(updatePayload).eq('id', id);
+                const costUpdated = getCurrentTimeString();
+                updatePayload.costUpdated = costUpdated;
 
-                inputCostEl.value = '';
-                updateBusinessFilterOptions();
-                renderCostTable();
-                renderShoppingList();
+                const { error } = await supabase
+                    .from('purchase_prices')
+                    .update(updatePayload)
+                    .eq('id', id);
+
+                if (!error) {
+                    if (updatePayload.cost !== undefined) item.cost = updatePayload.cost;
+                    if (updatePayload.business !== undefined) item.business = updatePayload.business;
+                    item.costUpdated = costUpdated;
+                    inputCostEl.value = '';
+                    updateBusinessFilterOptions();
+                    renderCostTable();
+                    renderShoppingList();
+                }
             }
         }
     }
 
     async function deletePurchaseItem(id) {
         if (confirm("Eintrag löschen?")) {
-            await supabase.from('purchase_prices').delete().eq('id', id);
-            purchasePricesList = purchasePricesList.filter(i => i.id !== id);
-            updateBusinessFilterOptions();
-            renderCostTable();
-            renderShoppingList();
+            const { error } = await supabase.from('purchase_prices').delete().eq('id', id);
+            if (!error) {
+                purchasePricesList = purchasePricesList.filter(i => i.id !== id);
+                updateBusinessFilterOptions();
+                renderCostTable();
+                renderShoppingList();
+            }
         }
     }
 
@@ -1458,16 +1542,28 @@
 
         if (!name || !business || isNaN(cost)) return;
 
+        const costUpdated = getCurrentTimeString();
         const existing = purchasePricesList.find(i => i.name.toLowerCase() === name.toLowerCase() && i.business.toLowerCase() === business.toLowerCase());
+
         if (existing) {
-            existing.cost = cost;
-            existing.costUpdated = getCurrentTimeString();
-            await supabase.from('purchase_prices').update({ cost, costUpdated: existing.costUpdated }).eq('id', existing.id);
+            const { error } = await supabase
+                .from('purchase_prices')
+                .update({ cost, costUpdated })
+                .eq('id', existing.id);
+
+            if (!error) {
+                existing.cost = cost;
+                existing.costUpdated = costUpdated;
+            }
         } else {
-            const newItem = { name, business, cost, costUpdated: getCurrentTimeString() };
-            const { data, error } = await supabase.from('purchase_prices').insert([newItem]).select();
-            if (error) return alert("Fehler beim Speichern.");
-            if (data) purchasePricesList.push(data[0]);
+            const { data, error } = await supabase
+                .from('purchase_prices')
+                .insert([{ name, business, cost, costUpdated }])
+                .select();
+
+            if (!error && data) {
+                purchasePricesList.push(data[0]);
+            }
         }
 
         nameInput.value = '';
@@ -1483,14 +1579,19 @@
         let val = parseInt(inputEl.value, 10);
         if (isNaN(val) || val < 0) val = 0;
         
-        if (val === 0) delete shoppingListQuantities[purchaseItemId];
-        else shoppingListQuantities[purchaseItemId] = val;
+        if (val === 0) {
+            delete shoppingListQuantities[purchaseItemId];
+        } else {
+            shoppingListQuantities[purchaseItemId] = val;
+        }
 
         const item = purchasePricesList.find(i => i.id === purchaseItemId);
         const itemTotalEl = document.getElementById(`shop-item-total-${purchaseItemId}`);
         if (item && itemTotalEl) {
-            itemTotalEl.innerText = `$${(val * item.cost).toFixed(2)}`;
+            const itemTotal = val * item.cost;
+            itemTotalEl.innerText = `$${itemTotal.toFixed(2)}`;
         }
+
         updateShoppingTotalSum();
     }
 
@@ -1501,7 +1602,9 @@
             totalSum += qty * item.cost;
         });
         const totalSumEl = document.getElementById('shopping-total-sum');
-        if (totalSumEl) totalSumEl.innerText = `$${totalSum.toFixed(2)}`;
+        if (totalSumEl) {
+            totalSumEl.innerText = `$${totalSum.toFixed(2)}`;
+        }
     }
 
     function clearShoppingList() {
@@ -1515,8 +1618,9 @@
         tbody.innerHTML = '';
 
         const sortedList = [...purchasePricesList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+
         if (sortedList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Einkaufspreise hinterlegt.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Einkaufspreise hinterlegt. Bitte zuerst im Tab „Einkaufspreise“ Artikel hinzufügen.</td></tr>`;
             updateShoppingTotalSum();
             return;
         }
@@ -1530,11 +1634,14 @@
                 <td class="material-name">${item.name}</td>
                 <td><span class="business-badge">${item.business}</span></td>
                 <td class="current-cost">$${item.cost.toFixed(2)}</td>
-                <td><input type="number" min="0" placeholder="Menge" value="${currentQty}" oninput="updateShoppingQty(${item.id}, this)" style="width: 120px;" /></td>
+                <td>
+                    <input type="number" min="0" placeholder="Menge" value="${currentQty}" oninput="updateShoppingQty(${item.id}, this)" style="width: 120px;" />
+                </td>
                 <td><span id="shop-item-total-${item.id}" class="current-price">$${itemTotal.toFixed(2)}</span></td>
             `;
             tbody.appendChild(tr);
         });
+
         updateShoppingTotalSum();
     }
 
@@ -1550,11 +1657,11 @@
         const container = document.getElementById('recipe-ingredients-container');
         const div = document.createElement('div');
         div.className = 'recipe-ingredient-row';
-        div.style.cssText = 'display: flex; gap: 10px; align-items: center; margin-bottom: 10px;';
+        div.style.cssText = 'display: flex; gap: 8px; align-items: center; margin-bottom: 8px;';
         div.innerHTML = `
             <input type="text" class="rec-ing-name" placeholder="Zutaten-Artikel" value="${defaultName}" required style="flex:2;" />
             <input type="number" class="rec-ing-qty" placeholder="Anzahl" min="1" value="${defaultQty || 1}" required style="flex:1; max-width: 100px;" />
-            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="height: 42px;">✕</button>
+            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="height: 40px;">✕</button>
         `;
         container.appendChild(div);
     }
@@ -1564,10 +1671,11 @@
         const outputName = capitalizeText(document.getElementById('recipe-output-name').value.trim());
         const outputQty = parseInt(document.getElementById('recipe-output-qty').value, 10);
 
-        if (!outputName || isNaN(outputQty) || outputQty < 1) return alert("Bitte gültiges Endprodukt eingeben.");
+        if (!outputName || isNaN(outputQty) || outputQty < 1) return alert("Bitte gültiges Endprodukt und Ertrag eingeben.");
 
         const rows = document.querySelectorAll('.recipe-ingredient-row');
         const ingredients = [];
+
         rows.forEach(row => {
             const name = capitalizeText(row.querySelector('.rec-ing-name').value.trim());
             const qty = parseInt(row.querySelector('.rec-ing-qty').value, 10);
@@ -1577,15 +1685,26 @@
         if (ingredients.length === 0) return alert("Mindestens eine Zutat angeben.");
 
         const existing = recipesList.find(r => r.outputName.toLowerCase() === outputName.toLowerCase());
+
         if (existing) {
-            existing.outputQty = outputQty;
-            existing.ingredients = ingredients;
-            await supabase.from('recipes').update({ outputQty, ingredients }).eq('id', existing.id);
+            const { error } = await supabase
+                .from('recipes')
+                .update({ outputQty, ingredients })
+                .eq('id', existing.id);
+
+            if (!error) {
+                existing.outputQty = outputQty;
+                existing.ingredients = ingredients;
+            }
         } else {
-            const newRecipe = { outputName, outputQty, ingredients };
-            const { data, error } = await supabase.from('recipes').insert([newRecipe]).select();
-            if (error) return alert("Fehler beim Speichern.");
-            if (data) recipesList.push(data[0]);
+            const { data, error } = await supabase
+                .from('recipes')
+                .insert([{ outputName, outputQty, ingredients }])
+                .select();
+
+            if (!error && data) {
+                recipesList.push(data[0]);
+            }
         }
 
         document.getElementById('recipe-output-name').value = '';
@@ -1596,9 +1715,11 @@
 
     async function deleteRecipe(id) {
         if (confirm("Rezept löschen?")) {
-            await supabase.from('recipes').delete().eq('id', id);
-            recipesList = recipesList.filter(r => r.id !== id);
-            renderRecipes();
+            const { error } = await supabase.from('recipes').delete().eq('id', id);
+            if (!error) {
+                recipesList = recipesList.filter(r => r.id !== id);
+                renderRecipes();
+            }
         }
     }
 
@@ -1620,18 +1741,20 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <div class="material-name" style="color: #38bdf8; font-size: 1.05rem;">${recipe.outputName}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Ertrag: ${recipe.outputQty}x pro Durchgang</div>
+                    <div class="material-name" style="color: #38bdf8;">${recipe.outputName}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Ertrag: ${recipe.outputQty}x pro Durchgang</div>
                 </td>
                 <td>
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                         <input type="number" id="${targetInputId}" min="1" value="${recipe.outputQty}" style="width: 90px;" oninput="updateRecipeDynamicView(${recipe.id})" />
                         <span style="font-size: 0.85rem; color: var(--text-muted);">Gewünscht</span>
                     </div>
-                    <div id="ingredients-view-${recipe.id}" style="font-size: 0.9rem; line-height: 1.4;"></div>
+                    <div id="ingredients-view-${recipe.id}" style="font-size: 0.9rem;"></div>
                 </td>
                 <td><div id="status-box-${recipe.id}"></div></td>
-                <td><button class="btn btn-danger" onclick="deleteRecipe(${recipe.id})">Löschen</button></td>
+                <td>
+                    <button class="btn btn-danger" onclick="deleteRecipe(${recipe.id})">Löschen</button>
+                </td>
             `;
             tbody.appendChild(tr);
             updateRecipeDynamicView(recipe.id);
@@ -1666,9 +1789,12 @@
         statusBox.innerHTML = canCraft ? `<span class="req-status status-ok">✓ Genug Material</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
     }
 
-    fetchAllDataFromCloud();
+    initOrderPositionInputs();
+    initRecipeIngredientInputs();
+    
+    // Daten beim Start aus Supabase laden
+    loadDataFromSupabase();
 </script>
 
 </body>
 </html>
-```[cite: 2]
