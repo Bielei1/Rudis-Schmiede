@@ -676,18 +676,15 @@
 </div>
 
 <script>
-    // Supabase Initialisierung (Sichergestellt, dass keine doppelte Deklaration stattfindet)
+    // Supabase Initialisierung
     const SUPABASE_URL = 'https://cobndqltfctyaihzqatt.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_GJhsLbNkikl3XCCO47sCCA_08NREIgY';
     
-    // Prüfen, ob supabase global bereits existiert, falls nicht initialisieren
-    let supabase;
-    if (!window.supabaseClient) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        window.supabaseClient = supabase;
-    } else {
-        supabase = window.supabaseClient;
+    // Prüfen, ob supabase schon global existiert, ohne es doppelt zu deklarieren
+    if (typeof window.supabaseClient === 'undefined') {
+        window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
+    const supabase = window.supabaseClient;
 
     function capitalizeText(text) {
         if (!text) return "";
