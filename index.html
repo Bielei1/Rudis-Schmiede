@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rudis Schmiede - Verwaltung</title>
+    <!-- Supabase Client Bibliothek per CDN einbinden -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --bg-color: #0b1120;
@@ -49,7 +51,6 @@
             border: 1px solid var(--border-color);
         }
 
-        /* Bearbeitbare Überschrift */
         .editable-title-container {
             display: flex;
             align-items: center;
@@ -86,7 +87,6 @@
             max-width: 400px;
         }
 
-        /* Tabs Styles */
         .tabs {
             display: flex;
             gap: 8px;
@@ -138,7 +138,6 @@
             display: block;
         }
 
-        /* Formular Karten */
         .add-card {
             background-color: var(--box-bg);
             border: 1px solid var(--border-color);
@@ -237,7 +236,6 @@
             transform: scale(0.98);
         }
 
-        /* Filter Section */
         .filter-card {
             background-color: var(--box-bg);
             border: 1px solid var(--border-color);
@@ -260,7 +258,7 @@
             max-width: 300px;
         }
 
-        .ingredient-row, .order-item-row {
+        .order-item-row {
             display: flex;
             gap: 10px;
             align-items: center;
@@ -287,7 +285,6 @@
             border: 1px solid #ef4444;
         }
 
-        /* Table Styles */
         .table-container {
             overflow-x: auto;
             border-radius: 10px;
@@ -677,6 +674,24 @@
 </div>
 
 <script>
+    // ----------------------------------------------------
+    // SUPABASE KONFIGURATION (HIER DEINE DATEN EINTRAGEN)
+    // ----------------------------------------------------
+    const SUPABASE_URL = 'https://cobndqltfctyaihzqatt.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_GJhsLbNkikl3XCCO47sCCA_08NREIgY';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Globale Daten-Arrays (werden live aus Supabase gefüllt)
+    let inventoryList = [];
+    let ordersList = [];
+    let archivedOrdersList = [];
+    let customerPricesList = [];
+    let salesPricesList = [];
+    let purchasePricesList = [];
+    let shoppingListQuantities = {};
+    let recipesList = [];
+
     function capitalizeText(text) {
         if (!text) return "";
         return text.split(' ').map(word => {
@@ -711,68 +726,46 @@
 
         inputEl.addEventListener('blur', saveTitle);
         inputEl.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                saveTitle();
-            }
+            if (e.key === 'Enter') saveTitle();
         });
     }
-
-    let inventoryList = [
-        { id: 1, name: "Kupferbarren", quantity: 50, stockUpdated: "Heute, 10:00 Uhr" },
-        { id: 2, name: "Eisenbarren", quantity: 40, stockUpdated: "Heute, 09:30 Uhr" },
-        { id: 3, name: "Messingblech", quantity: 0, stockUpdated: "Heute, 11:15 Uhr" },
-        { id: 4, name: "Stahlbarren", quantity: 10, stockUpdated: "Heute, 08:00 Uhr" }
-    ];
-
-    let ordersList = [
-        {
-            id: 1,
-            customerName: "Kunde A",
-            createdAt: "Heute, 09:00 Uhr",
-            items: [
-                { name: "Eisenbarren", qty: 10 },
-                { name: "Stahlbarren", qty: 20 }
-            ]
-        }
-    ];
-
-    let archivedOrdersList = [];
-
-    let customerPricesList = [
-        { id: 1, customerName: "Kunde A", name: "Eisenbarren", price: 10.00, priceUpdated: "Heute, 12:00 Uhr" },
-        { id: 2, customerName: "Kunde B", name: "Eisenbarren", price: 9.00, priceUpdated: "Heute, 12:01 Uhr" }
-    ];
-
-    let salesPricesList = [
-        { id: 1, name: "Messingblech", price: 45.00, priceUpdated: "Heute, 10:00 Uhr" },
-        { id: 2, name: "Eisenbarren", price: 15.50, priceUpdated: "Heute, 09:30 Uhr" },
-        { id: 3, name: "Stahlbarren", price: 20.00, priceUpdated: "Heute, 09:30 Uhr" }
-    ];
-
-    let purchasePricesList = [
-        { id: 1, name: "Kupferbarren", business: "Erzmine GmbH", cost: 8.00, costUpdated: "Heute, 10:00 Uhr" },
-        { id: 2, name: "Eisenbarren", business: "Schrotthandel West", cost: 6.50, costUpdated: "Heute, 10:05 Uhr" }
-    ];
-
-    let shoppingListQuantities = {};
-
-    let recipesList = [
-        {
-            id: 1,
-            outputName: "Messingblech",
-            outputQty: 2,
-            ingredients: [
-                { name: "Kupferbarren", qty: 1 },
-                { name: "Eisenbarren", qty: 1 }
-            ]
-        }
-    ];
 
     function getCurrentTimeString() {
         const now = new Date();
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         return `Heute, ${hours}:${minutes} Uhr`;
+    }
+
+    // ----------------------------------------------------
+    // DATEN AUS SUPABASE LADEN
+    // ----------------------------------------------------
+    async function fetchAllDataFromCloud() {
+        try {
+            const [inv, ord, arch, cp, sp, pp, rec] = await Promise.all([
+                supabase.from('inventory').select('*'),
+                supabase.from('orders').select('*'),
+                supabase.from('archive').select('*'),
+                supabase.from('customer_prices').select('*'),
+                supabase.from('sales_prices').select('*'),
+                supabase.from('purchase_prices').select('*'),
+                supabase.from('recipes').select('*')
+            ]);
+
+            if (inv.data) inventoryList = inv.data;
+            if (ord.data) ordersList = ord.data;
+            if (arch.data) archivedOrdersList = arch.data;
+            if (cp.data) customerPricesList = cp.data;
+            if (sp.data) salesPricesList = sp.data;
+            if (pp.data) purchasePricesList = pp.data;
+            if (rec.data) recipesList = rec.data;
+
+            initOrderPositionInputs();
+            initRecipeIngredientInputs();
+            renderTables();
+        } catch (error) {
+            console.error("Fehler beim Laden der Clouddaten:", error);
+        }
     }
 
     function switchTab(tabName) {
@@ -867,16 +860,10 @@
             cp.customerName.toLowerCase() === customerName.toLowerCase() && 
             cp.name.toLowerCase() === itemName.toLowerCase()
         );
-        if (custPriceObj) {
-            return { price: custPriceObj.price, type: 'Sonderpreis' };
-        }
+        if (custPriceObj) return { price: custPriceObj.price, type: 'Sonderpreis' };
 
-        const salesPriceObj = salesPricesList.find(sp => 
-            sp.name.toLowerCase() === itemName.toLowerCase()
-        );
-        if (salesPriceObj) {
-            return { price: salesPriceObj.price, type: 'Standard-VK' };
-        }
+        const salesPriceObj = salesPricesList.find(sp => sp.name.toLowerCase() === itemName.toLowerCase());
+        if (salesPriceObj) return { price: salesPriceObj.price, type: 'Standard-VK' };
 
         return { price: 0.00, type: 'Kein Preis' };
     }
@@ -898,16 +885,14 @@
                         <button class="btn" onclick="updateStock(${item.id})">Bestätigen</button>
                     </div>
                 </td>
-                <td>
-                    <button class="btn btn-danger" onclick="deleteStockItem(${item.id})">Löschen</button>
-                </td>
-                <td class="time-text">${item.stockUpdated}</td>
+                <td><button class="btn btn-danger" onclick="deleteStockItem(${item.id})">Löschen</button></td>
+                <td class="time-text">${item.stockUpdated || '-'}</td>
             `;
             tbody.appendChild(tr);
         });
     }
 
-    function updateStock(id) {
+    async function updateStock(id) {
         const inputEl = document.getElementById(`stock-input-${id}`);
         const value = parseInt(inputEl.value, 10);
         if (isNaN(value) || value < 0) return alert("Bitte gültige Zahl eingeben.");
@@ -916,14 +901,21 @@
         if (item) {
             item.quantity = value;
             item.stockUpdated = getCurrentTimeString();
+
+            const { error } = await supabase.from('inventory').update({ quantity: item.quantity, stockUpdated: item.stockUpdated }).eq('id', id);
+            if (error) return alert("Fehler beim Speichern in der Cloud.");
+
             renderStockTable();
             renderRecipes();
             renderOrders();
         }
     }
 
-    function deleteStockItem(id) {
+    async function deleteStockItem(id) {
         if (confirm("Artikel wirklich löschen?")) {
+            const { error } = await supabase.from('inventory').delete().eq('id', id);
+            if (error) return alert("Fehler beim Löschen.");
+
             inventoryList = inventoryList.filter(i => i.id !== id);
             renderStockTable();
             renderRecipes();
@@ -931,7 +923,7 @@
         }
     }
 
-    function handleAddStockItem(event) {
+    async function handleAddStockItem(event) {
         event.preventDefault();
         const nameInput = document.getElementById('stock-add-name');
         const qtyInput = document.getElementById('stock-add-qty');
@@ -943,9 +935,12 @@
         if (existing) {
             existing.quantity = qty;
             existing.stockUpdated = getCurrentTimeString();
+            await supabase.from('inventory').update({ quantity: qty, stockUpdated: existing.stockUpdated }).eq('id', existing.id);
         } else {
-            const newId = inventoryList.length > 0 ? Math.max(...inventoryList.map(i => i.id)) + 1 : 1;
-            inventoryList.push({ id: newId, name, quantity: qty, stockUpdated: getCurrentTimeString() });
+            const newItem = { name, quantity: qty, stockUpdated: getCurrentTimeString() };
+            const { data, error } = await supabase.from('inventory').insert([newItem]).select();
+            if (error) return alert("Fehler beim Hinzufügen.");
+            if (data) inventoryList.push(data[0]);
         }
         nameInput.value = '';
         qtyInput.value = '';
@@ -957,10 +952,11 @@
     /* BESTELLUNGEN */
     function updateOrderCustomerDatalist() {
         const datelistEl = document.getElementById('customer-datalist');
-        const customersFromPrices = customerPricesList.map(item => item.customerName);
-        const customersFromOrders = ordersList.map(item => item.customerName);
-        const customersFromArchive = archivedOrdersList.map(item => item.customerName);
-        const allCustomers = [...new Set([...customersFromPrices, ...customersFromOrders, ...customersFromArchive])].sort((a, b) => a.localeCompare(b, 'de'));
+        const allCustomers = [...new Set([
+            ...customerPricesList.map(i => i.customerName),
+            ...ordersList.map(i => i.customerName),
+            ...archivedOrdersList.map(i => i.customerName)
+        ])].sort((a, b) => a.localeCompare(b, 'de'));
 
         datelistEl.innerHTML = '';
         allCustomers.forEach(c => {
@@ -981,8 +977,7 @@
     }
 
     function updateAllOrderPositionDropdowns() {
-        const selects = document.querySelectorAll('.ord-name-select');
-        selects.forEach(select => {
+        document.querySelectorAll('.ord-name-select').forEach(select => {
             const currentVal = select.value;
             select.innerHTML = getSalesPricesOptionsHtml(currentVal);
         });
@@ -1009,14 +1004,13 @@
         container.appendChild(div);
     }
 
-    function handleAddOrder(event) {
+    async function handleAddOrder(event) {
         event.preventDefault();
         const customerName = capitalizeText(document.getElementById('order-customer-input').value.trim());
         if (!customerName) return alert("Bitte gib einen Kundennamen ein.");
 
         const rows = document.querySelectorAll('.order-item-row');
         const items = [];
-
         rows.forEach(row => {
             const name = row.querySelector('.ord-name-select').value;
             const qty = parseInt(row.querySelector('.ord-qty').value, 10);
@@ -1025,59 +1019,59 @@
 
         if (items.length === 0) return alert("Mindestens einen Artikel angeben.");
 
-        const newId = ordersList.length > 0 ? Math.max(...ordersList.map(o => o.id)) + 1 : 1;
-        ordersList.push({
-            id: newId,
-            customerName,
-            createdAt: getCurrentTimeString(),
-            items
-        });
+        const newOrder = { customerName, createdAt: getCurrentTimeString(), items };
+        const { data, error } = await supabase.from('orders').insert([newOrder]).select();
+        if (error) return alert("Fehler beim Speichern der Bestellung.");
+
+        if (data) ordersList.push(data[0]);
         document.getElementById('order-customer-input').value = '';
         initOrderPositionInputs();
         updateOrderCustomerDatalist();
         renderOrders();
     }
 
-    function deleteOrder(id) {
+    async function deleteOrder(id) {
         if (confirm("Bestellung löschen?")) {
+            const { error } = await supabase.from('orders').delete().eq('id', id);
+            if (error) return alert("Fehler beim Löschen.");
+
             ordersList = ordersList.filter(o => o.id !== id);
             updateOrderCustomerDatalist();
             renderOrders();
         }
     }
 
-    function fulfillOrder(orderId) {
+    async function fulfillOrder(orderId) {
         const orderIndex = ordersList.findIndex(o => o.id === orderId);
         if (orderIndex === -1) return;
 
         const order = ordersList[orderIndex];
-
         let totalSum = 0;
         const archivedItems = order.items.map(item => {
             const priceInfo = getPriceDetailsForCustomer(order.customerName, item.name);
             const itemTotal = priceInfo.price * item.qty;
             totalSum += itemTotal;
-            return {
-                name: item.name,
-                qty: item.qty,
-                price: priceInfo.price,
-                priceType: priceInfo.type,
-                total: itemTotal
-            };
+            return { name: item.name, qty: item.qty, price: priceInfo.price, priceType: priceInfo.type, total: itemTotal };
         });
 
-        archivedOrdersList.unshift({
-            id: order.id,
+        const archivedEntry = {
             customerName: order.customerName,
             items: archivedItems,
             totalSum: totalSum,
             createdAt: order.createdAt,
             deliveredAt: getCurrentTimeString()
-        });
+        };
 
+        // In Archiv-Tabelle schreiben und aus aktiven Bestellungen löschen
+        const { data, error } = await supabase.from('archive').insert([archivedEntry]).select();
+        if (error) return alert("Fehler beim Archivieren.");
+
+        await supabase.from('orders').delete().eq('id', orderId);
+
+        if (data) archivedOrdersList.unshift(data[0]);
         ordersList.splice(orderIndex, 1);
 
-        alert(`Bestellung von ${order.customerName} wurde erfolgreich ausgeliefert und ins Archiv verschoben!`);
+        alert(`Bestellung von ${order.customerName} wurde erfolgreich ausgeliefert!`);
         updateOrderCustomerDatalist();
         renderOrders();
         renderArchive();
@@ -1107,12 +1101,10 @@
                 totalOrderSum += itemTotal;
 
                 let badgeColor = priceInfo.type === 'Sonderpreis' ? '#38bdf8' : '#94a3b8';
-
                 itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${ordItem.qty}x</strong> ${ordItem.name} à $${priceInfo.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${priceInfo.type}</span> = <span style="color: #34d399; font-weight: 600;">$${itemTotal.toFixed(2)}</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${isEnough ? '#34d399' : '#f87171'}">${available}</span>)</span></div>`;
             });
 
             itemsHtml += `<div style="margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 6px; font-weight: 700; color: #f59e0b;">Gesamtsumme Bestellung: $${totalOrderSum.toFixed(2)}</div>`;
-
             let statusHtml = allOk ? `<span class="req-status status-ok">✓ Alles im Lager</span>` : `<span class="req-status status-missing">✕ Artikel fehlen</span>`;
 
             tr.innerHTML = `
@@ -1155,25 +1147,25 @@
                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${itemsHtml}</div></td>
                 <td><span class="current-price">$${archivedOrder.totalSum.toFixed(2)}</span></td>
                 <td class="time-text">${archivedOrder.createdAt || '-'}</td>
-                <td class="time-text">${archivedOrder.deliveredAt}</td>
-                <td>
-                    <button class="btn btn-danger" onclick="deleteArchivedOrder(${archivedOrder.id})">Eintrag löschen</button>
-                </td>
+                <td class="time-text">${archivedOrder.deliveredAt || '-'}</td>
+                <td><button class="btn btn-danger" onclick="deleteArchivedOrder(${archivedOrder.id})">Eintrag löschen</button></td>
             `;
             tbody.appendChild(tr);
         });
     }
 
-    function deleteArchivedOrder(id) {
-        if (confirm("Archivierte Bestellung löschen?")) {
+    async function deleteArchivedOrder(id) {
+        if (confirm("Archivierten Eintrag löschen?")) {
+            await supabase.from('archive').delete().eq('id', id);
             archivedOrdersList = archivedOrdersList.filter(o => o.id !== id);
             renderArchive();
         }
     }
 
-    function clearArchive() {
+    async function clearArchive() {
         if (archivedOrdersList.length === 0) return alert("Das Archiv ist bereits leer.");
         if (confirm("Möchtest du wirklich das gesamte Archiv leeren?")) {
+            await supabase.from('archive').delete().neq('id', 0); // Alles löschen
             archivedOrdersList = [];
             renderArchive();
         }
@@ -1201,9 +1193,7 @@
         const selectedFilter = document.getElementById('customer-filter').value;
 
         let filteredList = customerPricesList;
-        if (selectedFilter !== "ALL") {
-            filteredList = customerPricesList.filter(item => item.customerName === selectedFilter);
-        }
+        if (selectedFilter !== "ALL") filteredList = customerPricesList.filter(item => item.customerName === selectedFilter);
 
         const sortedList = [...filteredList].sort((a, b) => a.customerName.localeCompare(b.customerName, 'de') || a.name.localeCompare(b.name, 'de'));
 
@@ -1225,13 +1215,13 @@
                     </div>
                 </td>
                 <td><button class="btn btn-danger" onclick="deleteCustomerPrice(${item.id})">Löschen</button></td>
-                <td class="time-text">${item.priceUpdated}</td>
+                <td class="time-text">${item.priceUpdated || '-'}</td>
             `;
             tbody.appendChild(tr);
         });
     }
 
-    function updateCustomerPrice(id) {
+    async function updateCustomerPrice(id) {
         const inputEl = document.getElementById(`cust-price-input-${id}`);
         const val = parseFloat(inputEl.value);
         if (isNaN(val) || val < 0) return alert("Gültigen Preis eingeben.");
@@ -1240,14 +1230,17 @@
         if (item) {
             item.price = val;
             item.priceUpdated = getCurrentTimeString();
+            await supabase.from('customer_prices').update({ price: val, priceUpdated: item.priceUpdated }).eq('id', id);
+
             inputEl.value = '';
             renderCustomerPricesTable();
             renderOrders();
         }
     }
 
-    function deleteCustomerPrice(id) {
-        if (confirm("Kundenpreis wirklich löschen?")) {
+    async function deleteCustomerPrice(id) {
+        if (confirm("Kundenpreis löschen?")) {
+            await supabase.from('customer_prices').delete().eq('id', id);
             customerPricesList = customerPricesList.filter(i => i.id !== id);
             updateCustomerFilterOptions();
             updateOrderCustomerDatalist();
@@ -1256,7 +1249,7 @@
         }
     }
 
-    function handleAddCustomerPrice(event) {
+    async function handleAddCustomerPrice(event) {
         event.preventDefault();
         const custInput = document.getElementById('cust-price-name');
         const nameInput = document.getElementById('cust-price-item');
@@ -1272,9 +1265,12 @@
         if (existing) {
             existing.price = price;
             existing.priceUpdated = getCurrentTimeString();
+            await supabase.from('customer_prices').update({ price, priceUpdated: existing.priceUpdated }).eq('id', existing.id);
         } else {
-            const newId = customerPricesList.length > 0 ? Math.max(...customerPricesList.map(i => i.id)) + 1 : 1;
-            customerPricesList.push({ id: newId, customerName, name, price, priceUpdated: getCurrentTimeString() });
+            const newObj = { customerName, name, price, priceUpdated: getCurrentTimeString() };
+            const { data, error } = await supabase.from('customer_prices').insert([newObj]).select();
+            if (error) return alert("Fehler beim Speichern.");
+            if (data) customerPricesList.push(data[0]);
         }
 
         custInput.value = '';
@@ -1304,13 +1300,13 @@
                     </div>
                 </td>
                 <td><button class="btn btn-danger" onclick="deletePriceItem(${item.id})">Löschen</button></td>
-                <td class="time-text">${item.priceUpdated}</td>
+                <td class="time-text">${item.priceUpdated || '-'}</td>
             `;
             tbody.appendChild(tr);
         });
     }
 
-    function updatePrice(id) {
+    async function updatePrice(id) {
         const inputEl = document.getElementById(`price-input-${id}`);
         const value = parseFloat(inputEl.value);
         if (isNaN(value) || value < 0) return alert("Gültigen Preis eingeben.");
@@ -1319,6 +1315,8 @@
         if (item) {
             item.price = value;
             item.priceUpdated = getCurrentTimeString();
+            await supabase.from('sales_prices').update({ price: value, priceUpdated: item.priceUpdated }).eq('id', id);
+
             inputEl.value = '';
             renderPriceTable();
             updateAllOrderPositionDropdowns();
@@ -1326,8 +1324,9 @@
         }
     }
 
-    function deletePriceItem(id) {
+    async function deletePriceItem(id) {
         if (confirm("Verkaufspreis löschen?")) {
+            await supabase.from('sales_prices').delete().eq('id', id);
             salesPricesList = salesPricesList.filter(i => i.id !== id);
             renderPriceTable();
             updateAllOrderPositionDropdowns();
@@ -1335,7 +1334,7 @@
         }
     }
 
-    function handleAddPriceItem(event) {
+    async function handleAddPriceItem(event) {
         event.preventDefault();
         const nameInput = document.getElementById('price-add-name');
         const priceInput = document.getElementById('price-add-price');
@@ -1347,9 +1346,12 @@
         if (existing) {
             existing.price = price;
             existing.priceUpdated = getCurrentTimeString();
+            await supabase.from('sales_prices').update({ price, priceUpdated: existing.priceUpdated }).eq('id', existing.id);
         } else {
-            const newId = salesPricesList.length > 0 ? Math.max(...salesPricesList.map(i => i.id)) + 1 : 1;
-            salesPricesList.push({ id: newId, name, price, priceUpdated: getCurrentTimeString() });
+            const newItem = { name, price, priceUpdated: getCurrentTimeString() };
+            const { data, error } = await supabase.from('sales_prices').insert([newItem]).select();
+            if (error) return alert("Fehler beim Speichern.");
+            if (data) salesPricesList.push(data[0]);
         }
         nameInput.value = '';
         priceInput.value = '';
@@ -1402,13 +1404,13 @@
                     </div>
                 </td>
                 <td><button class="btn btn-danger" onclick="deletePurchaseItem(${item.id})">Löschen</button></td>
-                <td class="time-text">${item.costUpdated}</td>
+                <td class="time-text">${item.costUpdated || '-'}</td>
             `;
             tbody.appendChild(tr);
         });
     }
 
-    function updateCost(id) {
+    async function updateCost(id) {
         const inputCostEl = document.getElementById(`cost-input-${id}`);
         const inputBusinessEl = document.getElementById(`cost-business-input-${id}`);
         const costValue = parseFloat(inputCostEl.value);
@@ -1417,10 +1419,15 @@
         const item = purchasePricesList.find(i => i.id === id);
         if (item) {
             let updated = false;
-            if (!isNaN(costValue) && costValue >= 0) { item.cost = costValue; updated = true; }
-            if (businessValue !== "") { item.business = businessValue; updated = true; }
+            let updatePayload = {};
+            if (!isNaN(costValue) && costValue >= 0) { item.cost = costValue; updatePayload.cost = costValue; updated = true; }
+            if (businessValue !== "") { item.business = businessValue; updatePayload.business = businessValue; updated = true; }
+
             if (updated) {
                 item.costUpdated = getCurrentTimeString();
+                updatePayload.costUpdated = item.costUpdated;
+                await supabase.from('purchase_prices').update(updatePayload).eq('id', id);
+
                 inputCostEl.value = '';
                 updateBusinessFilterOptions();
                 renderCostTable();
@@ -1429,8 +1436,9 @@
         }
     }
 
-    function deletePurchaseItem(id) {
+    async function deletePurchaseItem(id) {
         if (confirm("Eintrag löschen?")) {
+            await supabase.from('purchase_prices').delete().eq('id', id);
             purchasePricesList = purchasePricesList.filter(i => i.id !== id);
             updateBusinessFilterOptions();
             renderCostTable();
@@ -1438,7 +1446,7 @@
         }
     }
 
-    function handleAddPurchaseItem(event) {
+    async function handleAddPurchaseItem(event) {
         event.preventDefault();
         const nameInput = document.getElementById('cost-add-name');
         const businessInput = document.getElementById('cost-add-business');
@@ -1454,9 +1462,12 @@
         if (existing) {
             existing.cost = cost;
             existing.costUpdated = getCurrentTimeString();
+            await supabase.from('purchase_prices').update({ cost, costUpdated: existing.costUpdated }).eq('id', existing.id);
         } else {
-            const newId = purchasePricesList.length > 0 ? Math.max(...purchasePricesList.map(i => i.id)) + 1 : 1;
-            purchasePricesList.push({ id: newId, name, business, cost, costUpdated: getCurrentTimeString() });
+            const newItem = { name, business, cost, costUpdated: getCurrentTimeString() };
+            const { data, error } = await supabase.from('purchase_prices').insert([newItem]).select();
+            if (error) return alert("Fehler beim Speichern.");
+            if (data) purchasePricesList.push(data[0]);
         }
 
         nameInput.value = '';
@@ -1472,19 +1483,14 @@
         let val = parseInt(inputEl.value, 10);
         if (isNaN(val) || val < 0) val = 0;
         
-        if (val === 0) {
-            delete shoppingListQuantities[purchaseItemId];
-        } else {
-            shoppingListQuantities[purchaseItemId] = val;
-        }
+        if (val === 0) delete shoppingListQuantities[purchaseItemId];
+        else shoppingListQuantities[purchaseItemId] = val;
 
         const item = purchasePricesList.find(i => i.id === purchaseItemId);
         const itemTotalEl = document.getElementById(`shop-item-total-${purchaseItemId}`);
         if (item && itemTotalEl) {
-            const itemTotal = val * item.cost;
-            itemTotalEl.innerText = `$${itemTotal.toFixed(2)}`;
+            itemTotalEl.innerText = `$${(val * item.cost).toFixed(2)}`;
         }
-
         updateShoppingTotalSum();
     }
 
@@ -1495,9 +1501,7 @@
             totalSum += qty * item.cost;
         });
         const totalSumEl = document.getElementById('shopping-total-sum');
-        if (totalSumEl) {
-            totalSumEl.innerText = `$${totalSum.toFixed(2)}`;
-        }
+        if (totalSumEl) totalSumEl.innerText = `$${totalSum.toFixed(2)}`;
     }
 
     function clearShoppingList() {
@@ -1511,9 +1515,8 @@
         tbody.innerHTML = '';
 
         const sortedList = [...purchasePricesList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
-
         if (sortedList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Einkaufspreise hinterlegt. Bitte zuerst im Tab „Einkaufspreise“ Artikel hinzufügen.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Einkaufspreise hinterlegt.</td></tr>`;
             updateShoppingTotalSum();
             return;
         }
@@ -1527,14 +1530,11 @@
                 <td class="material-name">${item.name}</td>
                 <td><span class="business-badge">${item.business}</span></td>
                 <td class="current-cost">$${item.cost.toFixed(2)}</td>
-                <td>
-                    <input type="number" min="0" placeholder="Menge" value="${currentQty}" oninput="updateShoppingQty(${item.id}, this)" style="width: 120px;" />
-                </td>
+                <td><input type="number" min="0" placeholder="Menge" value="${currentQty}" oninput="updateShoppingQty(${item.id}, this)" style="width: 120px;" /></td>
                 <td><span id="shop-item-total-${item.id}" class="current-price">$${itemTotal.toFixed(2)}</span></td>
             `;
             tbody.appendChild(tr);
         });
-
         updateShoppingTotalSum();
     }
 
@@ -1559,16 +1559,15 @@
         container.appendChild(div);
     }
 
-    function handleAddRecipe(event) {
+    async function handleAddRecipe(event) {
         event.preventDefault();
         const outputName = capitalizeText(document.getElementById('recipe-output-name').value.trim());
         const outputQty = parseInt(document.getElementById('recipe-output-qty').value, 10);
 
-        if (!outputName || isNaN(outputQty) || outputQty < 1) return alert("Bitte gültiges Endprodukt und Ertrag eingeben.");
+        if (!outputName || isNaN(outputQty) || outputQty < 1) return alert("Bitte gültiges Endprodukt eingeben.");
 
         const rows = document.querySelectorAll('.recipe-ingredient-row');
         const ingredients = [];
-
         rows.forEach(row => {
             const name = capitalizeText(row.querySelector('.rec-ing-name').value.trim());
             const qty = parseInt(row.querySelector('.rec-ing-qty').value, 10);
@@ -1581,14 +1580,12 @@
         if (existing) {
             existing.outputQty = outputQty;
             existing.ingredients = ingredients;
+            await supabase.from('recipes').update({ outputQty, ingredients }).eq('id', existing.id);
         } else {
-            const newId = recipesList.length > 0 ? Math.max(...recipesList.map(r => r.id)) + 1 : 1;
-            recipesList.push({
-                id: newId,
-                outputName,
-                outputQty,
-                ingredients
-            });
+            const newRecipe = { outputName, outputQty, ingredients };
+            const { data, error } = await supabase.from('recipes').insert([newRecipe]).select();
+            if (error) return alert("Fehler beim Speichern.");
+            if (data) recipesList.push(data[0]);
         }
 
         document.getElementById('recipe-output-name').value = '';
@@ -1597,8 +1594,9 @@
         renderRecipes();
     }
 
-    function deleteRecipe(id) {
+    async function deleteRecipe(id) {
         if (confirm("Rezept löschen?")) {
+            await supabase.from('recipes').delete().eq('id', id);
             recipesList = recipesList.filter(r => r.id !== id);
             renderRecipes();
         }
@@ -1633,9 +1631,7 @@
                     <div id="ingredients-view-${recipe.id}" style="font-size: 0.9rem; line-height: 1.4;"></div>
                 </td>
                 <td><div id="status-box-${recipe.id}"></div></td>
-                <td>
-                    <button class="btn btn-danger" onclick="deleteRecipe(${recipe.id})">Löschen</button>
-                </td>
+                <td><button class="btn btn-danger" onclick="deleteRecipe(${recipe.id})">Löschen</button></td>
             `;
             tbody.appendChild(tr);
             updateRecipeDynamicView(recipe.id);
@@ -1670,9 +1666,8 @@
         statusBox.innerHTML = canCraft ? `<span class="req-status status-ok">✓ Genug Material</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
     }
 
-    initOrderPositionInputs();
-    initRecipeIngredientInputs();
-    renderTables();
+    // Beim Starten der Seite Daten aus der Clouddatenbank laden
+    fetchAllDataFromCloud();
 </script>
 
 </body>
