@@ -674,72 +674,75 @@
 </div>
 
 <script>
-    // ----------------------------------------------------
-    // SUPABASE KONFIGURATION
-    // ----------------------------------------------------
-    const SUPABASE_URL = 'https://cobndqltfctyaihzqatt.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_GJhsLbNkikl3XCCO47sCCA_08NREIgY';
+        // ----------------------------------------------------
+        // SUPABASE KONFIGURATION
+        // ----------------------------------------------------
+        const SUPABASE_URL = 'https://cobndqltfctyaihzqatt.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_GJhsLbNkikl3XCCO47sCCA_08NREIgY';
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Wird nur hier einmalig initialisiert
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Globale Daten-Arrays
-    let inventoryList = [];
-    let ordersList = [];
-    let archivedOrdersList = [];
-    let customerPricesList = [];
-    let salesPricesList = [];
-    let purchasePricesList = [];
-    let shoppingListQuantities = {};
-    let recipesList = [];
+        // Globale Daten-Arrays
+        let inventoryList = [];
+        let ordersList = [];
+        let archivedOrdersList = [];
+        let customerPricesList = [];
+        let salesPricesList = [];
+        let purchasePricesList = [];
+        let shoppingListQuantities = {};
+        let recipesList = [];
 
-    function capitalizeText(text) {
-        if (!text) return "";
-        return text.split(' ').map(word => {
-            if (!word) return "";
-            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-        }).join(' ');
-    }
+        function capitalizeText(text) {
+            if (!text) return "";
+            return text.split(' ').map(word => {
+                if (!word) return "";
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            }).join(' ');
+        }
 
-    function makeTitleEditable() {
-        const titleEl = document.getElementById('main-title');
-        const currentText = titleEl.innerText;
-        
-        const inputEl = document.createElement('input');
-        inputEl.type = 'text';
-        inputEl.className = 'title-input';
-        inputEl.value = currentText;
-        
-        titleEl.replaceWith(inputEl);
-        inputEl.focus();
-        inputEl.select();
+        function makeTitleEditable() {
+            const titleEl = document.getElementById('main-title');
+            const currentText = titleEl.innerText;
+            
+            const inputEl = document.createElement('input');
+            inputEl.type = 'text';
+            inputEl.className = 'title-input';
+            inputEl.value = currentText;
+            
+            titleEl.replaceWith(inputEl);
+            inputEl.focus();
+            inputEl.select();
 
-        const saveTitle = () => {
-            const newText = inputEl.value.trim() || "Rudis Schmiede";
-            const newH1 = document.createElement('h1');
-            newH1.id = 'main-title';
-            newH1.innerText = newText;
-            newH1.setAttribute('onclick', 'makeTitleEditable()');
-            newH1.setAttribute('title', 'Klicken zum Bearbeiten');
-            inputEl.replaceWith(newH1);
-            document.title = newText + " - Verwaltung";
-        };
+            const saveTitle = () => {
+                const newText = inputEl.value.trim() || "Rudis Schmiede";
+                const newH1 = document.createElement('h1');
+                newH1.id = 'main-title';
+                newH1.innerText = newText;
+                newH1.setAttribute('onclick', 'makeTitleEditable()');
+                newH1.setAttribute('title', 'Klicken zum Bearbeiten');
+                inputEl.replaceWith(newH1);
+                document.title = newText + " - Verwaltung";
+            };
 
-        inputEl.addEventListener('blur', saveTitle);
-        inputEl.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') saveTitle();
-        });
-    }
+            inputEl.addEventListener('blur', saveTitle);
+            inputEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') saveTitle();
+            });
+        }
 
-    function getCurrentTimeString() {
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        return `Heute, ${hours}:${minutes} Uhr`;
-    }
+        function getCurrentTimeString() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `Heute, ${hours}:${minutes} Uhr`;
+        }
 
-    // ----------------------------------------------------
-    // DATEN AUS SUPABASE LADEN
-    // ----------------------------------------------------
+        // ----------------------------------------------------
+        // DATEN AUS SUPABASE LADEN
+        // ----------------------------------------------------
+    </script>
+    
     async function fetchAllDataFromCloud() {
         try {
             const [inv, ord, arch, cp, sp, pp, rec] = await Promise.all([
