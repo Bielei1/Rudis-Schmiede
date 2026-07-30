@@ -773,20 +773,23 @@
         </div>
     </div>
 
-    <!-- TAB 9: NOTIZEN (Mit Rechtschreibprüfung) -->
+    <!-- TAB 9: NOTIZEN (Mit eingeklapptem Extra-Fenster) -->
     <div id="tab-notizen" class="tab-content">
-        <div class="add-card">
-            <h2>+ Neue Notiz hinzufügen</h2>
-            <form class="add-form" onsubmit="handleAddNote(event)">
-                <div class="form-group" style="flex: 100%;">
-                    <label for="note-add-content">Notiztext (inkl. automatischer Rechtschreibprüfung)</label>
-                    <textarea id="note-add-content" placeholder="Schreibe hier deine Notiz hinein... (Fehler werden beim Tippen rot unterkrochen)" spellcheck="true" lang="de" required></textarea>
-                </div>
-                <button type="submit" class="btn btn-success">Notiz speichern</button>
-            </form>
-        </div>
+        <details>
+            <summary>+ Neue Notiz hinzufügen</summary>
+            <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
+                <h2>+ Neue Notiz hinzufügen</h2>
+                <form class="add-form" onsubmit="handleAddNote(event)">
+                    <div class="form-group" style="flex: 100%;">
+                        <label for="note-add-content">Notiztext (inkl. automatischer Rechtschreibprüfung)</label>
+                        <textarea id="note-add-content" placeholder="Schreibe hier deine Notiz hinein... (Fehler werden beim Tippen rot unterkrochen)" spellcheck="true" lang="de" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success">Notiz speichern</button>
+                </form>
+            </div>
+        </details>
 
-        <h2>Gespeicherte Notizen</h2>
+        <h2 style="font-size: 1.1rem; margin-top: 24px; margin-bottom: 12px; color: var(--text-color);">Gespeicherte Notizen</h2>
         <div class="table-container" style="margin-top: 16px;">
             <table>
                 <thead>
@@ -866,9 +869,12 @@
 
     function getCurrentTimeString() {
         const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
-        return `Heute, ${hours}:${minutes} Uhr`;
+        return `${day}.${month}.${year}, ${hours}:${minutes} Uhr`;
     }
 
     function switchTab(tabName) {
