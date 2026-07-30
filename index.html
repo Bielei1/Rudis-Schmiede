@@ -675,14 +675,14 @@
 
 <script>
     // ----------------------------------------------------
-    // SUPABASE KONFIGURATION (HIER DEINE DATEN EINTRAGEN)
+    // SUPABASE KONFIGURATION
     // ----------------------------------------------------
     const SUPABASE_URL = 'https://cobndqltfctyaihzqatt.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_GJhsLbNkikl3XCCO47sCCA_08NREIgY';
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Globale Daten-Arrays (werden live aus Supabase gefüllt)
+    // Globale Daten-Arrays
     let inventoryList = [];
     let ordersList = [];
     let archivedOrdersList = [];
@@ -1062,7 +1062,6 @@
             deliveredAt: getCurrentTimeString()
         };
 
-        // In Archiv-Tabelle schreiben und aus aktiven Bestellungen löschen
         const { data, error } = await supabase.from('archive').insert([archivedEntry]).select();
         if (error) return alert("Fehler beim Archivieren.");
 
@@ -1165,7 +1164,7 @@
     async function clearArchive() {
         if (archivedOrdersList.length === 0) return alert("Das Archiv ist bereits leer.");
         if (confirm("Möchtest du wirklich das gesamte Archiv leeren?")) {
-            await supabase.from('archive').delete().neq('id', 0); // Alles löschen
+            await supabase.from('archive').delete().neq('id', 0);
             archivedOrdersList = [];
             renderArchive();
         }
@@ -1666,7 +1665,6 @@
         statusBox.innerHTML = canCraft ? `<span class="req-status status-ok">✓ Genug Material</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
     }
 
-    // Beim Starten der Seite Daten aus der Clouddatenbank laden
     fetchAllDataFromCloud();
 </script>
 
