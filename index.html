@@ -449,6 +449,39 @@
         details > *:not(summary) {
             margin-top: 16px;
         }
+
+        /* Tooltip-Stile für das Endprodukt-Hover im automatischen Verkaufspreise-Rechner */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip-content {
+            visibility: hidden;
+            width: 260px;
+            background-color: #0f172a;
+            color: #f8fafc;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px 12px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%;
+            left: 0;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            border: 1px solid var(--border-color);
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            font-size: 0.85rem;
+            font-weight: normal;
+            line-height: 1.4;
+        }
+
+        .tooltip-container:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -1674,10 +1707,23 @@
             let margin = recipeMargins[recipe.id] !== undefined ? recipeMargins[recipe.id] : 20;
             let calculatedPrice = costPerUnit * (1 + (margin / 100));
 
+            // Rezept-Zutaten für das Hover-Tooltip aufbereiten
+            let tooltipIngredientsHtml = `<strong>Rezept für ${recipe.outputName} (${recipe.outputQty} Stk.):</strong><br><br>`;
+            if (recipe.ingredients && recipe.ingredients.length > 0) {
+                recipe.ingredients.forEach(ing => {
+                    tooltipIngredientsHtml += `• ${ing.qty}x ${ing.name}<br>`;
+                });
+            } else {
+                tooltipIngredientsHtml += `<em>Keine Zutaten hinterlegt</em>`;
+            }
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <div class="material-name" style="color: #38bdf8;">${recipe.outputName} <span style="font-size: 0.85rem; color: #34d399; font-weight: 600; margin-left: 8px;">(${recipe.outputQty} Stk.)</span></div>
+                    <div class="tooltip-container">
+                        <span class="material-name" style="color: #38bdf8;">${recipe.outputName} <span style="font-size: 0.85rem; color: #34d399; font-weight: 600; margin-left: 8px;">(${recipe.outputQty} Stk.)</span></span>
+                        <div class="tooltip-content">${tooltipIngredientsHtml}</div>
+                    </div>
                 </td>
                 <td><span class="current-cost">$${costPerUnit.toFixed(2)}</span></td>
                 <td>
