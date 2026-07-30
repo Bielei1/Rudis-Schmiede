@@ -677,7 +677,7 @@
 </div>
 
 <script>
-    // Supabase Initialisierung (Bitte deine Projekt-URL und den anon Key einfügen)
+    // Supabase Initialisierung
     const SUPABASE_URL = 'https://cobndqltfctyaihzqatt.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_GJhsLbNkikl3XCCO47sCCA_08NREIgY';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -809,7 +809,7 @@
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
-    // Daten von Supabase laden
+    // Daten von Supabase laden (Korrektur: 'archive' statt 'archived_orders')
     async function loadDataFromSupabase() {
         try {
             const { data: inv } = await supabase.from('inventory').select('*');
@@ -818,7 +818,7 @@
             const { data: ord } = await supabase.from('orders').select('*');
             if (ord) ordersList = ord;
 
-            const { data: arch } = await supabase.from('archived_orders').select('*');
+            const { data: arch } = await supabase.from('archive').select('*');
             if (arch) archivedOrdersList = arch;
 
             const { data: custP } = await supabase.from('customer_prices').select('*');
@@ -1084,7 +1084,8 @@
             deliveredAt: deliveredAt
         };
 
-        const { error: archiveError } = await supabase.from('archived_orders').insert([archivedPayload]);
+        // Korrektur: insert in 'archive'
+        const { error: archiveError } = await supabase.from('archive').insert([archivedPayload]);
         if (archiveError) {
             return alert("Fehler beim Archivieren: " + archiveError.message);
         }
@@ -1186,7 +1187,8 @@
 
     async function deleteArchivedOrder(id) {
         if (confirm("Archivierte Bestellung löschen?")) {
-            const { error } = await supabase.from('archived_orders').delete().eq('id', id);
+            // Korrektur: delete from 'archive'
+            const { error } = await supabase.from('archive').delete().eq('id', id);
             if (!error) {
                 archivedOrdersList = archivedOrdersList.filter(o => o.id !== id);
                 renderArchive();
@@ -1197,7 +1199,8 @@
     async function clearArchive() {
         if (archivedOrdersList.length === 0) return alert("Das Archiv ist bereits leer.");
         if (confirm("Möchtest du wirklich das gesamte Archiv leeren?")) {
-            const { error } = await supabase.from('archived_orders').delete().neq('id', 0);
+            // Korrektur: delete from 'archive'
+            const { error } = await supabase.from('archive').delete().neq('id', 0);
             if (!error) {
                 archivedOrdersList = [];
                 renderArchive();
