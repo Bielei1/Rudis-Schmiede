@@ -50,7 +50,6 @@
             border: 1px solid var(--border-color);
         }
 
-        /* Bearbeitbare Überschrift */
         .editable-title-container {
             display: flex;
             align-items: center;
@@ -87,7 +86,6 @@
             max-width: 400px;
         }
 
-        /* Tabs Styles */
         .tabs {
             display: flex;
             gap: 6px;
@@ -139,7 +137,6 @@
             display: block;
         }
 
-        /* Formular Karten */
         .add-card {
             background-color: #162032;
             border: 1px solid var(--border-color);
@@ -237,7 +234,6 @@
             transform: scale(0.98);
         }
 
-        /* Filter Section */
         .filter-card {
             background-color: #162032;
             border: 1px solid var(--border-color);
@@ -260,7 +256,7 @@
             max-width: 300px;
         }
 
-        .ingredient-row, .order-item-row {
+        .order-item-row {
             display: flex;
             gap: 8px;
             align-items: center;
@@ -288,7 +284,6 @@
             border: 1px solid #ef4444;
         }
 
-        /* Table Styles */
         .table-container {
             overflow-x: auto;
             border-radius: 8px;
@@ -677,10 +672,16 @@
 </div>
 
 <script>
-    // Supabase Initialisierung
+    // Supabase Initialisierung (Sichergestellt, dass keine doppelte Deklaration stattfindet)
     const SUPABASE_URL = 'https://cobndqltfctyaihzqatt.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_GJhsLbNkikl3XCCO47sCCA_08NREIgY';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Prüfen, ob supabase global bereits existiert, falls nicht initialisieren
+    let supabase = window.supabaseClient;
+    if (!supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window.supabaseClient = supabase;
+    }
 
     function capitalizeText(text) {
         if (!text) return "";
@@ -809,7 +810,6 @@
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
-    // Daten von Supabase laden (Korrektur: 'archive' statt 'archived_orders')
     async function loadDataFromSupabase() {
         try {
             const { data: inv } = await supabase.from('inventory').select('*');
@@ -1084,7 +1084,6 @@
             deliveredAt: deliveredAt
         };
 
-        // Korrektur: insert in 'archive'
         const { error: archiveError } = await supabase.from('archive').insert([archivedPayload]);
         if (archiveError) {
             return alert("Fehler beim Archivieren: " + archiveError.message);
@@ -1187,7 +1186,6 @@
 
     async function deleteArchivedOrder(id) {
         if (confirm("Archivierte Bestellung löschen?")) {
-            // Korrektur: delete from 'archive'
             const { error } = await supabase.from('archive').delete().eq('id', id);
             if (!error) {
                 archivedOrdersList = archivedOrdersList.filter(o => o.id !== id);
@@ -1199,7 +1197,6 @@
     async function clearArchive() {
         if (archivedOrdersList.length === 0) return alert("Das Archiv ist bereits leer.");
         if (confirm("Möchtest du wirklich das gesamte Archiv leeren?")) {
-            // Korrektur: delete from 'archive'
             const { error } = await supabase.from('archive').delete().neq('id', 0);
             if (!error) {
                 archivedOrdersList = [];
@@ -1794,8 +1791,6 @@
 
     initOrderPositionInputs();
     initRecipeIngredientInputs();
-    
-    // Daten beim Start aus Supabase laden
     loadDataFromSupabase();
 </script>
 
