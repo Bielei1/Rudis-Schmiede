@@ -446,6 +446,7 @@
         <button class="tab-btn" draggable="true" data-tab="einkaufspreise" onclick="switchTab('einkaufspreise')">Einkaufspreise</button>
         <button class="tab-btn" draggable="true" data-tab="einkaufsliste" onclick="switchTab('einkaufsliste')">Einkaufsliste</button>
         <button class="tab-btn" draggable="true" data-tab="archiv" onclick="switchTab('archiv')">Bestellung Archiv</button>
+        <button class="tab-btn" draggable="true" data-tab="notizen" onclick="switchTab('notizen')">Notizen</button>
     </div>
 
     <!-- TAB 1: LAGERBESTAND -->
@@ -771,6 +772,34 @@
             </table>
         </div>
     </div>
+
+    <!-- TAB 9: NOTIZEN (Mit Rechtschreibprüfung) -->
+    <div id="tab-notizen" class="tab-content">
+        <div class="add-card">
+            <h2>+ Neue Notiz hinzufügen</h2>
+            <form class="add-form" onsubmit="handleAddNote(event)">
+                <div class="form-group" style="flex: 100%;">
+                    <label for="note-add-content">Notiztext (inkl. automatischer Rechtschreibprüfung)</label>
+                    <textarea id="note-add-content" placeholder="Schreibe hier deine Notiz hinein... (Fehler werden beim Tippen rot unterkrochen)" spellcheck="true" lang="de" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-success">Notiz speichern</button>
+            </form>
+        </div>
+
+        <h2>Gespeicherte Notizen</h2>
+        <div class="table-container" style="margin-top: 16px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Notiz</th>
+                        <th>Erstellt am</th>
+                        <th>Aktion</th>
+                    </tr>
+                </thead>
+                <tbody id="notes-table-body"></tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -832,7 +861,8 @@
     let shoppingListQuantities = {};
     let recipesList = [];
     let recipeMargins = {};
-    let recipeTargetAmounts = {}; // Speichert die gewünschten Mengen pro Rezept-ID
+    let recipeTargetAmounts = {};
+    let notesList = [];
 
     function getCurrentTimeString() {
         const now = new Date();
@@ -870,6 +900,8 @@
         } else if (tabName === 'verkaufspreise') {
             renderCalculatedPricesTable();
             renderPriceTable();
+        } else if (tabName === 'notizen') {
+            renderNotes();
         }
     }
 
@@ -940,6 +972,9 @@
             const { data: rec } = await supabaseClient.from('recipes').select('*');
             if (rec) recipesList = rec;
 
+            const { data: nots } = await supabaseClient.from('notes').select('*');
+            if (nots) notesList = nots;
+
             renderTables();
         } catch (error) {
             console.error("Fehler beim Laden der Supabase-Daten:", error);
@@ -961,6 +996,7 @@
         renderCostTable();
         renderShoppingList();
         renderRecipes();
+        renderNotes();
     }
 
     function getPriceDetailsForCustomer(customerName, itemName) {
@@ -2091,6 +2127,63 @@
         statusBox.innerHTML = canCraft ? `<span class="req-status status-ok">✓ Genug Material</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
     }
 
+    /* NOTIZEN FUNKTIONEN */
+    async function handleAddNote(event) {
+        event.preventDefault();
+        const contentInput = document.getElementById('note-add-content');
+        const content = contentInput.value.trim();
+        if (!content) return;
+
+        const createdAt = getCurrentTimeString();
+        const { data, error } = await supabaseClient
+            .from('notes')
+            .insert([{ content, createdAt }])
+            .select();
+
+        if (!error && data) {
+            notesList.unshift(data[0]);
+            contentInput.value = '';
+            renderNotes();
+        } else {
+            alert("Fehler beim Speichern der Notiz: " + (error ? error.message : ''));
+        }
+    }
+
+    async function deleteNote(id) {
+        if (confirm("Notiz wirklich löschen?")) {
+            const { error } = await supabaseClient.from('notes').delete().eq('id', id);
+            if (!error) {
+                notesList = notesList.filter(n => n.id !== id);
+                renderNotes();
+            } else {
+                alert("Fehler beim Löschen: " + error.message);
+            }
+        }
+    }
+
+    function renderNotes() {
+        const tbody = document.getElementById('notes-table-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (notesList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Notizen vorhanden.</td></tr>`;
+            return;
+        }
+
+        notesList.forEach(note => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="white-space: pre-wrap; line-height: 1.4; color: #f1f5f9;">${note.content}</td>
+                <td class="time-text">${note.createdAt || '-'}</td>
+                <td>
+                    <button class="btn btn-danger" onclick="deleteNote(${note.id})">Löschen</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
     const tablesToWatch = [
         'inventory', 
         'orders', 
@@ -2098,7 +2191,8 @@
         'customer_prices', 
         'sales_prices', 
         'purchase_prices', 
-        'recipes'
+        'recipes',
+        'notes'
     ];
 
     tablesToWatch.forEach(tableName => {
