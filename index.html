@@ -681,12 +681,11 @@
     const SUPABASE_URL = 'https://cobndqltfctyaihzqatt.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_GJhsLbNkikl3XCCO47sCCA_08NREIgY';
     
-    // Globalen Client sicher initialisieren, ohne erneute Konflikte bei der Deklaration
+    // Globalen Client sicher initialisieren, ohne Konflikte mit dem globalen 'supabase' Objekt
     if (!window.supabaseClient) {
         window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
-    // Nutzen der globalen Instanz via var oder Direktzugriff, um SyntaxErrors zu verhindern
-    var supabase = window.supabaseClient;
+    const supabaseClient = window.supabaseClient;
 
     function capitalizeText(text) {
         if (!text) return "";
@@ -817,25 +816,25 @@
 
     async function loadDataFromSupabase() {
         try {
-            const { data: inv } = await supabase.from('inventory').select('*');
+            const { data: inv } = await supabaseClient.from('inventory').select('*');
             if (inv) inventoryList = inv;
 
-            const { data: ord } = await supabase.from('orders').select('*');
+            const { data: ord } = await supabaseClient.from('orders').select('*');
             if (ord) ordersList = ord;
 
-            const { data: arch } = await supabase.from('archive').select('*');
+            const { data: arch } = await supabaseClient.from('archive').select('*');
             if (arch) archivedOrdersList = arch;
 
-            const { data: custP } = await supabase.from('customer_prices').select('*');
+            const { data: custP } = await supabaseClient.from('customer_prices').select('*');
             if (custP) customerPricesList = custP;
 
-            const { data: salesP } = await supabase.from('sales_prices').select('*');
+            const { data: salesP } = await supabaseClient.from('sales_prices').select('*');
             if (salesP) salesPricesList = salesP;
 
-            const { data: purchP } = await supabase.from('purchase_prices').select('*');
+            const { data: purchP } = await supabaseClient.from('purchase_prices').select('*');
             if (purchP) purchasePricesList = purchP;
 
-            const { data: rec } = await supabase.from('recipes').select('*');
+            const { data: rec } = await supabaseClient.from('recipes').select('*');
             if (rec) recipesList = rec;
 
             renderTables();
@@ -909,7 +908,7 @@
         if (isNaN(value) || value < 0) return alert("Bitte gültige Zahl eingeben.");
 
         const updatedTime = getCurrentTimeString();
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('inventory')
             .update({ quantity: value, stockUpdated: updatedTime })
             .eq('id', id);
@@ -930,7 +929,7 @@
 
     async function deleteStockItem(id) {
         if (confirm("Artikel wirklich löschen?")) {
-            const { error } = await supabase.from('inventory').delete().eq('id', id);
+            const { error } = await supabaseClient.from('inventory').delete().eq('id', id);
             if (!error) {
                 inventoryList = inventoryList.filter(i => i.id !== id);
                 renderStockTable();
@@ -954,7 +953,7 @@
         const existing = inventoryList.find(i => i.name.toLowerCase() === name.toLowerCase());
 
         if (existing) {
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('inventory')
                 .update({ quantity: qty, stockUpdated: updatedTime })
                 .eq('id', existing.id);
@@ -964,7 +963,7 @@
                 existing.stockUpdated = updatedTime;
             }
         } else {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('inventory')
                 .insert([{ name, quantity: qty, stockUpdated: updatedTime }])
                 .select();
@@ -1032,7 +1031,7 @@
         if (items.length === 0) return alert("Mindestens einen Artikel angeben.");
 
         const createdAt = getCurrentTimeString();
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('orders')
             .insert([{ customerName, createdAt, items }])
             .select();
@@ -1050,7 +1049,7 @@
 
     async function deleteOrder(id) {
         if (confirm("Bestellung löschen?")) {
-            const { error } = await supabase.from('orders').delete().eq('id', id);
+            const { error } = await supabaseClient.from('orders').delete().eq('id', id);
             if (!error) {
                 ordersList = ordersList.filter(o => o.id !== id);
                 updateOrderCustomerDatalist();
@@ -1089,12 +1088,12 @@
             deliveredAt: deliveredAt
         };
 
-        const { error: archiveError } = await supabase.from('archive').insert([archivedPayload]);
+        const { error: archiveError } = await supabaseClient.from('archive').insert([archivedPayload]);
         if (archiveError) {
             return alert("Fehler beim Archivieren: " + archiveError.message);
         }
 
-        const { error: deleteError } = await supabase.from('orders').delete().eq('id', orderId);
+        const { error: deleteError } = await supabaseClient.from('orders').delete().eq('id', orderId);
         if (deleteError) {
             return alert("Fehler beim Entfernen der aktiven Bestellung: " + deleteError.message);
         }
@@ -1191,7 +1190,7 @@
 
     async function deleteArchivedOrder(id) {
         if (confirm("Archivierte Bestellung löschen?")) {
-            const { error } = await supabase.from('archive').delete().eq('id', id);
+            const { error } = await supabaseClient.from('archive').delete().eq('id', id);
             if (!error) {
                 archivedOrdersList = archivedOrdersList.filter(o => o.id !== id);
                 renderArchive();
@@ -1202,7 +1201,7 @@
     async function clearArchive() {
         if (archivedOrdersList.length === 0) return alert("Das Archiv ist bereits leer.");
         if (confirm("Möchtest du wirklich das gesamte Archiv leeren?")) {
-            const { error } = await supabase.from('archive').delete().neq('id', 0);
+            const { error } = await supabaseClient.from('archive').delete().neq('id', 0);
             if (!error) {
                 archivedOrdersList = [];
                 renderArchive();
@@ -1268,7 +1267,7 @@
         if (isNaN(val) || val < 0) return alert("Gültigen Preis eingeben.");
 
         const priceUpdated = getCurrentTimeString();
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('customer_prices')
             .update({ price: val, priceUpdated })
             .eq('id', id);
@@ -1287,7 +1286,7 @@
 
     async function deleteCustomerPrice(id) {
         if (confirm("Kundenpreis wirklich löschen?")) {
-            const { error } = await supabase.from('customer_prices').delete().eq('id', id);
+            const { error } = await supabaseClient.from('customer_prices').delete().eq('id', id);
             if (!error) {
                 customerPricesList = customerPricesList.filter(i => i.id !== id);
                 updateCustomerFilterOptions();
@@ -1314,7 +1313,7 @@
         const existing = customerPricesList.find(i => i.customerName.toLowerCase() === customerName.toLowerCase() && i.name.toLowerCase() === name.toLowerCase());
 
         if (existing) {
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('customer_prices')
                 .update({ price, priceUpdated })
                 .eq('id', existing.id);
@@ -1324,7 +1323,7 @@
                 existing.priceUpdated = priceUpdated;
             }
         } else {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('customer_prices')
                 .insert([{ customerName, name, price, priceUpdated }])
                 .select();
@@ -1373,7 +1372,7 @@
         if (isNaN(value) || value < 0) return alert("Gültigen Preis eingeben.");
 
         const priceUpdated = getCurrentTimeString();
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('sales_prices')
             .update({ price: value, priceUpdated })
             .eq('id', id);
@@ -1392,7 +1391,7 @@
 
     async function deletePriceItem(id) {
         if (confirm("Verkaufspreis löschen?")) {
-            const { error } = await supabase.from('sales_prices').delete().eq('id', id);
+            const { error } = await supabaseClient.from('sales_prices').delete().eq('id', id);
             if (!error) {
                 salesPricesList = salesPricesList.filter(i => i.id !== id);
                 renderPriceTable();
@@ -1413,7 +1412,7 @@
         const existing = salesPricesList.find(i => i.name.toLowerCase() === name.toLowerCase());
 
         if (existing) {
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('sales_prices')
                 .update({ price, priceUpdated })
                 .eq('id', existing.id);
@@ -1423,7 +1422,7 @@
                 existing.priceUpdated = priceUpdated;
             }
         } else {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('sales_prices')
                 .insert([{ name, price, priceUpdated }])
                 .select();
@@ -1505,7 +1504,7 @@
                 const costUpdated = getCurrentTimeString();
                 updatePayload.costUpdated = costUpdated;
 
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('purchase_prices')
                     .update(updatePayload)
                     .eq('id', id);
@@ -1525,7 +1524,7 @@
 
     async function deletePurchaseItem(id) {
         if (confirm("Eintrag löschen?")) {
-            const { error } = await supabase.from('purchase_prices').delete().eq('id', id);
+            const { error } = await supabaseClient.from('purchase_prices').delete().eq('id', id);
             if (!error) {
                 purchasePricesList = purchasePricesList.filter(i => i.id !== id);
                 updateBusinessFilterOptions();
@@ -1551,7 +1550,7 @@
         const existing = purchasePricesList.find(i => i.name.toLowerCase() === name.toLowerCase() && i.business.toLowerCase() === business.toLowerCase());
 
         if (existing) {
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('purchase_prices')
                 .update({ cost, costUpdated })
                 .eq('id', existing.id);
@@ -1561,7 +1560,7 @@
                 existing.costUpdated = costUpdated;
             }
         } else {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('purchase_prices')
                 .insert([{ name, business, cost, costUpdated }])
                 .select();
@@ -1692,7 +1691,7 @@
         const existing = recipesList.find(r => r.outputName.toLowerCase() === outputName.toLowerCase());
 
         if (existing) {
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('recipes')
                 .update({ outputQty, ingredients })
                 .eq('id', existing.id);
@@ -1702,7 +1701,7 @@
                 existing.ingredients = ingredients;
             }
         } else {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('recipes')
                 .insert([{ outputName, outputQty, ingredients }])
                 .select();
@@ -1720,7 +1719,7 @@
 
     async function deleteRecipe(id) {
         if (confirm("Rezept löschen?")) {
-            const { error } = await supabase.from('recipes').delete().eq('id', id);
+            const { error } = await supabaseClient.from('recipes').delete().eq('id', id);
             if (!error) {
                 recipesList = recipesList.filter(r => r.id !== id);
                 renderRecipes();
