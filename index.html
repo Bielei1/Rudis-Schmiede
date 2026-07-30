@@ -1815,6 +1815,27 @@ tablesToWatch.forEach(tableName => {
     initOrderPositionInputs();
     initRecipeIngredientInputs();
     loadDataFromSupabase();
+
+    // --- Hier den Realtime-Listener oder den Polling-Fallback einfügen ---
+
+// Methode A: Polling (lädt die Daten alle 5 Sekunden sicher neu)
+setInterval(() => {
+    loadDataFromSupabase();
+}, 5000);
+
+// ODER Methode B: Supabase Realtime (wobei 'supabase' der Name deines Clients sein muss)
+/*
+supabase
+  .channel('custom-all-changes')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public' },
+    (payload) => {
+      loadDataFromSupabase();
+    }
+  )
+  .subscribe();
+*/
 </script>
 
 </body>
