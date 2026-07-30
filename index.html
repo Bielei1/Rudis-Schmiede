@@ -46,13 +46,14 @@
 
         .container {
             width: 100%;
-            /* Hier angepasst für eine deutlich breitere Ansicht */
             max-width: 1800px;
             background: var(--card-bg);
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             padding: 30px;
             border: 1px solid var(--border-color);
+            position: relative;
+            overflow: visible !important;
         }
 
         .editable-title-container {
@@ -148,6 +149,8 @@
 
         .tab-content {
             display: none;
+            position: relative;
+            overflow: visible !important;
         }
 
         .tab-content.active {
@@ -160,6 +163,8 @@
             border-radius: 8px;
             padding: 16px;
             margin-bottom: 24px;
+            position: relative;
+            overflow: visible !important;
         }
 
         .add-card h2 {
@@ -183,6 +188,7 @@
             gap: 6px;
             flex: 1;
             min-width: 160px;
+            position: relative;
         }
 
         .form-group label {
@@ -207,12 +213,16 @@
             border-color: var(--primary-color);
         }
 
+        /* Verhindert das Abschneiden von nativen oder benutzerdefinierten Dropdown-Vorschlägen (Datalists/Selects) */
+        input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+
         textarea {
             resize: vertical;
             min-height: 80px;
         }
 
-        /* Editor-Feld ohne Rechtschreibprüfung */
         .spellcheck-editor {
             background-color: var(--input-bg);
             color: var(--text-color);
@@ -286,6 +296,8 @@
             display: flex;
             align-items: center;
             gap: 16px;
+            position: relative;
+            overflow: visible !important;
         }
 
         .filter-card label {
@@ -328,9 +340,12 @@
         }
 
         .table-container {
-            overflow-x: auto;
+            /* Geändert von overflow-x: auto zu sichtbarem Überhang für Dropdowns, Tabellen scrollen intern über Wrapper falls nötig */
+            overflow-x: visible;
+            overflow-y: visible;
             border-radius: 8px;
             border: 1px solid var(--border-color);
+            position: relative;
         }
 
         table {
@@ -343,6 +358,7 @@
             padding: 14px 16px;
             border-bottom: 1px solid var(--border-color);
             vertical-align: middle;
+            position: relative;
         }
 
         th {
@@ -352,6 +368,7 @@
             font-size: 0.85rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            z-index: 2;
         }
 
         tr:last-child td {
@@ -361,6 +378,50 @@
         .material-name {
             font-weight: 600;
             color: #f1f5f9;
+        }
+
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .tooltip-container .tooltip-text {
+            visibility: hidden;
+            width: 240px;
+            background-color: #0f172a;
+            color: #f8fafc;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.2s;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            font-size: 0.85rem;
+            font-weight: normal;
+            pointer-events: none;
+        }
+
+        .tooltip-container .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #0f172a transparent transparent transparent;
+        }
+
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
         }
 
         .business-badge {
@@ -395,6 +456,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            position: relative;
         }
 
         .adjust-box input[type="number"], .adjust-box input[type="text"] {
@@ -413,6 +475,8 @@
             margin-bottom: 20px;
             padding: 12px 16px;
             transition: background-color 0.2s;
+            position: relative;
+            overflow: visible !important;
         }
 
         details[open] {
@@ -448,39 +512,6 @@
 
         details > *:not(summary) {
             margin-top: 16px;
-        }
-
-        /* Tooltip-Stile für das Endprodukt-Hover im automatischen Verkaufspreise-Rechner */
-        .tooltip-container {
-            position: relative;
-            display: inline-block;
-            cursor: help;
-        }
-
-        .tooltip-content {
-            visibility: hidden;
-            width: 260px;
-            background-color: #0f172a;
-            color: #f8fafc;
-            text-align: left;
-            border-radius: 6px;
-            padding: 10px 12px;
-            position: absolute;
-            z-index: 100;
-            bottom: 125%;
-            left: 0;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
-            border: 1px solid var(--border-color);
-            opacity: 0;
-            transition: opacity 0.2s ease-in-out;
-            font-size: 0.85rem;
-            font-weight: normal;
-            line-height: 1.4;
-        }
-
-        .tooltip-container:hover .tooltip-content {
-            visibility: visible;
-            opacity: 1;
         }
     </style>
 </head>
@@ -676,7 +707,7 @@
             </div>
         </details>
 
-        <!-- Sektion 2: Manuelle Standard-Verkaufspreise & Neuer Standardverkaufspreis -->
+        <!-- Sektion 2: Neuer Standard-Verkaufspreis -->
         <details>
             <summary>Neuen Standard-Verkaufspreis hinzufügen</summary>
             <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
@@ -696,13 +727,14 @@
             </div>
         </details>
 
-        <h2 style="font-size: 1.1rem; margin-top: 24px; margin-bottom: 12px; color: var(--text-color);">Manuelle Standard-Verkaufspreise</h2>
+        <h2 style="font-size: 1.1rem; margin-top: 24px; margin-bottom: 12px; color: var(--text-color);">Standardverkaufspreise</h2>
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>Artikel</th>
                         <th>Aktueller Verkaufspreis ($)</th>
+                        <th>Aufschlag</th>
                         <th>Preis ändern (Neuer Verkaufspreis in $)</th>
                         <th>Aktion</th>
                         <th>Letzte Änderung</th>
@@ -824,7 +856,6 @@
 
         <h2>Verfügbare Rezepte & Herstellung</h2>
 
-        <!-- Kombiniertes Dropdown- und Suchfeld für Rezepte mit "Suche leeren"-Button -->
         <div class="filter-card" style="margin-top: 16px;">
             <label for="recipe-search-input">Rezept suchen / auswählen:</label>
             <input type="text" id="recipe-search-input" list="recipe-search-datalist" placeholder="Rezept aus Dropdown wählen oder frei eintippen..." oninput="renderRecipes()" />
@@ -856,7 +887,6 @@
                 <form class="add-form" onsubmit="handleAddNote(event)">
                     <div class="form-group" style="flex: 100%;">
                         <label for="note-add-content">Notiztext</label>
-                        <!-- Rechtschreibprüfung hier deaktiviert (spellcheck="false") -->
                         <div id="note-add-content" class="spellcheck-editor" contenteditable="true" spellcheck="false" data-placeholder="Schreibe hier deine Notiz hinein..."></div>
                     </div>
                     <button type="submit" class="btn btn-success">Notiz speichern</button>
@@ -881,7 +911,6 @@
 </div>
 
 <script>
-    // Supabase Initialisierung
     const SUPABASE_URL = 'https://cobndqltfctyaihzqatt.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_GJhsLbNkikl3XCCO47sCCA_08NREIgY';
     
@@ -986,7 +1015,6 @@
         }
     }
 
-    /* DRAG AND DROP FÜR TABS */
     const tabsContainer = document.getElementById('tabs-container');
     let draggedTab = null;
 
@@ -1112,11 +1140,33 @@
         return lowest;
     }
 
-    /* REKURSIVE FUNKTION ZUR ERMITTLUNG DER REINEN ROHMATERIALIEN */
+    function getRecipeCostPerUnit(itemName) {
+        const recipe = recipesList.find(r => r.outputName.toLowerCase() === itemName.toLowerCase());
+        if (!recipe || !recipe.ingredients || recipe.outputQty <= 0) return 0;
+        
+        let totalIngredientCost = 0;
+        recipe.ingredients.forEach(ing => {
+            const bestCost = getLowestPurchaseCost(ing.name);
+            totalIngredientCost += ing.qty * bestCost;
+        });
+        return totalIngredientCost / recipe.outputQty;
+    }
+
+    function getRecipeTooltipHtml(itemName) {
+        const recipe = recipesList.find(r => r.outputName.toLowerCase() === itemName.toLowerCase());
+        if (!recipe || !recipe.ingredients || recipe.ingredients.length === 0) {
+            return `<span style="color: var(--text-muted); font-style: italic;">Kein Rezept hinterlegt</span>`;
+        }
+        let html = `<div style="font-weight: 600; margin-bottom: 4px; color: #38bdf8;">Rezept (${recipe.outputQty} Stk.):</div>`;
+        recipe.ingredients.forEach(ing => {
+            html += `<div>• ${ing.qty}x ${ing.name}</div>`;
+        });
+        return html;
+    }
+
     function resolveRawMaterials(itemName, neededQty, accumulator = {}) {
         const recipe = recipesList.find(r => r.outputName.toLowerCase() === itemName.toLowerCase());
         
-        // Wenn kein Rezept existiert, ist es ein reines Rohmaterial / Basisartikel
         if (!recipe || !recipe.ingredients || recipe.ingredients.length === 0 || recipe.outputQty <= 0) {
             if (!accumulator[itemName]) {
                 accumulator[itemName] = 0;
@@ -1125,7 +1175,6 @@
             return accumulator;
         }
 
-        // Wenn ein Rezept existiert, wird der Bedarf auf die Durchläufe umgerechnet und rekursiv aufgelöst
         let multiplier = Math.ceil(neededQty / recipe.outputQty);
         recipe.ingredients.forEach(ing => {
             let subNeeded = ing.qty * multiplier;
@@ -1135,7 +1184,6 @@
         return accumulator;
     }
 
-    /* LAGERBESTAND */
     function renderStockTable() {
         const tbody = document.getElementById('inventory-body');
         tbody.innerHTML = '';
@@ -1238,7 +1286,6 @@
         renderOrders();
     }
 
-    /* BESTELLUNGEN */
     function updateOrderCustomerDatalist() {
         const datelistEl = document.getElementById('customer-datalist');
         const customersFromPrices = customerPricesList.map(item => item.customerName);
@@ -1404,7 +1451,6 @@
             return;
         }
 
-        // Sortiert die Bestellungen so, dass die neueste (höchste ID) immer ganz oben steht[cite: 11]
         const sortedOrders = [...ordersList].sort((a, b) => b.id - a.id);
 
         sortedOrders.forEach(order => {
@@ -1413,7 +1459,6 @@
             let allOk = true;
             let totalOrderSum = 0;
 
-            // Rekursiver Aggregator für reine Rohmaterialien über alle Bestellpositionen hinweg
             let rawMaterialMap = {};
 
             order.items.forEach(ordItem => {
@@ -1429,13 +1474,11 @@
 
                 itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${ordItem.qty}x</strong> ${ordItem.name} à $${priceInfo.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${priceInfo.type}</span> = <span style="color: #34d399; font-weight: 600;">$${itemTotal.toFixed(2)}</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${isEnough ? '#34d399' : '#f87171'}">${available}</span>)</span></div>`;
 
-                // Aufschlüsselung in reine Rohmaterialien via Rekursion
                 resolveRawMaterials(ordItem.name, ordItem.qty, rawMaterialMap);
             });
 
             itemsHtml += `<div style="margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 6px; font-weight: 700; color: #f59e0b;">Gesamtsumme Bestellung: $${totalOrderSum.toFixed(2)}</div>`;
 
-            // Rohmaterial-HTML zusammenbauen & Lagerbestand der reinen Rohmaterialien prüfen
             let rawMaterialsHtml = '';
             const rawKeys = Object.keys(rawMaterialMap);
             if (rawKeys.length > 0) {
@@ -1443,7 +1486,7 @@
                     let reqQty = rawMaterialMap[matName];
                     let stockQty = getStockAmount(matName);
                     let hasEnoughMat = stockQty >= reqQty;
-                    if (!hasEnoughMat) allOk = false; // Status schlägt fehl, wenn ein reines Rohmaterial fehlt
+                    if (!hasEnoughMat) allOk = false;
 
                     rawMaterialsHtml += `<div>• <strong>${reqQty}x</strong> ${matName} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${hasEnoughMat ? '#34d399' : '#f87171'}">${stockQty}</span>)</span></div>`;
                 });
@@ -1470,7 +1513,6 @@
         });
     }
 
-    /* BESTELLUNG ARCHIV */
     function renderArchive() {
         const tbody = document.getElementById('archive-table-body');
         tbody.innerHTML = '';
@@ -1524,7 +1566,6 @@
         }
     }
 
-    /* KUNDEN-PREISE */
     function updateCustomerFilterOptions() {
         const filterSelect = document.getElementById('customer-filter');
         const currentSelected = filterSelect.value;
@@ -1683,7 +1724,6 @@
         renderOrders();
     }
 
-    /* AUTOMATISCHER PREIS-RECHNER FÜR VERKAUFSPREISE */
     function renderCalculatedPricesTable() {
         const tbody = document.getElementById('calculated-prices-body');
         if (!tbody) return;
@@ -1697,32 +1737,17 @@
         const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
 
         sortedRecipes.forEach(recipe => {
-            let totalIngredientCost = 0;
-            recipe.ingredients.forEach(ing => {
-                const bestCost = getLowestPurchaseCost(ing.name);
-                totalIngredientCost += ing.qty * bestCost;
-            });
-
-            let costPerUnit = recipe.outputQty > 0 ? (totalIngredientCost / recipe.outputQty) : 0;
+            let costPerUnit = getRecipeCostPerUnit(recipe.outputName);
             let margin = recipeMargins[recipe.id] !== undefined ? recipeMargins[recipe.id] : 20;
             let calculatedPrice = costPerUnit * (1 + (margin / 100));
-
-            // Rezept-Zutaten für das Hover-Tooltip aufbereiten
-            let tooltipIngredientsHtml = `<strong>Rezept für ${recipe.outputName} (${recipe.outputQty} Stk.):</strong><br><br>`;
-            if (recipe.ingredients && recipe.ingredients.length > 0) {
-                recipe.ingredients.forEach(ing => {
-                    tooltipIngredientsHtml += `• ${ing.qty}x ${ing.name}<br>`;
-                });
-            } else {
-                tooltipIngredientsHtml += `<em>Keine Zutaten hinterlegt</em>`;
-            }
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
                     <div class="tooltip-container">
-                        <span class="material-name" style="color: #38bdf8;">${recipe.outputName} <span style="font-size: 0.85rem; color: #34d399; font-weight: 600; margin-left: 8px;">(${recipe.outputQty} Stk.)</span></span>
-                        <div class="tooltip-content">${tooltipIngredientsHtml}</div>
+                        <span class="material-name" style="color: #38bdf8; border-bottom: 1px dotted #38bdf8;">${recipe.outputName}</span>
+                        <div class="tooltip-text">${getRecipeTooltipHtml(recipe.outputName)}</div>
+                        <span style="font-size: 0.85rem; color: #34d399; font-weight: 600; margin-left: 8px;">(${recipe.outputQty} Stk.)</span>
                     </div>
                 </td>
                 <td><span class="current-cost">$${costPerUnit.toFixed(2)}</span></td>
@@ -1750,13 +1775,7 @@
         if (isNaN(margin)) margin = 0;
         recipeMargins[recipeId] = margin;
 
-        let totalIngredientCost = 0;
-        recipe.ingredients.forEach(ing => {
-            const bestCost = getLowestPurchaseCost(ing.name);
-            totalIngredientCost += ing.qty * bestCost;
-        });
-
-        let costPerUnit = recipe.outputQty > 0 ? (totalIngredientCost / recipe.outputQty) : 0;
+        let costPerUnit = getRecipeCostPerUnit(recipe.outputName);
         let calculatedPrice = costPerUnit * (1 + (margin / 100));
         displayEl.innerText = `$${calculatedPrice.toFixed(2)}`;
     }
@@ -1800,7 +1819,6 @@
         }
     }
 
-    /* VERKAUFSPREISE (STANDARD) */
     function updateStandardPriceRecipeDatalist() {
         const datalistEl = document.getElementById('recipes-datalist');
         if (!datalistEl) return;
@@ -1820,11 +1838,32 @@
         tbody.innerHTML = '';
         const sortedList = [...salesPricesList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
+        if (sortedList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Standardverkaufspreise hinterlegt.</td></tr>`;
+            return;
+        }
+
         sortedList.forEach((item) => {
+            const costPerUnit = getRecipeCostPerUnit(item.name);
+            let markupText = "-%";
+            let markupColor = "var(--text-muted)";
+
+            if (costPerUnit > 0) {
+                const markupPercent = ((item.price - costPerUnit) / costPerUnit) * 100;
+                markupText = `${markupPercent >= 0 ? '+' : ''}${markupPercent.toFixed(1)}%`;
+                markupColor = markupPercent >= 0 ? '#34d399' : '#f87171';
+            }
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td class="material-name">${item.name}</td>
+                <td>
+                    <div class="tooltip-container">
+                        <span class="material-name" style="border-bottom: 1px dotted #94a3b8;">${item.name}</span>
+                        <div class="tooltip-text">${getRecipeTooltipHtml(item.name)}</div>
+                    </div>
+                </td>
                 <td class="current-price">$${item.price.toFixed(2)}</td>
+                <td><span style="font-weight: 700; color: ${markupColor};">${markupText}</span></td>
                 <td>
                     <div class="adjust-box">
                         <input type="number" step="0.01" id="price-input-${item.id}" placeholder="Neuer VK ($)" min="0" />
@@ -1863,7 +1902,7 @@
     }
 
     async function deletePriceItem(id) {
-        if (confirm("Verkaufspreis löschen?")) {
+        if (confirm("Standardverkaufspreis löschen?")) {
             const { error } = await supabaseClient.from('sales_prices').delete().eq('id', id);
             if (!error) {
                 salesPricesList = salesPricesList.filter(i => i.id !== id);
@@ -1912,7 +1951,6 @@
         renderOrders();
     }
 
-    /* EINKAUFSPREISE */
     function updateBusinessFilterOptions() {
         const filterSelect = document.getElementById('business-filter');
         const currentSelected = filterSelect.value;
@@ -1995,6 +2033,7 @@
                     updateShoppingBusinessFilterOptions();
                     renderShoppingList();
                     renderCalculatedPricesTable();
+                    renderPriceTable();
                 }
             }
         }
@@ -2010,6 +2049,7 @@
                 updateShoppingBusinessFilterOptions();
                 renderShoppingList();
                 renderCalculatedPricesTable();
+                renderPriceTable();
             }
         }
     }
@@ -2058,9 +2098,9 @@
         updateShoppingBusinessFilterOptions();
         renderShoppingList();
         renderCalculatedPricesTable();
+        renderPriceTable();
     }
 
-    /* EINKAUFSLISTE */
     function updateShoppingBusinessFilterOptions() {
         const filterSelect = document.getElementById('shopping-business-filter');
         if (!filterSelect) return;
@@ -2153,7 +2193,6 @@
         updateShoppingTotalSum();
     }
 
-    /* HERSTELLUNG */
     function initRecipeIngredientInputs() {
         const container = document.getElementById('recipe-ingredients-container');
         if (!container) return;
@@ -2223,6 +2262,7 @@
         updateCustomerPricesRecipeSelect();
         renderRecipes();
         renderCalculatedPricesTable();
+        renderPriceTable();
         updateStandardPriceRecipeDatalist();
         updateOrderRecipeSelects();
     }
@@ -2237,6 +2277,7 @@
                 updateCustomerPricesRecipeSelect();
                 renderRecipes();
                 renderCalculatedPricesTable();
+                renderPriceTable();
                 updateStandardPriceRecipeDatalist();
                 updateOrderRecipeSelects();
             }
@@ -2348,7 +2389,6 @@
         statusBox.innerHTML = canCraft ? `<span class="req-status status-ok">✓ Genug Material</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
     }
 
-    /* NOTIZEN FUNKTIONEN (ANGEPASST AN EDITOR-DIV) */
     async function handleAddNote(event) {
         event.preventDefault();
         const contentDiv = document.getElementById('note-add-content');
