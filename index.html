@@ -1791,6 +1791,27 @@
         statusBox.innerHTML = canCraft ? `<span class="req-status status-ok">✓ Genug Material</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
     }
 
+// Automatische Live-Synchronisation via Supabase Realtime einrichten
+const tablesToWatch = [
+    'inventory', 
+    'orders', 
+    'archive', 
+    'customer_prices', 
+    'sales_prices', 
+    'purchase_prices', 
+    'recipes'
+];
+
+tablesToWatch.forEach(tableName => {
+    supabaseClient
+        .channel(`public:${tableName}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: tableName }, payload => {
+            // Sobald sich in der Tabelle etwas ändert, Daten im Hintergrund neu laden und Ansicht aktualisieren
+            loadDataFromSupabase();
+        })
+        .subscribe();
+});
+    
     initOrderPositionInputs();
     initRecipeIngredientInputs();
     loadDataFromSupabase();
