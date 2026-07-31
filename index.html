@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rudis Schmiede - Verwaltung</title>
 
-    <!-- HIER DAS FAVICON EINFÜGEN -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    
-    <!-- Supabase JS Client per CDN einbinden -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -213,7 +210,6 @@
             border-color: var(--primary-color);
         }
 
-        /* Verhindert das Abschneiden von nativen oder benutzerdefinierten Dropdown-Vorschlägen (Datalists/Selects) */
         input::-webkit-calendar-picker-indicator {
             filter: invert(1);
         }
@@ -298,6 +294,7 @@
             gap: 16px;
             position: relative;
             overflow: visible !important;
+            flex-wrap: wrap;
         }
 
         .filter-card label {
@@ -340,7 +337,6 @@
         }
 
         .table-container {
-            /* Geändert von overflow-x: auto zu sichtbarem Überhang für Dropdowns, Tabellen scrollen intern über Wrapper falls nötig */
             overflow-x: visible;
             overflow-y: visible;
             border-radius: 8px;
@@ -433,6 +429,20 @@
             font-size: 0.85rem;
             font-weight: 500;
         }
+
+        .note-label {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .label-telegram { background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #38bdf8; }
+        .label-info { background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; }
+        .label-notiz { background-color: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
 
         .current-stock {
             font-weight: 700;
@@ -537,20 +547,23 @@
 
     <!-- TAB 1: LAGERBESTAND -->
     <div id="tab-lagerbestand" class="tab-content active">
-        <div class="add-card">
-            <h2>+ Neuen Artikel hinzufügen</h2>
-            <form class="add-form" onsubmit="handleAddStockItem(event)">
-                <div class="form-group">
-                    <label for="stock-add-name">Artikelname</label>
-                    <input type="text" id="stock-add-name" placeholder="z. B. Lagerprodukt" required />
-                </div>
-                <div class="form-group" style="max-width: 200px;">
-                    <label for="stock-add-qty">Anfangsbestand</label>
-                    <input type="number" id="stock-add-qty" placeholder="0" min="0" required />
-                </div>
-                <button type="submit" class="btn btn-success">Artikel hinzufügen</button>
-            </form>
-        </div>
+        <details>
+            <summary>+ Neuen Artikel hinzufügen</summary>
+            <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
+                <h2>+ Neuen Artikel hinzufügen</h2>
+                <form class="add-form" onsubmit="handleAddStockItem(event)">
+                    <div class="form-group">
+                        <label for="stock-add-name">Artikelname</label>
+                        <input type="text" id="stock-add-name" placeholder="z. B. Lagerprodukt" required />
+                    </div>
+                    <div class="form-group" style="max-width: 200px;">
+                        <label for="stock-add-qty">Anfangsbestand</label>
+                        <input type="number" id="stock-add-qty" placeholder="0" min="0" required />
+                    </div>
+                    <button type="submit" class="btn btn-success">Artikel hinzufügen</button>
+                </form>
+            </div>
+        </details>
 
         <div class="table-container">
             <table>
@@ -577,9 +590,14 @@
                 <form id="order-add-form" onsubmit="handleAddOrder(event)">
                     <div class="add-form" style="margin-bottom: 12px;">
                         <div class="form-group">
-                            <label for="order-customer-input">Kundenname (Auswählen oder neu eintippen)</label>
-                            <input type="text" id="order-customer-input" list="customer-datalist" placeholder="Bestehenden wählen oder neuen Namen tippen..." required />
-                            <datalist id="customer-datalist"></datalist>
+                            <label for="order-customer-input">Kundenname manuell eintragen (optional)</label>
+                            <input type="text" id="order-customer-input" placeholder="Namen manuell eintippen..." oninput="handleCustomerTextInput()" />
+                        </div>
+                        <div class="form-group">
+                            <label for="order-customer-select">Oder Kunde aus Kundenpreise wählen</label>
+                            <select id="order-customer-select" onchange="handleCustomerSelectChange()">
+                                <option value="">-- Kein Kunde gewählt --</option>
+                            </select>
                         </div>
                     </div>
 
@@ -637,31 +655,51 @@
 
     <!-- TAB 4: KUNDEN-PREISE -->
     <div id="tab-kunden" class="tab-content">
-        <div class="add-card">
-            <h2>+ Kundenspezifischen Preis hinzufügen</h2>
-            <form class="add-form" onsubmit="handleAddCustomerPrice(event)">
-                <div class="form-group">
-                    <label for="cust-price-name">Kundenname</label>
-                    <input type="text" id="cust-price-name" placeholder="z. B. Kunde A" required />
-                </div>
-                <div class="form-group">
-                    <label for="cust-price-item">Artikelname (Auswahl oder freier Text)</label>
-                    <input type="text" id="cust-price-item" list="customer-recipes-datalist" placeholder="Rezept wählen oder frei eintippen..." oninput="handleCustomerItemInput()" required />
-                    <datalist id="customer-recipes-datalist"></datalist>
-                </div>
-                <div class="form-group" style="max-width: 180px;">
-                    <label for="cust-price-val">Sonderpreis ($)</label>
-                    <input type="number" step="0.01" id="cust-price-val" placeholder="0.00" min="0" required />
-                </div>
-                <button type="submit" class="btn btn-success">Kundenpreis speichern</button>
-            </form>
-        </div>
+        <details>
+            <summary>+ Kundenspezifischen Preis hinzufügen</summary>
+            <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
+                <h2>+ Kundenspezifischen Preis hinzufügen</h2>
+                <form class="add-form" onsubmit="handleAddCustomerPrice(event)">
+                    <div class="form-group">
+                        <label for="cust-price-name">Kundenname</label>
+                        <input type="text" id="cust-price-name" placeholder="z. B. Kunde A" />
+                    </div>
+                    <div class="form-group">
+                        <label for="cust-price-business">Gewerbe</label>
+                        <input type="text" id="cust-price-business" placeholder="z. B. Firmenname / Gewerbe" />
+                    </div>
+                    <div class="form-group">
+                        <label for="cust-price-item-input">Artikelname manuell eintragen (optional)</label>
+                        <input type="text" id="cust-price-item-input" placeholder="Artikel manuell eintippen..." oninput="handleCustomerItemTextInput()" />
+                    </div>
+                    <div class="form-group">
+                        <label for="cust-price-item-select">Oder Rezept aus Herstellung wählen</label>
+                        <select id="cust-price-item-select" onchange="handleCustomerItemSelectChange()">
+                            <option value="">-- Kein Rezept gewählt --</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="max-width: 180px;">
+                        <label for="cust-price-val">Sonderpreis ($)</label>
+                        <input type="number" step="0.01" id="cust-price-val" placeholder="0.00" min="0" required />
+                    </div>
+                    <button type="submit" class="btn btn-success">Kundenpreis speichern</button>
+                </form>
+            </div>
+        </details>
 
         <div class="filter-card">
-            <label for="customer-filter">Nach Kunde filtern:</label>
-            <select id="customer-filter" onchange="renderCustomerPricesTable()">
-                <option value="ALL">Alle Kunden anzeigen</option>
-            </select>
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 250px;">
+                <label for="customer-filter">Nach Kunde filtern:</label>
+                <select id="customer-filter" onchange="renderCustomerPricesTable()" style="max-width: 250px;">
+                    <option value="ALL">Alle Kunden anzeigen</option>
+                </select>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 250px;">
+                <label for="customer-business-filter">Nach Gewerbe filtern:</label>
+                <select id="customer-business-filter" onchange="renderCustomerPricesTable()" style="max-width: 250px;">
+                    <option value="ALL">Alle Gewerbe anzeigen</option>
+                </select>
+            </div>
         </div>
 
         <div class="table-container">
@@ -669,7 +707,9 @@
                 <thead>
                     <tr>
                         <th>Kunde</th>
+                        <th>Gewerbe</th>
                         <th>Artikel</th>
+                        <th>Herstellungskosten (Stk.)</th>
                         <th>Individueller Preis ($)</th>
                         <th>Preis anpassen</th>
                         <th>Aktion</th>
@@ -684,7 +724,6 @@
     <!-- TAB 5: VERKAUFSPREISE -->
     <div id="tab-verkaufspreise" class="tab-content">
         
-        <!-- Sektion 1: Automatische Verkaufspreise (Einklappbar) -->
         <details>
             <summary>Automatische Verkaufspreise (Rechner)</summary>
             <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; margin-top: 10px;">
@@ -707,16 +746,20 @@
             </div>
         </details>
 
-        <!-- Sektion 2: Standard-Verkaufspreis -->
         <details>
             <summary>Standard-Verkaufspreis hinzufügen</summary>
             <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
                 <h2>+ Standard-Verkaufspreis hinzufügen</h2>
                 <form class="add-form" onsubmit="handleAddPriceItem(event)">
                     <div class="form-group">
-                        <label for="price-add-name">Artikelname (Auswahl oder freier Text)</label>
-                        <input type="text" id="price-add-name" list="recipes-datalist" placeholder="Rezept wählen oder frei eintippen..." required />
-                        <datalist id="recipes-datalist"></datalist>
+                        <label for="price-add-name">Artikelname manuell eintragen (optional)</label>
+                        <input type="text" id="price-add-name" placeholder="Namen manuell eintippen..." oninput="handleSalesPriceTextInput()" />
+                    </div>
+                    <div class="form-group">
+                        <label for="price-add-select">Oder Rezept aus Herstellung wählen</label>
+                        <select id="price-add-select" onchange="handleSalesPriceSelectChange()">
+                            <option value="">-- Kein Rezept gewählt --</option>
+                        </select>
                     </div>
                     <div class="form-group" style="max-width: 200px;">
                         <label for="price-add-price">Standard-Verkaufspreis ($)</label>
@@ -733,6 +776,7 @@
                 <thead>
                     <tr>
                         <th>Artikel</th>
+                        <th>Herstellungskosten (Stk.)</th>
                         <th>Aktueller Verkaufspreis ($)</th>
                         <th>Aufschlag</th>
                         <th>Preis ändern (Neuer Verkaufspreis in $)</th>
@@ -748,24 +792,27 @@
 
     <!-- TAB 6: EINKAUFSPREISE -->
     <div id="tab-einkaufspreise" class="tab-content">
-        <div class="add-card">
-            <h2>+ Einkaufspreis pro Gewerbe hinzufügen</h2>
-            <form class="add-form" onsubmit="handleAddPurchaseItem(event)">
-                <div class="form-group">
-                    <label for="cost-add-name">Artikelname</label>
-                    <input type="text" id="cost-add-name" placeholder="z. B. Kupferbarren, Eisenbarren" required />
-                </div>
-                <div class="form-group">
-                    <label for="cost-add-business">Gewerbe / Lieferant</label>
-                    <input type="text" id="cost-add-business" placeholder="z. B. Erzmine AG" required />
-                </div>
-                <div class="form-group" style="max-width: 180px;">
-                    <label for="cost-add-cost">Einkaufspreis ($)</label>
-                    <input type="number" id="cost-add-cost" step="0.01" placeholder="0.00" min="0" required />
-                </div>
-                <button type="submit" class="btn btn-success">Einkaufspreis hinzufügen</button>
-            </form>
-        </div>
+        <details>
+            <summary>+ Einkaufspreis pro Gewerbe hinzufügen</summary>
+            <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
+                <h2>+ Einkaufspreis pro Gewerbe hinzufügen</h2>
+                <form class="add-form" onsubmit="handleAddPurchaseItem(event)">
+                    <div class="form-group">
+                        <label for="cost-add-name">Artikelname</label>
+                        <input type="text" id="cost-add-name" placeholder="z. B. Kupferbarren, Eisenbarren" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="cost-add-business">Gewerbe / Lieferant</label>
+                        <input type="text" id="cost-add-business" placeholder="z. B. Erzmine AG" required />
+                    </div>
+                    <div class="form-group" style="max-width: 180px;">
+                        <label for="cost-add-cost">Einkaufspreis ($)</label>
+                        <input type="number" id="cost-add-cost" step="0.01" placeholder="0.00" min="0" required />
+                    </div>
+                    <button type="submit" class="btn btn-success">Einkaufspreis hinzufügen</button>
+                </form>
+            </div>
+        </details>
 
         <div class="filter-card">
             <label for="business-filter">Gewerbe / Lieferant filtern:</label>
@@ -781,7 +828,7 @@
                         <th>Artikel</th>
                         <th>Gewerbe / Lieferant</th>
                         <th>Aktueller Einkaufspreis ($)</th>
-                        <th>Eintrag anpassen</th>
+                        <th>Preis anpassen</th>
                         <th>Aktion</th>
                         <th>Letzte Änderung</th>
                     </tr>
@@ -856,11 +903,27 @@
 
         <h2>Verfügbare Rezepte & Herstellung</h2>
 
-        <div class="filter-card" style="margin-top: 16px;">
-            <label for="recipe-search-input">Rezept suchen / auswählen:</label>
-            <input type="text" id="recipe-search-input" list="recipe-search-datalist" placeholder="Rezept aus Dropdown wählen oder frei eintippen..." oninput="renderRecipes()" />
-            <button type="button" class="btn" style="background-color: #334155; height: 42px; font-size: 0.85rem;" onclick="clearRecipeSearch()">Suche leeren</button>
-            <datalist id="recipe-search-datalist"></datalist>
+        <div class="filter-card" style="margin-top: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 300px;">
+                <label for="recipe-search-select">Rezept auswählen:</label>
+                <select id="recipe-search-select" onchange="renderRecipes()" style="max-width: 300px;">
+                    <option value="ALL">-- Alle Artikel wählen --</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="number" id="global-recipe-target-qty" min="1" value="1" placeholder="Menge" style="width: 100px; height: 42px;" oninput="applyGlobalTargetQty()" onchange="applyGlobalTargetQty()" />
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-success" style="height: 42px; font-size: 0.85rem;" onclick="triggerCraftingView()">Herstellen</button>
+                <button type="button" class="btn" style="background-color: #334155; height: 42px; font-size: 0.85rem;" onclick="clearRecipeSearch()">Auswahl zurücksetzen</button>
+            </div>
+        </div>
+
+        <div id="crafting-action-box" style="display: none; background: #162032; border: 2px solid var(--primary-color); border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.4);">
+            <h3 style="font-size: 1.25rem; color: #38bdf8; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">🛠️ Herstellungs-Infopanel (Schritt-für-Schritt & Rohmaterialien)</h3>
+            <div id="crafting-action-content" style="font-size: 0.95rem; line-height: 1.5;"></div>
         </div>
 
         <div class="table-container" style="margin-top: 16px;">
@@ -885,6 +948,14 @@
             <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
                 <h2>+ Neue Notiz hinzufügen</h2>
                 <form class="add-form" onsubmit="handleAddNote(event)">
+                    <div class="form-group" style="max-width: 250px;">
+                        <label for="note-add-label">Label auswählen</label>
+                        <select id="note-add-label" required>
+                            <option value="Telegram">Telegram</option>
+                            <option value="Info">Info</option>
+                            <option value="Notiz" selected>Notiz</option>
+                        </select>
+                    </div>
                     <div class="form-group" style="flex: 100%;">
                         <label for="note-add-content">Notiztext</label>
                         <div id="note-add-content" class="spellcheck-editor" contenteditable="true" spellcheck="false" data-placeholder="Schreibe hier deine Notiz hinein..."></div>
@@ -894,18 +965,11 @@
             </div>
         </details>
 
-        <h2>Gespeicherte Notizen</h2>
-        <div class="table-container" style="margin-top: 16px;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Notiz</th>
-                        <th>Erstellt am</th>
-                        <th>Aktion</th>
-                    </tr>
-                </thead>
-                <tbody id="notes-table-body"></tbody>
-            </table>
+        <div style="margin-top: 25px;">
+            <h2 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-color); display: flex; align-items: center; gap: 8px;">
+                <span>📌 Gespeicherte Notizen</span>
+            </h2>
+            <div id="notes-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
         </div>
     </div>
 </div>
@@ -973,9 +1037,11 @@
 
     function getCurrentTimeString() {
         const now = new Date();
+        const options = { day: 'numeric', month: 'long', year: 'numeric' };
+        const dateStr = now.toLocaleDateString('de-DE', options);
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
-        return `Heute, ${hours}:${minutes} Uhr`;
+        return `${dateStr}, ${hours}:${minutes} Uhr`;
     }
 
     function switchTab(tabName) {
@@ -991,10 +1057,10 @@
         }
 
         if (tabName === 'herstellung') {
-            updateRecipeSearchDatalist();
+            updateRecipeSearchSelect();
             renderRecipes();
         } else if (tabName === 'bestellungen') {
-            updateOrderCustomerDatalist();
+            updateOrderCustomerDropdown();
             updateOrderRecipeSelects();
             renderOrders();
         } else if (tabName === 'archiv') {
@@ -1007,7 +1073,7 @@
             updateShoppingBusinessFilterOptions();
             renderShoppingList();
         } else if (tabName === 'verkaufspreise') {
-            updateStandardPriceRecipeDatalist();
+            updateSalesPriceRecipeDropdown();
             renderCalculatedPricesTable();
             renderPriceTable();
         } else if (tabName === 'notizen') {
@@ -1092,26 +1158,36 @@
 
     function renderTables() {
         renderStockTable();
-        updateOrderCustomerDatalist();
+        updateOrderCustomerDropdown();
         updateOrderRecipeSelects();
         renderOrders();
         renderArchive();
         updateCustomerFilterOptions();
         updateCustomerPricesRecipeSelect();
         renderCustomerPricesTable();
-        updateStandardPriceRecipeDatalist();
+        updateSalesPriceRecipeDropdown();
         renderCalculatedPricesTable();
         renderPriceTable();
         updateBusinessFilterOptions();
         renderCostTable();
         updateShoppingBusinessFilterOptions();
         renderShoppingList();
-        updateRecipeSearchDatalist();
+        updateRecipeSearchSelect();
         renderRecipes();
         renderNotes();
     }
 
     function getPriceDetailsForCustomer(customerName, itemName) {
+        if (!customerName) {
+            const salesPriceObj = salesPricesList.find(sp => 
+                sp.name.toLowerCase() === itemName.toLowerCase()
+            );
+            if (salesPriceObj) {
+                return { price: salesPriceObj.price, type: 'Standard-VK' };
+            }
+            return { price: 0.00, type: 'Kein Preis' };
+        }
+
         const custPriceObj = customerPricesList.find(cp => 
             cp.customerName.toLowerCase() === customerName.toLowerCase() && 
             cp.name.toLowerCase() === itemName.toLowerCase()
@@ -1286,19 +1362,44 @@
         renderOrders();
     }
 
-    function updateOrderCustomerDatalist() {
-        const datelistEl = document.getElementById('customer-datalist');
-        const customersFromPrices = customerPricesList.map(item => item.customerName);
-        const customersFromOrders = ordersList.map(item => item.customerName);
-        const customersFromArchive = archivedOrdersList.map(item => item.customerName);
-        const allCustomers = [...new Set([...customersFromPrices, ...customersFromOrders, ...customersFromArchive])].sort((a, b) => a.localeCompare(b, 'de'));
+    function updateOrderCustomerDropdown() {
+        const selectEl = document.getElementById('order-customer-select');
+        if (!selectEl) return;
+        const currentSelected = selectEl.value;
 
-        datelistEl.innerHTML = '';
+        const customersFromPrices = customerPricesList.map(item => item.customerName);
+        const allCustomers = [...new Set(customersFromPrices)].filter(c => c && c.trim() !== "").sort((a, b) => a.localeCompare(b, 'de'));
+
+        selectEl.innerHTML = '<option value="">-- Kein Kunde gewählt --</option>';
         allCustomers.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c;
-            datelistEl.appendChild(opt);
+            opt.innerText = c;
+            selectEl.appendChild(opt);
         });
+        selectEl.value = allCustomers.includes(currentSelected) ? currentSelected : "";
+    }
+
+    function handleCustomerSelectChange() {
+        const selectEl = document.getElementById('order-customer-select');
+        const inputEl = document.getElementById('order-customer-input');
+        if (selectEl && inputEl && selectEl.value) {
+            inputEl.value = selectEl.value;
+        }
+    }
+
+    function handleCustomerTextInput() {
+        const selectEl = document.getElementById('order-customer-select');
+        const inputEl = document.getElementById('order-customer-input');
+        if (selectEl && inputEl) {
+            const typedVal = inputEl.value.trim().toLowerCase();
+            const matchingOption = [...selectEl.options].find(opt => opt.value.toLowerCase() === typedVal);
+            if (matchingOption) {
+                selectEl.value = matchingOption.value;
+            } else {
+                selectEl.value = "";
+            }
+        }
     }
 
     function updateOrderRecipeSelects() {
@@ -1348,8 +1449,8 @@
 
     async function handleAddOrder(event) {
         event.preventDefault();
-        const customerName = capitalizeText(document.getElementById('order-customer-input').value.trim());
-        if (!customerName) return alert("Bitte gib einen Kundennamen ein.");
+        const rawCustomerName = document.getElementById('order-customer-input').value.trim();
+        const customerName = rawCustomerName ? capitalizeText(rawCustomerName) : "Laufkundschaft";
 
         const rows = document.querySelectorAll('.order-item-row');
         const items = [];
@@ -1375,8 +1476,10 @@
         if (!error && data) {
             ordersList.push(data[0]);
             document.getElementById('order-customer-input').value = '';
+            const selectEl = document.getElementById('order-customer-select');
+            if (selectEl) selectEl.value = '';
             initOrderPositionInputs();
-            updateOrderCustomerDatalist();
+            updateOrderCustomerDropdown();
             renderOrders();
         } else {
             alert("Fehler beim Speichern der Bestellung: " + (error ? error.message : ''));
@@ -1388,7 +1491,7 @@
             const { error } = await supabaseClient.from('orders').delete().eq('id', id);
             if (!error) {
                 ordersList = ordersList.filter(o => o.id !== id);
-                updateOrderCustomerDatalist();
+                updateOrderCustomerDropdown();
                 renderOrders();
             }
         }
@@ -1438,7 +1541,7 @@
         ordersList.splice(orderIndex, 1);
 
         alert(`Bestellung von ${order.customerName} wurde erfolgreich ausgeliefert und ins Archiv verschoben!`);
-        updateOrderCustomerDatalist();
+        updateOrderCustomerDropdown();
         renderOrders();
         renderArchive();
     }
@@ -1568,8 +1671,15 @@
 
     function updateCustomerFilterOptions() {
         const filterSelect = document.getElementById('customer-filter');
-        const currentSelected = filterSelect.value;
-        const customers = [...new Set(customerPricesList.map(item => item.customerName))].sort((a, b) => a.localeCompare(b, 'de'));
+        const businessFilterSelect = document.getElementById('customer-business-filter');
+        
+        if (!filterSelect || !businessFilterSelect) return;
+
+        const currentSelectedCustomer = filterSelect.value;
+        const currentSelectedBusiness = businessFilterSelect.value;
+
+        const customers = [...new Set(customerPricesList.map(item => item.customerName))].filter(c => c && c.trim() !== "").sort((a, b) => a.localeCompare(b, 'de'));
+        const businesses = [...new Set(customerPricesList.map(item => item.business))].filter(b => b && b.trim() !== "").sort((a, b) => a.localeCompare(b, 'de'));
 
         filterSelect.innerHTML = '<option value="ALL">Alle Kunden anzeigen</option>';
         customers.forEach(c => {
@@ -1578,61 +1688,106 @@
             opt.innerText = c;
             filterSelect.appendChild(opt);
         });
-        filterSelect.value = customers.includes(currentSelected) ? currentSelected : "ALL";
+        filterSelect.value = customers.includes(currentSelectedCustomer) ? currentSelectedCustomer : "ALL";
+
+        businessFilterSelect.innerHTML = '<option value="ALL">Alle Gewerbe anzeigen</option>';
+        businesses.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b;
+            opt.innerText = b;
+            businessFilterSelect.appendChild(opt);
+        });
+        businessFilterSelect.value = businesses.includes(currentSelectedBusiness) ? currentSelectedBusiness : "ALL";
     }
 
     function updateCustomerPricesRecipeSelect() {
-        const datalistEl = document.getElementById('customer-recipes-datalist');
-        if (!datalistEl) return;
-        
-        datalistEl.innerHTML = '';
-        
+        const selectEl = document.getElementById('cust-price-item-select');
+        if (!selectEl) return;
+        const currentSelected = selectEl.value;
+
         const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+        selectEl.innerHTML = '<option value="">-- Kein Rezept gewählt --</option>';
         sortedRecipes.forEach(rec => {
             const opt = document.createElement('option');
             opt.value = rec.outputName;
-            datalistEl.appendChild(opt);
+            opt.innerText = rec.outputName;
+            selectEl.appendChild(opt);
         });
+        selectEl.value = sortedRecipes.some(r => r.outputName === currentSelected) ? currentSelected : "";
     }
 
-    function handleCustomerItemInput() {
-        const itemInput = document.getElementById('cust-price-item');
-        const priceInput = document.getElementById('cust-price-val');
-        if (!itemInput || !priceInput) return;
+    function handleCustomerItemSelectChange() {
+        const selectEl = document.getElementById('cust-price-item-select');
+        const inputEl = document.getElementById('cust-price-item-input');
+        if (selectEl && inputEl && selectEl.value) {
+            inputEl.value = selectEl.value;
+            const found = salesPricesList.find(sp => sp.name.toLowerCase() === selectEl.value.toLowerCase());
+            if (found) {
+                const priceInput = document.getElementById('cust-price-val');
+                if (priceInput) priceInput.value = found.price.toFixed(2);
+            }
+        }
+    }
 
-        const typedName = itemInput.value.trim().toLowerCase();
-        const found = salesPricesList.find(sp => sp.name.toLowerCase() === typedName);
-        if (found) {
-            priceInput.value = found.price.toFixed(2);
+    function handleCustomerItemTextInput() {
+        const selectEl = document.getElementById('cust-price-item-select');
+        const inputEl = document.getElementById('cust-price-item-input');
+        if (selectEl && inputEl) {
+            const typedVal = inputEl.value.trim().toLowerCase();
+            const matchingOption = [...selectEl.options].find(opt => opt.value.toLowerCase() === typedVal);
+            if (matchingOption) {
+                selectEl.value = matchingOption.value;
+            } else {
+                selectEl.value = "";
+            }
+            const found = salesPricesList.find(sp => sp.name.toLowerCase() === typedVal);
+            if (found) {
+                const priceInput = document.getElementById('cust-price-val');
+                if (priceInput) priceInput.value = found.price.toFixed(2);
+            }
         }
     }
 
     function renderCustomerPricesTable() {
         const tbody = document.getElementById('customer-prices-body');
+        if (!tbody) return;
         tbody.innerHTML = '';
-        const selectedFilter = document.getElementById('customer-filter').value;
+        
+        const selectedCustomerFilter = document.getElementById('customer-filter').value;
+        const selectedBusinessFilter = document.getElementById('customer-business-filter').value;
 
         let filteredList = customerPricesList;
-        if (selectedFilter !== "ALL") {
-            filteredList = customerPricesList.filter(item => item.customerName === selectedFilter);
+        if (selectedCustomerFilter !== "ALL") {
+            filteredList = filteredList.filter(item => item.customerName === selectedCustomerFilter);
+        }
+        if (selectedBusinessFilter !== "ALL") {
+            filteredList = filteredList.filter(item => item.business === selectedBusinessFilter);
         }
 
-        const sortedList = [...filteredList].sort((a, b) => a.customerName.localeCompare(b.customerName, 'de') || a.name.localeCompare(b.name, 'de'));
+        const sortedList = [...filteredList].sort((a, b) => b.id - a.id);
 
         if (sortedList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Kundenpreise gefunden.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Kundenpreise gefunden.</td></tr>`;
             return;
         }
 
         sortedList.forEach(item => {
+            const costPerUnit = getRecipeCostPerUnit(item.name);
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><span class="business-badge">${item.customerName}</span></td>
-                <td class="material-name">${item.name}</td>
+                <td><span class="business-badge">${item.customerName || '-'}</span></td>
+                <td><span class="business-badge" style="background-color: #334155; color: #38bdf8;">${item.business || '-'}</span></td>
+                <td class="material-name">
+                    <div class="tooltip-container">
+                        <span style="border-bottom: 1px dotted #94a3b8;">${item.name}</span>
+                        <div class="tooltip-text">${getRecipeTooltipHtml(item.name)}</div>
+                    </div>
+                </td>
+                <td><span class="current-cost">$${costPerUnit.toFixed(2)}</span></td>
                 <td class="current-price">$${item.price.toFixed(2)}</td>
                 <td>
                     <div class="adjust-box">
-                        <input type="number" step="0.01" id="cust-price-input-${item.id}" placeholder="Neuer Preis ($)" min="0" />
+                        <input type="number" step="0.01" id="cust-price-input-${item.id}" placeholder="Preis ($)" min="0" style="width: 130px;" />
                         <button class="btn" onclick="updateCustomerPrice(${item.id})">Speichern</button>
                     </div>
                 </td>
@@ -1646,22 +1801,29 @@
     async function updateCustomerPrice(id) {
         const inputEl = document.getElementById(`cust-price-input-${id}`);
         const val = parseFloat(inputEl.value);
-        if (isNaN(val) || val < 0) return alert("Gültigen Preis eingeben.");
 
-        const priceUpdated = getCurrentTimeString();
-        const { error } = await supabaseClient
-            .from('customer_prices')
-            .update({ price: val, priceUpdated })
-            .eq('id', id);
+        const item = customerPricesList.find(i => i.id === id);
+        if (item) {
+            if (!isNaN(val) && val >= 0) {
+                const priceUpdated = getCurrentTimeString();
+                const updatePayload = { price: val, priceUpdated };
 
-        if (!error) {
-            const item = customerPricesList.find(i => i.id === id);
-            if (item) {
-                item.price = val;
-                item.priceUpdated = priceUpdated;
-                inputEl.value = '';
-                renderCustomerPricesTable();
-                renderOrders();
+                const { error } = await supabaseClient
+                    .from('customer_prices')
+                    .update(updatePayload)
+                    .eq('id', id);
+
+                if (!error) {
+                    item.price = val;
+                    item.priceUpdated = priceUpdated;
+                    inputEl.value = '';
+                    renderCustomerPricesTable();
+                    renderOrders();
+                } else {
+                    alert("Fehler beim Aktualisieren: " + error.message);
+                }
+            } else {
+                alert("Bitte einen gültigen Preis eingeben.");
             }
         }
     }
@@ -1672,7 +1834,7 @@
             if (!error) {
                 customerPricesList = customerPricesList.filter(i => i.id !== id);
                 updateCustomerFilterOptions();
-                updateOrderCustomerDatalist();
+                updateOrderCustomerDropdown();
                 renderCustomerPricesTable();
                 renderOrders();
             }
@@ -1682,46 +1844,94 @@
     async function handleAddCustomerPrice(event) {
         event.preventDefault();
         const custInput = document.getElementById('cust-price-name');
-        const itemInput = document.getElementById('cust-price-item');
+        const businessInput = document.getElementById('cust-price-business');
+        const itemInput = document.getElementById('cust-price-item-input');
         const valInput = document.getElementById('cust-price-val');
 
         const customerName = capitalizeText(custInput.value.trim());
+        const business = capitalizeText(businessInput.value.trim());
         const name = capitalizeText(itemInput.value.trim());
         const price = parseFloat(valInput.value);
 
-        if (!customerName || !name || isNaN(price)) return;
+        if (!name || isNaN(price)) return alert("Bitte mindestens den Artikel und den Sonderpreis angeben.");
 
         const priceUpdated = getCurrentTimeString();
-        const existing = customerPricesList.find(i => i.customerName.toLowerCase() === customerName.toLowerCase() && i.name.toLowerCase() === name.toLowerCase());
+        const existing = customerPricesList.find(i => (i.customerName || "").toLowerCase() === customerName.toLowerCase() && i.name.toLowerCase() === name.toLowerCase());
 
         if (existing) {
             const { error } = await supabaseClient
                 .from('customer_prices')
-                .update({ price, priceUpdated })
+                .update({ price, business, priceUpdated })
                 .eq('id', existing.id);
 
             if (!error) {
                 existing.price = price;
+                existing.business = business;
                 existing.priceUpdated = priceUpdated;
+            } else {
+                alert("Fehler beim Aktualisieren: " + error.message);
             }
         } else {
             const { data, error } = await supabaseClient
                 .from('customer_prices')
-                .insert([{ customerName, name, price, priceUpdated }])
+                .insert([{ customerName, business, name, price, priceUpdated }])
                 .select();
 
             if (!error && data) {
                 customerPricesList.push(data[0]);
+            } else if (error) {
+                alert("Fehler beim Speichern in Supabase: " + error.message);
             }
         }
 
         custInput.value = '';
+        businessInput.value = '';
         itemInput.value = '';
+        const selectEl = document.getElementById('cust-price-item-select');
+        if (selectEl) selectEl.value = '';
         valInput.value = '';
         updateCustomerFilterOptions();
-        updateOrderCustomerDatalist();
+        updateOrderCustomerDropdown();
         renderCustomerPricesTable();
         renderOrders();
+    }
+
+    function updateSalesPriceRecipeDropdown() {
+        const selectEl = document.getElementById('price-add-select');
+        if (!selectEl) return;
+        const currentSelected = selectEl.value;
+
+        const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+        selectEl.innerHTML = '<option value="">-- Kein Rezept gewählt --</option>';
+        sortedRecipes.forEach(rec => {
+            const opt = document.createElement('option');
+            opt.value = rec.outputName;
+            opt.innerText = rec.outputName;
+            selectEl.appendChild(opt);
+        });
+        selectEl.value = sortedRecipes.some(r => r.outputName === currentSelected) ? currentSelected : "";
+    }
+
+    function handleSalesPriceSelectChange() {
+        const selectEl = document.getElementById('price-add-select');
+        const inputEl = document.getElementById('price-add-name');
+        if (selectEl && inputEl && selectEl.value) {
+            inputEl.value = selectEl.value;
+        }
+    }
+
+    function handleSalesPriceTextInput() {
+        const selectEl = document.getElementById('price-add-select');
+        const inputEl = document.getElementById('price-add-name');
+        if (selectEl && inputEl) {
+            const typedVal = inputEl.value.trim().toLowerCase();
+            const matchingOption = [...selectEl.options].find(opt => opt.value.toLowerCase() === typedVal);
+            if (matchingOption) {
+                selectEl.value = matchingOption.value;
+            } else {
+                selectEl.value = "";
+            }
+        }
     }
 
     function renderCalculatedPricesTable() {
@@ -1800,7 +2010,6 @@
                 existing.priceUpdated = priceUpdated;
                 alert(`Verkaufspreis für "${itemName}" auf $${priceVal.toFixed(2)} aktualisiert!`);
                 renderPriceTable();
-                updateSalesPricesDatalist();
                 renderOrders();
             }
         } else {
@@ -1813,23 +2022,9 @@
                 salesPricesList.push(data[0]);
                 alert(`Verkaufspreis für "${itemName}" mit $${priceVal.toFixed(2)} neu angelegt!`);
                 renderPriceTable();
-                updateSalesPricesDatalist();
                 renderOrders();
             }
         }
-    }
-
-    function updateStandardPriceRecipeDatalist() {
-        const datalistEl = document.getElementById('recipes-datalist');
-        if (!datalistEl) return;
-        datalistEl.innerHTML = '';
-        
-        const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
-        sortedRecipes.forEach(rec => {
-            const opt = document.createElement('option');
-            opt.value = rec.outputName;
-            datalistEl.appendChild(opt);
-        });
     }
 
     function renderPriceTable() {
@@ -1839,7 +2034,7 @@
         const sortedList = [...salesPricesList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
         if (sortedList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Standardverkaufspreise hinterlegt.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Standardverkaufspreise hinterlegt.</td></tr>`;
             return;
         }
 
@@ -1862,6 +2057,7 @@
                         <div class="tooltip-text">${getRecipeTooltipHtml(item.name)}</div>
                     </div>
                 </td>
+                <td><span class="current-cost">$${costPerUnit.toFixed(2)}</span></td>
                 <td class="current-price">$${item.price.toFixed(2)}</td>
                 <td><span style="font-weight: 700; color: ${markupColor};">${markupText}</span></td>
                 <td>
@@ -1895,7 +2091,6 @@
                 item.priceUpdated = priceUpdated;
                 inputEl.value = '';
                 renderPriceTable();
-                updateSalesPricesDatalist();
                 renderOrders();
             }
         }
@@ -1907,7 +2102,6 @@
             if (!error) {
                 salesPricesList = salesPricesList.filter(i => i.id !== id);
                 renderPriceTable();
-                updateSalesPricesDatalist();
                 renderOrders();
             }
         }
@@ -1945,9 +2139,10 @@
             }
         }
         inputEl.value = '';
+        const selectEl = document.getElementById('price-add-select');
+        if (selectEl) selectEl.value = '';
         priceInput.value = '';
         renderPriceTable();
-        updateSalesPricesDatalist();
         renderOrders();
     }
 
@@ -1989,8 +2184,7 @@
                 <td class="current-cost">$${item.cost.toFixed(2)}</td>
                 <td>
                     <div class="adjust-box">
-                        <input type="text" id="cost-business-input-${item.id}" placeholder="Gewerbe" value="${item.business}" style="width: 110px;" />
-                        <input type="number" step="0.01" id="cost-input-${item.id}" placeholder="EK ($)" min="0" style="width: 90px;" />
+                        <input type="number" step="0.01" id="cost-input-${item.id}" placeholder="Preis ($)" min="0" style="width: 130px;" />
                         <button class="btn" onclick="updateCost(${item.id})">Speichern</button>
                     </div>
                 </td>
@@ -2003,20 +2197,13 @@
 
     async function updateCost(id) {
         const inputCostEl = document.getElementById(`cost-input-${id}`);
-        const inputBusinessEl = document.getElementById(`cost-business-input-${id}`);
         const costValue = parseFloat(inputCostEl.value);
-        const businessValue = capitalizeText(inputBusinessEl.value.trim());
 
         const item = purchasePricesList.find(i => i.id === id);
         if (item) {
-            let updated = false;
-            let updatePayload = {};
-            if (!isNaN(costValue) && costValue >= 0) { updatePayload.cost = costValue; updated = true; }
-            if (businessValue !== "") { updatePayload.business = businessValue; updated = true; }
-
-            if (updated) {
+            if (!isNaN(costValue) && costValue >= 0) {
                 const costUpdated = getCurrentTimeString();
-                updatePayload.costUpdated = costUpdated;
+                const updatePayload = { cost: costValue, costUpdated };
 
                 const { error } = await supabaseClient
                     .from('purchase_prices')
@@ -2024,17 +2211,17 @@
                     .eq('id', id);
 
                 if (!error) {
-                    if (updatePayload.cost !== undefined) item.cost = updatePayload.cost;
-                    if (updatePayload.business !== undefined) item.business = updatePayload.business;
+                    item.cost = costValue;
                     item.costUpdated = costUpdated;
                     inputCostEl.value = '';
-                    updateBusinessFilterOptions();
                     renderCostTable();
-                    updateShoppingBusinessFilterOptions();
-                    renderShoppingList();
                     renderCalculatedPricesTable();
                     renderPriceTable();
+                } else {
+                    alert("Fehler beim Aktualisieren: " + error.message);
                 }
+            } else {
+                alert("Bitte einen gültigen Preis eingeben.");
             }
         }
     }
@@ -2258,12 +2445,12 @@
         document.getElementById('recipe-output-input').value = '';
         document.getElementById('recipe-output-qty').value = '1';
         initRecipeIngredientInputs();
-        updateRecipeSearchDatalist();
+        updateRecipeSearchSelect();
         updateCustomerPricesRecipeSelect();
+        updateSalesPriceRecipeDropdown();
         renderRecipes();
         renderCalculatedPricesTable();
         renderPriceTable();
-        updateStandardPriceRecipeDatalist();
         updateOrderRecipeSelects();
     }
 
@@ -2273,13 +2460,14 @@
             if (!error) {
                 recipesList = recipesList.filter(r => r.id !== id);
                 delete recipeTargetAmounts[id];
-                updateRecipeSearchDatalist();
+                updateRecipeSearchSelect();
                 updateCustomerPricesRecipeSelect();
+                updateSalesPriceRecipeDropdown();
                 renderRecipes();
                 renderCalculatedPricesTable();
                 renderPriceTable();
-                updateStandardPriceRecipeDatalist();
                 updateOrderRecipeSelects();
+                document.getElementById('crafting-action-box').style.display = 'none';
             }
         }
     }
@@ -2289,25 +2477,171 @@
         return item ? item.quantity : 0;
     }
 
-    function updateRecipeSearchDatalist() {
-        const datalistEl = document.getElementById('recipe-search-datalist');
-        if (!datalistEl) return;
-        datalistEl.innerHTML = '';
+    function updateRecipeSearchSelect() {
+        const selectEl = document.getElementById('recipe-search-select');
+        if (!selectEl) return;
+        const currentSelected = selectEl.value;
 
         const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+        selectEl.innerHTML = '<option value="ALL">-- Alle Artikel wählen --</option>';
         sortedRecipes.forEach(recipe => {
             const opt = document.createElement('option');
             opt.value = recipe.outputName;
-            datalistEl.appendChild(opt);
+            opt.innerText = recipe.outputName;
+            selectEl.appendChild(opt);
         });
+
+        const exists = sortedRecipes.some(r => r.outputName === currentSelected);
+        selectEl.value = exists ? currentSelected : "ALL";
     }
 
     function clearRecipeSearch() {
-        const searchInput = document.getElementById('recipe-search-input');
-        if (searchInput) {
-            searchInput.value = '';
+        const selectEl = document.getElementById('recipe-search-select');
+        if (selectEl) {
+            selectEl.value = 'ALL';
             renderRecipes();
+            document.getElementById('crafting-action-box').style.display = 'none';
         }
+    }
+
+    function applyGlobalTargetQty() {
+        const selectEl = document.getElementById('recipe-search-select');
+        const qtyInput = document.getElementById('global-recipe-target-qty');
+        if (!selectEl || !qtyInput) return;
+
+        const selectedValue = selectEl.value;
+        if (selectedValue === 'ALL') {
+            return;
+        }
+
+        const recipe = recipesList.find(r => r.outputName === selectedValue);
+        if (!recipe) return;
+
+        let val = parseInt(qtyInput.value, 10);
+        if (isNaN(val) || val < 1) val = 1;
+
+        recipeTargetAmounts[recipe.id] = val;
+        renderRecipes();
+    }
+
+    function getRecursiveProductionSteps(itemName, neededQty, stepsList = []) {
+        const recipe = recipesList.find(r => r.outputName.toLowerCase() === itemName.toLowerCase());
+        
+        if (!recipe || !recipe.ingredients || recipe.ingredients.length === 0 || recipe.outputQty <= 0) {
+            return stepsList;
+        }
+
+        let multiplier = Math.ceil(neededQty / recipe.outputQty);
+        let actualProduced = multiplier * recipe.outputQty;
+
+        let existingStep = stepsList.find(s => s.itemName.toLowerCase() === recipe.outputName.toLowerCase());
+        if (existingStep) {
+            existingStep.neededQty += actualProduced;
+            existingStep.multiplier = Math.ceil(existingStep.neededQty / recipe.outputQty);
+            existingStep.actualProduced = existingStep.multiplier * recipe.outputQty;
+        } else {
+            stepsList.push({
+                itemName: recipe.outputName,
+                neededQty: actualProduced,
+                outputQty: recipe.outputQty,
+                multiplier: multiplier,
+                actualProduced: actualProduced,
+                ingredients: recipe.ingredients
+            });
+        }
+
+        recipe.ingredients.forEach(ing => {
+            let subNeeded = ing.qty * multiplier;
+            getRecursiveProductionSteps(ing.name, subNeeded, stepsList);
+        });
+
+        return stepsList;
+    }
+
+    function triggerCraftingView() {
+        const selectEl = document.getElementById('recipe-search-select');
+        const craftingBox = document.getElementById('crafting-action-box');
+        const contentDiv = document.getElementById('crafting-action-content');
+
+        if (!selectEl || !craftingBox || !contentDiv) return;
+
+        const selectedValue = selectEl.value;
+        if (selectedValue === 'ALL') {
+            alert("Bitte wähle zuerst ein spezifisches Rezept aus dem Dropdown aus.");
+            craftingBox.style.display = 'none';
+            return;
+        }
+
+        const recipe = recipesList.find(r => r.outputName === selectedValue);
+        if (!recipe) {
+            craftingBox.style.display = 'none';
+            return;
+        }
+
+        const targetAmount = recipeTargetAmounts[recipe.id] !== undefined ? recipeTargetAmounts[recipe.id] : recipe.outputQty;
+        
+        let productionSteps = [];
+        getRecursiveProductionSteps(recipe.outputName, targetAmount, productionSteps);
+
+        let html = '';
+        
+        if (productionSteps.length <= 1) {
+            html += `<div style="color: var(--text-muted); margin-bottom: 12px; font-size: 1rem;">Dieses Produkt benötigt keine Zwischenschritte. Es setzt sich direkt aus Rohmaterialien zusammen:</div>`;
+        } else {
+            html += `<div style="font-size: 1rem; font-weight: 700; color: #f8fafc; margin-bottom: 12px;">Zwischenschritte (von links nach rechts):</div>`;
+            html += `<div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;">`;
+            
+            let stepCounter = 1;
+            let intermediateSteps = productionSteps.filter(s => s.itemName.toLowerCase() !== recipe.outputName.toLowerCase());
+
+            intermediateSteps.forEach(step => {
+                let stock = getStockAmount(step.itemName);
+                html += `<div style="background: #101726; border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; flex: 1; min-width: 240px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">`;
+                html += `<div style="font-weight: 700; color: #38bdf8; font-size: 0.95rem; margin-bottom: 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Schritt ${stepCounter}: <strong>${step.actualProduced}x ${step.itemName}</strong></div>`;
+                html += `<div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Benötigte Materialien:</div>`;
+                
+                step.ingredients.forEach(ing => {
+                    let reqMatQty = ing.qty * step.multiplier;
+                    let matStock = getStockAmount(ing.name);
+                    let hasMatOk = matStock >= reqMatQty;
+                    html += `<div style="margin-left: 8px; font-size: 0.85rem; margin-bottom: 2px;">• <strong>${reqMatQty}x</strong> ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${hasMatOk ? '#34d399' : '#f87171'}; font-weight: 600;">${matStock}</span>)</span></div>`;
+                });
+                html += `</div>`;
+                stepCounter++;
+            });
+            html += `</div>`;
+        }
+
+        html += `<div style="background: #162238; border: 2px solid #34d399; padding: 16px; border-radius: 8px; margin-top: 12px;">`;
+        html += `<div style="font-size: 1.1rem; font-weight: 700; color: #34d399; margin-bottom: 8px;">✨ Endprodukt unten komplett: <span style="color: #f8fafc;">${recipe.outputName}</span> (Gewünschte Menge: ${targetAmount} Stk.)</div>`;
+        
+        html += `<div style="font-weight: 600; color: #38bdf8; margin-top: 10px; margin-bottom: 6px;">Gesamt benötigte Rohmaterialien (Zutaten) für das Endprodukt:</div>`;
+        
+        let rawMaterialMap = {};
+        resolveRawMaterials(recipe.outputName, targetAmount, rawMaterialMap);
+
+        let allRawOk = true;
+        let rawListHtml = `<div style="display: flex; gap: 16px; flex-wrap: wrap;">`;
+        Object.keys(rawMaterialMap).forEach(matName => {
+            let reqQty = rawMaterialMap[matName];
+            let stockQty = getStockAmount(matName);
+            let hasEnough = stockQty >= reqQty;
+            if (!hasEnough) allRawOk = false;
+
+            rawListHtml += `<div style="background: #0f172a; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.9rem;">• <strong>${reqQty}x</strong> ${matName} <span style="color: var(--text-muted);">(Lager: <span style="color: ${hasEnough ? '#34d399' : '#f87171'}; font-weight: 600;">${stockQty}</span>)</span></div>`;
+        });
+        rawListHtml += `</div>`;
+        html += rawListHtml;
+
+        if (allRawOk) {
+            html += `<div style="margin-top: 12px;"><span class="req-status status-ok" style="font-size: 0.9rem; padding: 6px 12px;">✓ Genug Grund-Rohmaterialien im Lager vorhanden!</span></div>`;
+        } else {
+            html += `<div style="margin-top: 12px;"><span class="req-status status-missing" style="font-size: 0.9rem; padding: 6px 12px;">✕ Es fehlen Grund-Rohmaterialien im Lager!</span></div>`;
+        }
+        html += `</div>`;
+
+        contentDiv.innerHTML = html;
+        craftingBox.style.display = 'block';
     }
 
     function renderRecipes() {
@@ -2315,12 +2649,17 @@
         if (!tbody) return;
         tbody.innerHTML = '';
 
-        const searchInput = document.getElementById('recipe-search-input');
-        const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const selectEl = document.getElementById('recipe-search-select');
+        const selectedValue = selectEl ? selectEl.value : 'ALL';
 
         let filteredRecipes = recipesList;
-        if (searchTerm !== '') {
-            filteredRecipes = recipesList.filter(recipe => recipe.outputName.toLowerCase().includes(searchTerm));
+        if (selectedValue !== 'ALL') {
+            filteredRecipes = recipesList.filter(recipe => recipe.outputName === selectedValue);
+            if (document.getElementById('crafting-action-box').style.display === 'block') {
+                triggerCraftingView();
+            }
+        } else {
+            document.getElementById('crafting-action-box').style.display = 'none';
         }
 
         if (filteredRecipes.length === 0) {
@@ -2387,18 +2726,26 @@
         detailsHtml += `<div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">(${multiplier} Durchlauf/e = ${actualProduced} Stk.)</div>`;
         ingredientsView.innerHTML = detailsHtml;
         statusBox.innerHTML = canCraft ? `<span class="req-status status-ok">✓ Genug Material</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
+
+        const selectEl = document.getElementById('recipe-search-select');
+        if (selectEl && selectEl.value === recipe.outputName && document.getElementById('crafting-action-box').style.display === 'block') {
+            triggerCraftingView();
+        }
     }
 
     async function handleAddNote(event) {
         event.preventDefault();
+        const labelSelect = document.getElementById('note-add-label');
         const contentDiv = document.getElementById('note-add-content');
+        
+        const label = labelSelect.value;
         const content = contentDiv.innerText.trim();
         if (!content) return;
 
         const createdAt = getCurrentTimeString();
         const { data, error } = await supabaseClient
             .from('notes')
-            .insert([{ content, createdAt }])
+            .insert([{ label, content, createdAt }])
             .select();
 
         if (!error && data) {
@@ -2407,6 +2754,53 @@
             renderNotes();
         } else {
             alert("Fehler beim Speichern der Notiz: " + (error ? error.message : ''));
+        }
+    }
+
+    function toggleEditNote(id) {
+        const viewEl = document.getElementById(`note-view-${id}`);
+        const editEl = document.getElementById(`note-edit-${id}`);
+        const btnContainer = document.getElementById(`note-btn-container-${id}`);
+        const editActions = document.getElementById(`note-edit-actions-${id}`);
+
+        if (viewEl && editEl && btnContainer && editActions) {
+            const isEditing = editEl.style.display !== 'none';
+            if (isEditing) {
+                editEl.style.display = 'none';
+                viewEl.style.display = 'block';
+                editActions.style.display = 'none';
+                btnContainer.style.display = 'flex';
+            } else {
+                viewEl.style.display = 'none';
+                editEl.style.display = 'block';
+                btnContainer.style.display = 'none';
+                editActions.style.display = 'flex';
+                editEl.focus();
+            }
+        }
+    }
+
+    async function saveEditedNote(id) {
+        const editEl = document.getElementById(`note-edit-${id}`);
+        if (!editEl) return;
+        const newContent = editEl.innerText.trim();
+        if (!newContent) return alert("Die Notiz darf nicht leer sein.");
+
+        const createdAt = getCurrentTimeString();
+        const { error } = await supabaseClient
+            .from('notes')
+            .update({ content: newContent, createdAt })
+            .eq('id', id);
+
+        if (!error) {
+            const note = notesList.find(n => n.id === id);
+            if (note) {
+                note.content = newContent;
+                note.createdAt = createdAt;
+            }
+            renderNotes();
+        } else {
+            alert("Fehler beim Aktualisieren der Notiz: " + error.message);
         }
     }
 
@@ -2423,58 +2817,98 @@
     }
 
     function renderNotes() {
-        const tbody = document.getElementById('notes-table-body');
-        if (!tbody) return;
-        tbody.innerHTML = '';
+        const container = document.getElementById('notes-container');
+        if (!container) return;
+
+        const openStates = {};
+        container.querySelectorAll('details[data-note-id]').forEach(el => {
+            openStates[el.getAttribute('data-note-id')] = el.open;
+        });
+
+        container.innerHTML = '';
 
         if (notesList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Notizen vorhanden.</td></tr>`;
+            container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Notizen vorhanden.</div>`;
             return;
         }
 
         const sortedNotes = [...notesList].sort((a, b) => b.id - a.id);
 
         sortedNotes.forEach(note => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="white-space: pre-wrap; line-height: 1.4; color: #f1f5f9;">${note.content}</td>
-                <td class="time-text">${note.createdAt || '-'}</td>
-                <td>
-                    <button class="btn btn-danger" onclick="deleteNote(${note.id})">Löschen</button>
-                </td>
+            const labelName = note.label || 'Notiz';
+            let labelClass = 'label-notiz';
+            if (labelName.toLowerCase() === 'telegram') labelClass = 'label-telegram';
+            if (labelName.toLowerCase() === 'info') labelClass = 'label-info';
+
+            const firstLine = note.content.split('\n')[0] || '';
+            const previewText = firstLine.length > 60 ? firstLine.substring(0, 60) + '...' : firstLine;
+
+            const noteDetails = document.createElement('details');
+            noteDetails.setAttribute('data-note-id', note.id);
+            
+            if (openStates[note.id] !== undefined) {
+                noteDetails.open = openStates[note.id];
+            }
+
+            noteDetails.style.cssText = 'background: #162032; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);';
+
+            const summaryEl = document.createElement('summary');
+            summaryEl.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px; width: 100%; overflow: hidden;">
+                    <span class="note-label ${labelClass}">${labelName}</span>
+                    <span style="font-size: 0.95rem; font-weight: 600; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${previewText}</span>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal; margin-left: auto; margin-right: 20px;">${note.createdAt || ''}</span>
+                </div>
             `;
-            tbody.appendChild(tr);
+
+            const contentBody = document.createElement('div');
+            contentBody.style.cssText = 'margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;';
+
+            const viewDiv = document.createElement('div');
+            viewDiv.id = `note-view-${note.id}`;
+            viewDiv.style.cssText = 'font-size: 0.95rem; color: var(--text-color); white-space: pre-wrap; word-break: break-word; line-height: 1.5;';
+            viewDiv.innerText = note.content;
+
+            const editDiv = document.createElement('div');
+            editDiv.id = `note-edit-${note.id}`;
+            editDiv.className = 'spellcheck-editor';
+            editDiv.setAttribute('contenteditable', 'true');
+            editDiv.setAttribute('spellcheck', 'false');
+            editDiv.style.display = 'none';
+            editDiv.innerText = note.content;
+
+            const btnContainer = document.createElement('div');
+            btnContainer.id = `note-btn-container-${note.id}`;
+            btnContainer.style.cssText = 'display: flex; gap: 8px; margin-top: 12px;';
+            btnContainer.innerHTML = `
+                <button class="btn" style="height: 34px; font-size: 0.85rem; background-color: #334155;" onclick="toggleEditNote(${note.id})">Bearbeiten</button>
+                <button class="btn btn-danger" style="height: 34px; font-size: 0.85rem;" onclick="deleteNote(${note.id})">Löschen</button>
+            `;
+
+            const editActions = document.createElement('div');
+            editActions.id = `note-edit-actions-${note.id}`;
+            editActions.style.cssText = 'display: none; gap: 8px; margin-top: 12px;';
+            editActions.innerHTML = `
+                <button class="btn btn-success" style="height: 34px; font-size: 0.85rem;" onclick="saveEditedNote(${note.id})">Speichern</button>
+                <button class="btn" style="height: 34px; font-size: 0.85rem; background-color: #334155;" onclick="toggleEditNote(${note.id})">Abbrechen</button>
+            `;
+
+            contentBody.appendChild(viewDiv);
+            contentBody.appendChild(editDiv);
+            contentBody.appendChild(btnContainer);
+            contentBody.appendChild(editActions);
+
+            noteDetails.appendChild(summaryEl);
+            noteDetails.appendChild(contentBody);
+            container.appendChild(noteDetails);
         });
     }
 
-    const tablesToWatch = [
-        'inventory', 
-        'orders', 
-        'archive', 
-        'customer_prices', 
-        'sales_prices', 
-        'purchase_prices', 
-        'recipes',
-        'notes'
-    ];
-
-    tablesToWatch.forEach(tableName => {
-        supabaseClient
-            .channel(`public:${tableName}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: tableName }, payload => {
-                loadDataFromSupabase();
-            })
-            .subscribe();
-    });
-    
-    initOrderPositionInputs();
-    initRecipeIngredientInputs();
-    loadDataFromSupabase();
-
-    setInterval(() => {
+    window.onload = () => {
+        initOrderPositionInputs();
+        initRecipeIngredientInputs();
         loadDataFromSupabase();
-    }, 5000);
+    };
 </script>
-
 </body>
 </html>
