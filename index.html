@@ -430,20 +430,6 @@
             font-weight: 500;
         }
 
-        .note-label {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }
-        .label-telegram { background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #38bdf8; }
-        .label-info { background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; }
-        .label-notiz { background-color: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
-
         .current-stock {
             font-weight: 700;
             font-size: 1.1rem;
@@ -460,6 +446,10 @@
             font-weight: 700;
             font-size: 1.1rem;
             color: #f59e0b;
+        }
+
+        .current-cost.zero-cost {
+            color: var(--danger-color) !important;
         }
 
         .adjust-box {
@@ -536,6 +526,7 @@
     <div class="tabs" id="tabs-container">
         <button class="tab-btn active" draggable="true" data-tab="lagerbestand" onclick="switchTab('lagerbestand')">Lagerbestand</button>
         <button class="tab-btn" draggable="true" data-tab="herstellung" onclick="switchTab('herstellung')">Herstellung</button>
+        <button class="tab-btn" draggable="true" data-tab="herstellungskosten" onclick="switchTab('herstellungskosten')">Herstellungskosten</button>
         <button class="tab-btn" draggable="true" data-tab="bestellungen" onclick="switchTab('bestellungen')">Bestellungen</button>
         <button class="tab-btn" draggable="true" data-tab="verkaufspreise" onclick="switchTab('verkaufspreise')">Verkaufspreise</button>
         <button class="tab-btn" draggable="true" data-tab="kunden" onclick="switchTab('kunden')">Kunden-Preise</button>
@@ -577,6 +568,41 @@
                     </tr>
                 </thead>
                 <tbody id="inventory-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB: HERSTELLUNGSKOSTEN -->
+    <div id="tab-herstellungskosten" class="tab-content">
+        <h2>Übersicht der Herstellungskosten</h2>
+        <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 8px; margin-bottom: 16px;">
+            Diese Tabelle zeigt dir die berechneten Herstellungskosten pro Stück für alle hinterlegten Rezepte. Du kannst hier für jede Zutat separat einen manuellen Preis eintragen (überschreibt den automatischen Einkaufspreis). Werte von 0 werden rot markiert.
+        </div>
+        
+        <!-- Dropdown "Rezept auswählen" & Zurücksetzen-Button -->
+        <div class="filter-card" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 300px;">
+                <label for="production-cost-search">Rezept auswählen:</label>
+                <select id="production-cost-search" onchange="renderProductionCostsTable()" style="max-width: 350px;">
+                    <option value="ALL">-- Alle Rezepte anzeigen --</option>
+                </select>
+            </div>
+            <div>
+                <button type="button" class="btn" style="background-color: #334155; height: 42px; font-size: 0.85rem;" onclick="clearProductionCostSearch()">Auswahl zurücksetzen</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Endprodukt (Rezept)</th>
+                        <th>Ertrag (Stk.)</th>
+                        <th>Zutaten & Einzelkosten (Preise separat anpassbar)</th>
+                        <th>Herstellungskosten pro Stück ($)</th>
+                    </tr>
+                </thead>
+                <tbody id="production-costs-body"></tbody>
             </table>
         </div>
     </div>
@@ -727,7 +753,7 @@
         <details>
             <summary>Automatische Verkaufspreise (Rechner)</summary>
             <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; margin-top: 10px;">
-                Hier werden die Kosten für Rezepte anhand des <strong>günstigsten Einkaufspreises</strong> der Zutaten ermittelt. Trage deinen gewünschten Gewinnaufschlag in Prozent ein, um den Verkaufspreis automatisch zu berechnen.
+                Hier werden die Kosten für Rezepte ermittelt. Trage deinen gewünschten Gewinnaufschlag in Prozent ein, um den Verkaufspreis automatisch zu berechnen.
             </div>
 
             <div class="table-container">
@@ -769,6 +795,19 @@
                 </form>
             </div>
         </details>
+		
+        <!-- Korrigiertes Dropdown für Artikel / Verkaufspreise filtern -->
+        <div class="filter-card" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 300px;">
+                <label for="sales-price-search">Artikel auswählen:</label>
+                <select id="sales-price-search" onchange="renderPriceTable()" style="max-width: 350px;">
+                    <option value="ALL">-- Alle Artikel anzeigen --</option>
+                </select>
+            </div>
+            <div>
+                <button type="button" class="btn" style="background-color: #334155; height: 42px; font-size: 0.85rem;" onclick="clearSalesPriceSearch()">Auswahl zurücksetzen</button>
+            </div>
+        </div>
 
         <h2 style="font-size: 1.1rem; margin-top: 24px; margin-bottom: 12px; color: var(--text-color);">Standardverkaufspreise</h2>
         <div class="table-container">
@@ -874,11 +913,12 @@
 
     <!-- TAB 8: HERSTELLUNG -->
     <div id="tab-herstellung" class="tab-content">
-        <details>
-            <summary>+ Neues Rezept hinzufügen</summary>
+        <details id="recipe-details-card">
+            <summary id="recipe-form-summary">+ Neues Rezept hinzufügen</summary>
             <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
-                <h2>+ Neues Rezept hinzufügen</h2>
+                <h2 id="recipe-form-title">+ Neues Rezept hinzufügen</h2>
                 <form id="recipe-add-form" onsubmit="handleAddRecipe(event)">
+                    <input type="hidden" id="recipe-edit-id" value="">
                     <div class="add-form" style="margin-bottom: 12px;">
                         <div class="form-group">
                             <label for="recipe-output-input">Endproduktartikel</label>
@@ -896,7 +936,10 @@
                         <button type="button" class="btn" style="background-color: #334155; height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addRecipeIngredientInput()">+ Zutat hinzufügen</button>
                     </div>
 
-                    <button type="submit" class="btn btn-success">Rezept speichern</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-success" id="recipe-submit-btn">Rezept speichern</button>
+                        <button type="button" class="btn" style="background-color: #334155; display: none;" id="recipe-cancel-btn" onclick="cancelRecipeEdit()">Abbrechen</button>
+                    </div>
                 </form>
             </div>
         </details>
@@ -1034,6 +1077,7 @@
     let recipeMargins = {};
     let recipeTargetAmounts = {};
     let notesList = [];
+    let manualIngredientPrices = {};
 
     function getCurrentTimeString() {
         const now = new Date();
@@ -1059,6 +1103,9 @@
         if (tabName === 'herstellung') {
             updateRecipeSearchSelect();
             renderRecipes();
+        } else if (tabName === 'herstellungskosten') {
+            updateProductionCostSelect();
+            renderProductionCostsTable();
         } else if (tabName === 'bestellungen') {
             updateOrderCustomerDropdown();
             updateOrderRecipeSelects();
@@ -1074,6 +1121,7 @@
             renderShoppingList();
         } else if (tabName === 'verkaufspreise') {
             updateSalesPriceRecipeDropdown();
+            updateSalesPriceSearchSelect();
             renderCalculatedPricesTable();
             renderPriceTable();
         } else if (tabName === 'notizen') {
@@ -1158,6 +1206,8 @@
 
     function renderTables() {
         renderStockTable();
+        updateProductionCostSelect();
+        renderProductionCostsTable();
         updateOrderCustomerDropdown();
         updateOrderRecipeSelects();
         renderOrders();
@@ -1166,6 +1216,7 @@
         updateCustomerPricesRecipeSelect();
         renderCustomerPricesTable();
         updateSalesPriceRecipeDropdown();
+        updateSalesPriceSearchSelect();
         renderCalculatedPricesTable();
         renderPriceTable();
         updateBusinessFilterOptions();
@@ -1207,13 +1258,37 @@
     }
 
     function getLowestPurchaseCost(itemName) {
+        if (manualIngredientPrices[itemName] !== undefined) {
+            return manualIngredientPrices[itemName];
+        }
         const matches = purchasePricesList.filter(p => p.name.toLowerCase() === itemName.toLowerCase());
-        if (matches.length === 0) return 0.00;
+        if (matches.length === 0) {
+            const recipe = recipesList.find(r => r.outputName.toLowerCase() === itemName.toLowerCase());
+            if (recipe) {
+                return getRecipeCostPerUnit(itemName);
+            }
+            return 0.00;
+        }
         let lowest = matches[0].cost;
         matches.forEach(m => {
             if (m.cost < lowest) lowest = m.cost;
         });
         return lowest;
+    }
+
+    function saveManualIngredientPrice(ingredientName, inputId) {
+        const inputEl = document.getElementById(inputId);
+        if (!inputEl) return;
+        const val = parseFloat(inputEl.value);
+        if (isNaN(val) || val < 0) {
+            delete manualIngredientPrices[ingredientName];
+        } else {
+            manualIngredientPrices[ingredientName] = val;
+        }
+        renderProductionCostsTable();
+        renderCalculatedPricesTable();
+        renderPriceTable();
+        renderCustomerPricesTable();
     }
 
     function getRecipeCostPerUnit(itemName) {
@@ -1228,6 +1303,20 @@
         return totalIngredientCost / recipe.outputQty;
     }
 
+    function recipeHasZeroCost(itemName) {
+        const recipe = recipesList.find(r => r.outputName.toLowerCase() === itemName.toLowerCase());
+        if (!recipe) return true;
+        let costPerUnit = getRecipeCostPerUnit(itemName);
+        if (costPerUnit === 0) return true;
+        let hasZero = false;
+        if (recipe.ingredients) {
+            recipe.ingredients.forEach(ing => {
+                if (getLowestPurchaseCost(ing.name) === 0) hasZero = true;
+            });
+        }
+        return hasZero;
+    }
+
     function getRecipeTooltipHtml(itemName) {
         const recipe = recipesList.find(r => r.outputName.toLowerCase() === itemName.toLowerCase());
         if (!recipe || !recipe.ingredients || recipe.ingredients.length === 0) {
@@ -1235,9 +1324,134 @@
         }
         let html = `<div style="font-weight: 600; margin-bottom: 4px; color: #38bdf8;">Rezept (${recipe.outputQty} Stk.):</div>`;
         recipe.ingredients.forEach(ing => {
-            html += `<div>• ${ing.qty}x ${ing.name}</div>`;
+            let activeCost = getLowestPurchaseCost(ing.name);
+            let costStyle = activeCost === 0 ? 'color: var(--danger-color); font-weight: bold;' : '';
+            html += `<div>• ${ing.qty}x ${ing.name} <span style="${costStyle}">($${activeCost.toFixed(2)})</span></div>`;
         });
         return html;
+    }
+
+    function updateProductionCostSelect() {
+        const selectEl = document.getElementById('production-cost-search');
+        if (!selectEl) return;
+        const currentSelected = selectEl.value;
+
+        const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+        selectEl.innerHTML = '<option value="ALL">-- Alle Rezepte anzeigen --</option>';
+        sortedRecipes.forEach(recipe => {
+            const opt = document.createElement('option');
+            opt.value = recipe.outputName;
+            opt.innerText = recipe.outputName;
+            selectEl.appendChild(opt);
+        });
+
+        const exists = sortedRecipes.some(r => r.outputName === currentSelected);
+        selectEl.value = exists ? currentSelected : "ALL";
+    }
+
+    function clearProductionCostSearch() {
+        const selectEl = document.getElementById('production-cost-search');
+        if (selectEl) {
+            selectEl.value = 'ALL';
+            renderProductionCostsTable();
+        }
+    }
+
+    function updateSalesPriceSearchSelect() {
+        const selectEl = document.getElementById('sales-price-search');
+        if (!selectEl) return;
+        const currentSelected = selectEl.value;
+
+        const sortedSales = [...salesPricesList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+        selectEl.innerHTML = '<option value="ALL">-- Alle Artikel anzeigen --</option>';
+        sortedSales.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item.name;
+            opt.innerText = item.name;
+            selectEl.appendChild(opt);
+        });
+
+        const exists = sortedSales.some(s => s.name === currentSelected);
+        selectEl.value = exists ? currentSelected : "ALL";
+    }
+
+    function clearSalesPriceSearch() {
+        const selectEl = document.getElementById('sales-price-search');
+        if (selectEl) {
+            selectEl.value = 'ALL';
+            renderPriceTable();
+        }
+    }
+
+    function renderProductionCostsTable() {
+        const tbody = document.getElementById('production-costs-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (recipesList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte vorhanden. Bitte erst im Tab „Herstellung“ Rezepte anlegen.</td></tr>`;
+            return;
+        }
+
+        const selectEl = document.getElementById('production-cost-search');
+        const selectedValue = selectEl ? selectEl.value : 'ALL';
+
+        let filteredRecipes = recipesList;
+        if (selectedValue !== 'ALL') {
+            filteredRecipes = recipesList.filter(r => r.outputName === selectedValue);
+        }
+
+        const sortedRecipes = [...filteredRecipes].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+
+        if (sortedRecipes.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine passenden Endprodukte gefunden.</td></tr>`;
+            return;
+        }
+
+        sortedRecipes.forEach(recipe => {
+            let costPerUnit = getRecipeCostPerUnit(recipe.outputName);
+            let ingredientsHtml = '';
+            let hasZeroIngredient = false;
+
+            if (recipe.ingredients && recipe.ingredients.length > 0) {
+                recipe.ingredients.forEach((ing, ingIndex) => {
+                    let activeCost = getLowestPurchaseCost(ing.name);
+                    let subTotal = ing.qty * activeCost;
+                    if (activeCost === 0 || subTotal === 0) {
+                        hasZeroIngredient = true;
+                    }
+                    let currentManualVal = manualIngredientPrices[ing.name] !== undefined ? manualIngredientPrices[ing.name] : '';
+                    let inputId = `man-ing-input-${recipe.id}-${ingIndex}`;
+
+                    let subTotalColor = (activeCost === 0 || subTotal === 0) ? 'color: var(--danger-color); font-weight: bold;' : 'color: #34d399; font-weight: 600;';
+
+                    ingredientsHtml += `
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; background: #162032; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <span>• ${ing.qty}x <strong>${ing.name}</strong></span>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <input type="number" step="0.01" min="0" placeholder="$ Preis" value="${currentManualVal}" id="${inputId}" style="width: 100px; padding: 4px 8px; font-size: 0.85rem;" />
+                                <button class="btn" style="padding: 4px 10px; height: 32px; font-size: 0.8rem;" onclick="saveManualIngredientPrice('${ing.name}', '${inputId}')">Speichern</button>
+                                <span style="${subTotalColor} min-width: 60px; text-align: right;">= $${subTotal.toFixed(2)}</span>
+                            </div>
+                        </div>`;
+                });
+            } else {
+                ingredientsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Zutaten definiert</span>`;
+            }
+
+            const isZero = costPerUnit === 0 || hasZeroIngredient;
+            const costClass = isZero ? "current-cost zero-cost" : "current-cost";
+            const nameColorStyle = isZero ? "color: var(--danger-color) !important;" : "color: #38bdf8;";
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><span class="material-name" style="${nameColorStyle}">${recipe.outputName}</span></td>
+                <td><span style="font-weight: 600;">${recipe.outputQty}</span></td>
+                <td><div style="font-size: 0.9rem;">${ingredientsHtml}</div></td>
+                <td><span class="${costClass}">$${costPerUnit.toFixed(2)}</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
     }
 
     function resolveRawMaterials(itemName, neededQty, accumulator = {}) {
@@ -1266,10 +1480,11 @@
         const sortedList = [...inventoryList].sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
 
         sortedList.forEach((item) => {
+            const stockColor = item.quantity === 0 ? 'color: var(--danger-color) !important;' : '';
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="material-name">${item.name}</td>
-                <td class="current-stock">${item.quantity}</td>
+                <td class="current-stock" style="${stockColor}">${item.quantity}</td>
                 <td>
                     <div class="adjust-box">
                         <input type="number" id="stock-input-${item.id}" placeholder="Neuer Bestand" min="0" />
@@ -1591,7 +1806,8 @@
                     let hasEnoughMat = stockQty >= reqQty;
                     if (!hasEnoughMat) allOk = false;
 
-                    rawMaterialsHtml += `<div>• <strong>${reqQty}x</strong> ${matName} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${hasEnoughMat ? '#34d399' : '#f87171'}">${stockQty}</span>)</span></div>`;
+                    let stockColorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnoughMat ? '#34d399' : '#f87171');
+                    rawMaterialsHtml += `<div>• <strong>${reqQty}x</strong> ${matName} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${stockColorStyle}">${stockQty}</span>)</span></div>`;
                 });
             } else {
                 rawMaterialsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Rohmaterialien definiert</span>`;
@@ -1773,6 +1989,7 @@
 
         sortedList.forEach(item => {
             const costPerUnit = getRecipeCostPerUnit(item.name);
+            const costClass = costPerUnit === 0 ? "current-cost zero-cost" : "current-cost";
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><span class="business-badge">${item.customerName || '-'}</span></td>
@@ -1783,7 +2000,7 @@
                         <div class="tooltip-text">${getRecipeTooltipHtml(item.name)}</div>
                     </div>
                 </td>
-                <td><span class="current-cost">$${costPerUnit.toFixed(2)}</span></td>
+                <td><span class="${costClass}">$${costPerUnit.toFixed(2)}</span></td>
                 <td class="current-price">$${item.price.toFixed(2)}</td>
                 <td>
                     <div class="adjust-box">
@@ -1951,16 +2168,20 @@
             let margin = recipeMargins[recipe.id] !== undefined ? recipeMargins[recipe.id] : 20;
             let calculatedPrice = costPerUnit * (1 + (margin / 100));
 
+            const isZero = recipeHasZeroCost(recipe.outputName);
+            const costClass = isZero ? "current-cost zero-cost" : "current-cost";
+            const nameColorStyle = isZero ? "color: var(--danger-color) !important;" : "color: #38bdf8;";
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
                     <div class="tooltip-container">
-                        <span class="material-name" style="color: #38bdf8; border-bottom: 1px dotted #38bdf8;">${recipe.outputName}</span>
+                        <span class="material-name" style="${nameColorStyle} border-bottom: 1px dotted currentColor;">${recipe.outputName}</span>
                         <div class="tooltip-text">${getRecipeTooltipHtml(recipe.outputName)}</div>
                         <span style="font-size: 0.85rem; color: #34d399; font-weight: 600; margin-left: 8px;">(${recipe.outputQty} Stk.)</span>
                     </div>
                 </td>
-                <td><span class="current-cost">$${costPerUnit.toFixed(2)}</span></td>
+                <td><span class="${costClass}">$${costPerUnit.toFixed(2)}</span></td>
                 <td>
                     <div class="adjust-box">
                         <input type="number" id="margin-input-${recipe.id}" value="${margin}" step="1" oninput="updateCalculatedPriceRow(${recipe.id})" style="width: 90px;" /> %
@@ -2009,6 +2230,7 @@
                 existing.price = priceVal;
                 existing.priceUpdated = priceUpdated;
                 alert(`Verkaufspreis für "${itemName}" auf $${priceVal.toFixed(2)} aktualisiert!`);
+                updateSalesPriceSearchSelect();
                 renderPriceTable();
                 renderOrders();
             }
@@ -2021,6 +2243,7 @@
             if (!error && data) {
                 salesPricesList.push(data[0]);
                 alert(`Verkaufspreis für "${itemName}" mit $${priceVal.toFixed(2)} neu angelegt!`);
+                updateSalesPriceSearchSelect();
                 renderPriceTable();
                 renderOrders();
             }
@@ -2031,7 +2254,16 @@
         const tbody = document.getElementById('prices-body');
         if (!tbody) return;
         tbody.innerHTML = '';
-        const sortedList = [...salesPricesList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+
+        const selectEl = document.getElementById('sales-price-search');
+        const selectedValue = selectEl ? selectEl.value : 'ALL';
+
+        let filteredList = salesPricesList;
+        if (selectedValue !== 'ALL') {
+            filteredList = salesPricesList.filter(item => item.name === selectedValue);
+        }
+
+        const sortedList = [...filteredList].sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
         if (sortedList.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Standardverkaufspreise hinterlegt.</td></tr>`;
@@ -2040,10 +2272,14 @@
 
         sortedList.forEach((item) => {
             const costPerUnit = getRecipeCostPerUnit(item.name);
+            const isZero = recipeHasZeroCost(item.name);
+            const costClass = isZero ? "current-cost zero-cost" : "current-cost";
+            const nameColorStyle = isZero ? "color: var(--danger-color) !important;" : "";
+
             let markupText = "-%";
             let markupColor = "var(--text-muted)";
 
-            if (costPerUnit > 0) {
+            if (costPerUnit > 0 && !isZero) {
                 const markupPercent = ((item.price - costPerUnit) / costPerUnit) * 100;
                 markupText = `${markupPercent >= 0 ? '+' : ''}${markupPercent.toFixed(1)}%`;
                 markupColor = markupPercent >= 0 ? '#34d399' : '#f87171';
@@ -2053,11 +2289,11 @@
             tr.innerHTML = `
                 <td>
                     <div class="tooltip-container">
-                        <span class="material-name" style="border-bottom: 1px dotted #94a3b8;">${item.name}</span>
+                        <span class="material-name" style="${nameColorStyle} border-bottom: 1px dotted currentColor;">${item.name}</span>
                         <div class="tooltip-text">${getRecipeTooltipHtml(item.name)}</div>
                     </div>
                 </td>
-                <td><span class="current-cost">$${costPerUnit.toFixed(2)}</span></td>
+                <td><span class="${costClass}">$${costPerUnit.toFixed(2)}</span></td>
                 <td class="current-price">$${item.price.toFixed(2)}</td>
                 <td><span style="font-weight: 700; color: ${markupColor};">${markupText}</span></td>
                 <td>
@@ -2101,6 +2337,7 @@
             const { error } = await supabaseClient.from('sales_prices').delete().eq('id', id);
             if (!error) {
                 salesPricesList = salesPricesList.filter(i => i.id !== id);
+                updateSalesPriceSearchSelect();
                 renderPriceTable();
                 renderOrders();
             }
@@ -2142,6 +2379,7 @@
         const selectEl = document.getElementById('price-add-select');
         if (selectEl) selectEl.value = '';
         priceInput.value = '';
+        updateSalesPriceSearchSelect();
         renderPriceTable();
         renderOrders();
     }
@@ -2177,11 +2415,12 @@
         }
 
         sortedList.forEach((item) => {
+            const costClass = item.cost === 0 ? "current-cost zero-cost" : "current-cost";
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="material-name">${item.name}</td>
                 <td><span class="business-badge">${item.business}</span></td>
-                <td class="current-cost">$${item.cost.toFixed(2)}</td>
+                <td><span class="${costClass}">$${item.cost.toFixed(2)}</span></td>
                 <td>
                     <div class="adjust-box">
                         <input type="number" step="0.01" id="cost-input-${item.id}" placeholder="Preis ($)" min="0" style="width: 130px;" />
@@ -2215,6 +2454,7 @@
                     item.costUpdated = costUpdated;
                     inputCostEl.value = '';
                     renderCostTable();
+                    renderProductionCostsTable();
                     renderCalculatedPricesTable();
                     renderPriceTable();
                 } else {
@@ -2235,6 +2475,7 @@
                 renderCostTable();
                 updateShoppingBusinessFilterOptions();
                 renderShoppingList();
+                renderProductionCostsTable();
                 renderCalculatedPricesTable();
                 renderPriceTable();
             }
@@ -2284,6 +2525,7 @@
         renderCostTable();
         updateShoppingBusinessFilterOptions();
         renderShoppingList();
+        renderProductionCostsTable();
         renderCalculatedPricesTable();
         renderPriceTable();
     }
@@ -2363,12 +2605,13 @@
         sortedList.forEach(item => {
             const currentQty = shoppingListQuantities[item.id] || '';
             const itemTotal = (shoppingListQuantities[item.id] || 0) * item.cost;
+            const costClass = item.cost === 0 ? "current-cost zero-cost" : "current-cost";
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="material-name">${item.name}</td>
                 <td><span class="business-badge">${item.business}</span></td>
-                <td class="current-cost">$${item.cost.toFixed(2)}</td>
+                <td><span class="${costClass}">$${item.cost.toFixed(2)}</span></td>
                 <td>
                     <input type="number" min="0" placeholder="Menge" value="${currentQty}" oninput="updateShoppingQty(${item.id}, this)" style="width: 120px;" />
                 </td>
@@ -2401,8 +2644,48 @@
         container.appendChild(div);
     }
 
+    function editRecipe(id) {
+        const recipe = recipesList.find(r => r.id === id);
+        if (!recipe) return;
+
+        document.getElementById('recipe-edit-id').value = recipe.id;
+        document.getElementById('recipe-output-input').value = recipe.outputName;
+        document.getElementById('recipe-output-qty').value = recipe.outputQty;
+
+        const container = document.getElementById('recipe-ingredients-container');
+        container.innerHTML = '';
+        if (recipe.ingredients && recipe.ingredients.length > 0) {
+            recipe.ingredients.forEach(ing => {
+                addRecipeIngredientInput(ing.name, ing.qty);
+            });
+        } else {
+            addRecipeIngredientInput();
+        }
+
+        document.getElementById('recipe-form-title').innerText = `Rezept bearbeiten: ${recipe.outputName}`;
+        document.getElementById('recipe-form-summary').innerText = `✏️ Rezept bearbeiten: ${recipe.outputName}`;
+        document.getElementById('recipe-submit-btn').innerText = 'Änderungen speichern';
+        document.getElementById('recipe-cancel-btn').style.display = 'inline-flex';
+
+        document.getElementById('recipe-details-card').open = true;
+        document.getElementById('recipe-output-input').focus();
+    }
+
+    function cancelRecipeEdit() {
+        document.getElementById('recipe-edit-id').value = '';
+        document.getElementById('recipe-output-input').value = '';
+        document.getElementById('recipe-output-qty').value = '1';
+        initRecipeIngredientInputs();
+
+        document.getElementById('recipe-form-title').innerText = '+ Neues Rezept hinzufügen';
+        document.getElementById('recipe-form-summary').innerText = '+ Neues Rezept hinzufügen';
+        document.getElementById('recipe-submit-btn').innerText = 'Rezept speichern';
+        document.getElementById('recipe-cancel-btn').style.display = 'none';
+    }
+
     async function handleAddRecipe(event) {
         event.preventDefault();
+        const editId = document.getElementById('recipe-edit-id').value;
         const outputName = capitalizeText(document.getElementById('recipe-output-input').value.trim());
         const outputQty = parseInt(document.getElementById('recipe-output-qty').value, 10);
 
@@ -2419,36 +2702,58 @@
 
         if (ingredients.length === 0) return alert("Mindestens eine Zutat angeben.");
 
-        const existing = recipesList.find(r => r.outputName.toLowerCase() === outputName.toLowerCase());
-
-        if (existing) {
+        if (editId) {
             const { error } = await supabaseClient
                 .from('recipes')
-                .update({ outputQty, ingredients })
-                .eq('id', existing.id);
+                .update({ outputName, outputQty, ingredients })
+                .eq('id', editId);
 
             if (!error) {
-                existing.outputQty = outputQty;
-                existing.ingredients = ingredients;
+                const existing = recipesList.find(r => r.id == editId);
+                if (existing) {
+                    existing.outputName = outputName;
+                    existing.outputQty = outputQty;
+                    existing.ingredients = ingredients;
+                }
+                cancelRecipeEdit();
+            } else {
+                alert("Fehler beim Aktualisieren: " + error.message);
             }
         } else {
-            const { data, error } = await supabaseClient
-                .from('recipes')
-                .insert([{ outputName, outputQty, ingredients }])
-                .select();
+            const existing = recipesList.find(r => r.outputName.toLowerCase() === outputName.toLowerCase());
 
-            if (!error && data) {
-                recipesList.push(data[0]);
+            if (existing) {
+                const { error } = await supabaseClient
+                    .from('recipes')
+                    .update({ outputQty, ingredients })
+                    .eq('id', existing.id);
+
+                if (!error) {
+                    existing.outputQty = outputQty;
+                    existing.ingredients = ingredients;
+                }
+            } else {
+                const { data, error } = await supabaseClient
+                    .from('recipes')
+                    .insert([{ outputName, outputQty, ingredients }])
+                    .select();
+
+                if (!error && data) {
+                    recipesList.push(data[0]);
+                }
             }
+            document.getElementById('recipe-output-input').value = '';
+            document.getElementById('recipe-output-qty').value = '1';
+            initRecipeIngredientInputs();
         }
 
-        document.getElementById('recipe-output-input').value = '';
-        document.getElementById('recipe-output-qty').value = '1';
-        initRecipeIngredientInputs();
         updateRecipeSearchSelect();
+        updateProductionCostSelect();
         updateCustomerPricesRecipeSelect();
         updateSalesPriceRecipeDropdown();
+        updateSalesPriceSearchSelect();
         renderRecipes();
+        renderProductionCostsTable();
         renderCalculatedPricesTable();
         renderPriceTable();
         updateOrderRecipeSelects();
@@ -2461,9 +2766,12 @@
                 recipesList = recipesList.filter(r => r.id !== id);
                 delete recipeTargetAmounts[id];
                 updateRecipeSearchSelect();
+                updateProductionCostSelect();
                 updateCustomerPricesRecipeSelect();
                 updateSalesPriceRecipeDropdown();
+                updateSalesPriceSearchSelect();
                 renderRecipes();
+                renderProductionCostsTable();
                 renderCalculatedPricesTable();
                 renderPriceTable();
                 updateOrderRecipeSelects();
@@ -2490,9 +2798,7 @@
             opt.innerText = recipe.outputName;
             selectEl.appendChild(opt);
         });
-
-        const exists = sortedRecipes.some(r => r.outputName === currentSelected);
-        selectEl.value = exists ? currentSelected : "ALL";
+        selectEl.value = sortedRecipes.some(r => r.outputName === currentSelected) ? currentSelected : "ALL";
     }
 
     function clearRecipeSearch() {
@@ -2500,148 +2806,104 @@
         if (selectEl) {
             selectEl.value = 'ALL';
             renderRecipes();
-            document.getElementById('crafting-action-box').style.display = 'none';
         }
     }
 
     function applyGlobalTargetQty() {
+        const globalInput = document.getElementById('global-recipe-target-qty');
         const selectEl = document.getElementById('recipe-search-select');
-        const qtyInput = document.getElementById('global-recipe-target-qty');
-        if (!selectEl || !qtyInput) return;
+        if (!globalInput || !selectEl) return;
 
-        const selectedValue = selectEl.value;
-        if (selectedValue === 'ALL') {
-            return;
-        }
-
-        const recipe = recipesList.find(r => r.outputName === selectedValue);
-        if (!recipe) return;
-
-        let val = parseInt(qtyInput.value, 10);
+        let val = parseInt(globalInput.value, 10);
         if (isNaN(val) || val < 1) val = 1;
 
-        recipeTargetAmounts[recipe.id] = val;
+        const selectedRecipeName = selectEl.value;
+        if (selectedRecipeName && selectedRecipeName !== 'ALL') {
+            const recipe = recipesList.find(r => r.outputName === selectedRecipeName);
+            if (recipe) {
+                recipeTargetAmounts[recipe.id] = val;
+            }
+        } else {
+            recipesList.forEach(r => {
+                recipeTargetAmounts[r.id] = val;
+            });
+        }
         renderRecipes();
     }
 
-    function getRecursiveProductionSteps(itemName, neededQty, stepsList = []) {
-        const recipe = recipesList.find(r => r.outputName.toLowerCase() === itemName.toLowerCase());
-        
-        if (!recipe || !recipe.ingredients || recipe.ingredients.length === 0 || recipe.outputQty <= 0) {
-            return stepsList;
-        }
-
-        let multiplier = Math.ceil(neededQty / recipe.outputQty);
-        let actualProduced = multiplier * recipe.outputQty;
-
-        let existingStep = stepsList.find(s => s.itemName.toLowerCase() === recipe.outputName.toLowerCase());
-        if (existingStep) {
-            existingStep.neededQty += actualProduced;
-            existingStep.multiplier = Math.ceil(existingStep.neededQty / recipe.outputQty);
-            existingStep.actualProduced = existingStep.multiplier * recipe.outputQty;
-        } else {
-            stepsList.push({
-                itemName: recipe.outputName,
-                neededQty: actualProduced,
-                outputQty: recipe.outputQty,
-                multiplier: multiplier,
-                actualProduced: actualProduced,
-                ingredients: recipe.ingredients
-            });
-        }
-
-        recipe.ingredients.forEach(ing => {
-            let subNeeded = ing.qty * multiplier;
-            getRecursiveProductionSteps(ing.name, subNeeded, stepsList);
-        });
-
-        return stepsList;
+    function updateRecipeTargetQty(recipeId, inputEl) {
+        let val = parseInt(inputEl.value, 10);
+        if (isNaN(val) || val < 1) val = 1;
+        recipeTargetAmounts[recipeId] = val;
+        renderRecipes();
     }
 
     function triggerCraftingView() {
         const selectEl = document.getElementById('recipe-search-select');
-        const craftingBox = document.getElementById('crafting-action-box');
-        const contentDiv = document.getElementById('crafting-action-content');
+        const actionBox = document.getElementById('crafting-action-box');
+        const contentBox = document.getElementById('crafting-action-content');
+        if (!selectEl || !actionBox || !contentBox) return;
 
-        if (!selectEl || !craftingBox || !contentDiv) return;
-
-        const selectedValue = selectEl.value;
-        if (selectedValue === 'ALL') {
-            alert("Bitte wähle zuerst ein spezifisches Rezept aus dem Dropdown aus.");
-            craftingBox.style.display = 'none';
+        const selectedRecipeName = selectEl.value;
+        if (!selectedRecipeName || selectedRecipeName === 'ALL') {
+            alert("Bitte wähle im Dropdown ein spezifisches Rezept aus, um die Herstellung zu starten.");
+            actionBox.style.display = 'none';
             return;
         }
 
-        const recipe = recipesList.find(r => r.outputName === selectedValue);
-        if (!recipe) {
-            craftingBox.style.display = 'none';
-            return;
-        }
+        const recipe = recipesList.find(r => r.outputName === selectedRecipeName);
+        if (!recipe) return;
 
-        const targetAmount = recipeTargetAmounts[recipe.id] !== undefined ? recipeTargetAmounts[recipe.id] : recipe.outputQty;
-        
-        let productionSteps = [];
-        getRecursiveProductionSteps(recipe.outputName, targetAmount, productionSteps);
+        const targetQty = recipeTargetAmounts[recipe.id] || 1;
+        const batchesNeeded = Math.ceil(targetQty / recipe.outputQty);
 
-        let html = '';
-        
-        if (productionSteps.length <= 1) {
-            html += `<div style="color: var(--text-muted); margin-bottom: 12px; font-size: 1rem;">Dieses Produkt benötigt keine Zwischenschritte. Es setzt sich direkt aus Rohmaterialien zusammen:</div>`;
-        } else {
-            html += `<div style="font-size: 1rem; font-weight: 700; color: #f8fafc; margin-bottom: 12px;">Zwischenschritte (von links nach rechts):</div>`;
-            html += `<div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;">`;
-            
-            let stepCounter = 1;
-            let intermediateSteps = productionSteps.filter(s => s.itemName.toLowerCase() !== recipe.outputName.toLowerCase());
-
-            intermediateSteps.forEach(step => {
-                let stock = getStockAmount(step.itemName);
-                html += `<div style="background: #101726; border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; flex: 1; min-width: 240px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">`;
-                html += `<div style="font-weight: 700; color: #38bdf8; font-size: 0.95rem; margin-bottom: 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Schritt ${stepCounter}: <strong>${step.actualProduced}x ${step.itemName}</strong></div>`;
-                html += `<div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Benötigte Materialien:</div>`;
-                
-                step.ingredients.forEach(ing => {
-                    let reqMatQty = ing.qty * step.multiplier;
-                    let matStock = getStockAmount(ing.name);
-                    let hasMatOk = matStock >= reqMatQty;
-                    html += `<div style="margin-left: 8px; font-size: 0.85rem; margin-bottom: 2px;">• <strong>${reqMatQty}x</strong> ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${hasMatOk ? '#34d399' : '#f87171'}; font-weight: 600;">${matStock}</span>)</span></div>`;
-                });
-                html += `</div>`;
-                stepCounter++;
-            });
-            html += `</div>`;
-        }
-
-        html += `<div style="background: #162238; border: 2px solid #34d399; padding: 16px; border-radius: 8px; margin-top: 12px;">`;
-        html += `<div style="font-size: 1.1rem; font-weight: 700; color: #34d399; margin-bottom: 8px;">✨ Endprodukt unten komplett: <span style="color: #f8fafc;">${recipe.outputName}</span> (Gewünschte Menge: ${targetAmount} Stk.)</div>`;
-        
-        html += `<div style="font-weight: 600; color: #38bdf8; margin-top: 10px; margin-bottom: 6px;">Gesamt benötigte Rohmaterialien (Zutaten) für das Endprodukt:</div>`;
-        
         let rawMaterialMap = {};
-        resolveRawMaterials(recipe.outputName, targetAmount, rawMaterialMap);
+        recipe.ingredients.forEach(ing => {
+            resolveRawMaterials(ing.name, ing.qty * batchesNeeded, rawMaterialMap);
+        });
 
+        let ingredientsListHtml = '';
+        let allIngredientsOk = true;
+
+        recipe.ingredients.forEach(ing => {
+            let totalNeededForRecipe = ing.qty * batchesNeeded;
+            let currentStock = getStockAmount(ing.name);
+            let hasEnough = currentStock >= totalNeededForRecipe;
+            if (!hasEnough) allIngredientsOk = false;
+
+            let colorStyle = currentStock === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnough ? '#34d399' : '#f87171');
+            ingredientsListHtml += `<div>• <strong>${totalNeededForRecipe}x</strong> ${ing.name} <span style="font-size: 0.85rem; color: var(--text-muted);">(Lager: <span style="color: ${colorStyle}">${currentStock}</span>)</span></div>`;
+        });
+
+        let rawListHtml = '';
         let allRawOk = true;
-        let rawListHtml = `<div style="display: flex; gap: 16px; flex-wrap: wrap;">`;
         Object.keys(rawMaterialMap).forEach(matName => {
             let reqQty = rawMaterialMap[matName];
             let stockQty = getStockAmount(matName);
             let hasEnough = stockQty >= reqQty;
             if (!hasEnough) allRawOk = false;
 
-            rawListHtml += `<div style="background: #0f172a; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.9rem;">• <strong>${reqQty}x</strong> ${matName} <span style="color: var(--text-muted);">(Lager: <span style="color: ${hasEnough ? '#34d399' : '#f87171'}; font-weight: 600;">${stockQty}</span>)</span></div>`;
+            let colorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnough ? '#34d399' : '#f87171');
+            rawListHtml += `<div>• <strong>${reqQty}x</strong> ${matName} <span style="font-size: 0.85rem; color: var(--text-muted);">(Lager: <span style="color: ${colorStyle}">${stockQty}</span>)</span></div>`;
         });
-        rawListHtml += `</div>`;
-        html += rawListHtml;
 
-        if (allRawOk) {
-            html += `<div style="margin-top: 12px;"><span class="req-status status-ok" style="font-size: 0.9rem; padding: 6px 12px;">✓ Genug Grund-Rohmaterialien im Lager vorhanden!</span></div>`;
-        } else {
-            html += `<div style="margin-top: 12px;"><span class="req-status status-missing" style="font-size: 0.9rem; padding: 6px 12px;">✕ Es fehlen Grund-Rohmaterialien im Lager!</span></div>`;
-        }
-        html += `</div>`;
+        let canCraftStatus = allIngredientsOk ? `<span style="color: #34d399; font-weight: 700;">✓ Genug Materialien im Lager vorhanden!</span>` : `<span style="color: #f87171; font-weight: 700;">✕ Es fehlen Materialien im Lager!</span>`;
 
-        contentDiv.innerHTML = html;
-        craftingBox.style.display = 'block';
+        contentBox.innerHTML = `
+            <div style="margin-bottom: 12px;">Ziel: <strong>${targetQty}x ${recipe.outputName}</strong> hergestellt durch ${batchesNeeded} Handwerks-Durchläufe (Rezept ergibt ${recipe.outputQty} Stk.).</div>
+            <div style="margin-bottom: 12px;">Status: ${canCraftStatus}</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+                <div style="background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="font-weight: 600; color: #38bdf8; margin-bottom: 6px;">Direkte Rezept-Zutaten:</div>
+                    ${ingredientsListHtml}
+                </div>
+                <div style="background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="font-weight: 600; color: #f59e0b; margin-bottom: 6px;">Vollständiger Rohmaterial-Bedarf:</div>
+                    ${rawListHtml}
+                </div>
+            </div>
+        `;
+        actionBox.style.display = 'block';
     }
 
     function renderRecipes() {
@@ -2649,266 +2911,86 @@
         if (!tbody) return;
         tbody.innerHTML = '';
 
+        if (recipesList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte hinterlegt.</td></tr>`;
+            return;
+        }
+
         const selectEl = document.getElementById('recipe-search-select');
         const selectedValue = selectEl ? selectEl.value : 'ALL';
 
         let filteredRecipes = recipesList;
         if (selectedValue !== 'ALL') {
-            filteredRecipes = recipesList.filter(recipe => recipe.outputName === selectedValue);
-            if (document.getElementById('crafting-action-box').style.display === 'block') {
-                triggerCraftingView();
-            }
-        } else {
-            document.getElementById('crafting-action-box').style.display = 'none';
+            filteredRecipes = recipesList.filter(r => r.outputName === selectedValue);
         }
 
-        if (filteredRecipes.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte gefunden.</td></tr>`;
+        const sortedRecipes = [...filteredRecipes].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+
+        if (sortedRecipes.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine passenden Rezepte gefunden.</td></tr>`;
             return;
         }
 
-        filteredRecipes.forEach(recipe => {
-            const targetInputId = `craft-target-${recipe.id}`;
-            const currentVal = recipeTargetAmounts[recipe.id] !== undefined ? recipeTargetAmounts[recipe.id] : recipe.outputQty;
+        sortedRecipes.forEach(recipe => {
+            const targetQty = recipeTargetAmounts[recipe.id] || 1;
+            const batchesNeeded = Math.ceil(targetQty / recipe.outputQty);
+
+            let ingredientsHtml = '';
+            let allOk = true;
+
+            if (recipe.ingredients && recipe.ingredients.length > 0) {
+                recipe.ingredients.forEach(ing => {
+                    let requiredForBatch = ing.qty * batchesNeeded;
+                    let stockQty = getStockAmount(ing.name);
+                    let hasEnough = stockQty >= requiredForBatch;
+                    if (!hasEnough) allOk = false;
+
+                    let stockColorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnough ? '#34d399' : '#f87171');
+                    ingredientsHtml += `<div>• ${requiredForBatch}x ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${stockColorStyle}">${stockQty}</span>)</span></div>`;
+                });
+            } else {
+                ingredientsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Zutaten definiert</span>`;
+            }
+
+            let statusHtml = allOk ? `<span class="req-status status-ok">✓ Alles im Lager</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <div class="material-name" style="color: #38bdf8; font-size: 1.15rem; font-weight: 700; margin-bottom: 10px;">
-                        ${recipe.outputName} <span style="font-size: 1.1rem; color: #34d399; font-weight: 700; margin-left: 8px;">${recipe.outputQty} Stk.</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <input type="number" id="${targetInputId}" min="1" value="${currentVal}" style="width: 90px;" oninput="updateRecipeDynamicView(${recipe.id})" />
-                        <span style="font-size: 0.85rem; color: var(--text-muted);">Gewünschte Menge</span>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="material-name" style="color: #38bdf8; font-size: 1.05rem;">${recipe.outputName}</span>
+                        <input type="number" min="1" value="${targetQty}" oninput="updateRecipeTargetQty(${recipe.id}, this)" style="width: 80px; padding: 4px 8px;" />
                     </div>
                 </td>
+                <td><div style="font-size: 0.9rem; line-height: 1.4;">${ingredientsHtml}</div></td>
+                <td>${statusHtml}</td>
                 <td>
-                    <div id="ingredients-view-${recipe.id}" style="font-size: 0.9rem;"></div>
-                </td>
-                <td><div id="status-box-${recipe.id}"></div></td>
-                <td>
-                    <button class="btn btn-danger" onclick="deleteRecipe(${recipe.id})">Löschen</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn" style="background-color: #334155; padding: 6px 12px; height: auto; font-size: 0.8rem;" onclick="editRecipe(${recipe.id})">Bearbeiten</button>
+                        <button class="btn btn-danger" onclick="deleteRecipe(${recipe.id})">Löschen</button>
+                    </div>
                 </td>
             `;
             tbody.appendChild(tr);
-            updateRecipeDynamicView(recipe.id);
         });
-    }
-
-    function updateRecipeDynamicView(recipeId) {
-        const recipe = recipesList.find(r => r.id === recipeId);
-        if (!recipe) return;
-
-        const targetInput = document.getElementById(`craft-target-${recipeId}`);
-        if (!targetInput) return;
-        
-        let targetAmount = parseInt(targetInput.value, 10);
-        if (isNaN(targetAmount) || targetAmount < 1) targetAmount = 1;
-
-        recipeTargetAmounts[recipeId] = targetAmount;
-
-        let multiplier = Math.ceil(targetAmount / recipe.outputQty);
-        let actualProduced = multiplier * recipe.outputQty;
-        const ingredientsView = document.getElementById(`ingredients-view-${recipeId}`);
-        const statusBox = document.getElementById(`status-box-${recipeId}`);
-        if (!ingredientsView || !statusBox) return;
-
-        let detailsHtml = '';
-        let canCraft = true;
-
-        recipe.ingredients.forEach(ing => {
-            const neededForTarget = ing.qty * multiplier;
-            const available = getStockAmount(ing.name);
-            if (available < neededForTarget) canCraft = false;
-            detailsHtml += `<div>• ${ing.name}: <strong style="color: #60a5fa;">${neededForTarget} Stk.</strong> (Lager: <span style="color: ${available >= neededForTarget ? '#34d399' : '#f87171'}">${available}</span>)</div>`;
-        });
-
-        detailsHtml += `<div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">(${multiplier} Durchlauf/e = ${actualProduced} Stk.)</div>`;
-        ingredientsView.innerHTML = detailsHtml;
-        statusBox.innerHTML = canCraft ? `<span class="req-status status-ok">✓ Genug Material</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
-
-        const selectEl = document.getElementById('recipe-search-select');
-        if (selectEl && selectEl.value === recipe.outputName && document.getElementById('crafting-action-box').style.display === 'block') {
-            triggerCraftingView();
-        }
-    }
-
-    async function handleAddNote(event) {
-        event.preventDefault();
-        const labelSelect = document.getElementById('note-add-label');
-        const contentDiv = document.getElementById('note-add-content');
-        
-        const label = labelSelect.value;
-        const content = contentDiv.innerText.trim();
-        if (!content) return;
-
-        const createdAt = getCurrentTimeString();
-        const { data, error } = await supabaseClient
-            .from('notes')
-            .insert([{ label, content, createdAt }])
-            .select();
-
-        if (!error && data) {
-            notesList.unshift(data[0]);
-            contentDiv.innerHTML = '';
-            renderNotes();
-        } else {
-            alert("Fehler beim Speichern der Notiz: " + (error ? error.message : ''));
-        }
-    }
-
-    function toggleEditNote(id) {
-        const viewEl = document.getElementById(`note-view-${id}`);
-        const editEl = document.getElementById(`note-edit-${id}`);
-        const btnContainer = document.getElementById(`note-btn-container-${id}`);
-        const editActions = document.getElementById(`note-edit-actions-${id}`);
-
-        if (viewEl && editEl && btnContainer && editActions) {
-            const isEditing = editEl.style.display !== 'none';
-            if (isEditing) {
-                editEl.style.display = 'none';
-                viewEl.style.display = 'block';
-                editActions.style.display = 'none';
-                btnContainer.style.display = 'flex';
-            } else {
-                viewEl.style.display = 'none';
-                editEl.style.display = 'block';
-                btnContainer.style.display = 'none';
-                editActions.style.display = 'flex';
-                editEl.focus();
-            }
-        }
-    }
-
-    async function saveEditedNote(id) {
-        const editEl = document.getElementById(`note-edit-${id}`);
-        if (!editEl) return;
-        const newContent = editEl.innerText.trim();
-        if (!newContent) return alert("Die Notiz darf nicht leer sein.");
-
-        const createdAt = getCurrentTimeString();
-        const { error } = await supabaseClient
-            .from('notes')
-            .update({ content: newContent, createdAt })
-            .eq('id', id);
-
-        if (!error) {
-            const note = notesList.find(n => n.id === id);
-            if (note) {
-                note.content = newContent;
-                note.createdAt = createdAt;
-            }
-            renderNotes();
-        } else {
-            alert("Fehler beim Aktualisieren der Notiz: " + error.message);
-        }
-    }
-
-    async function deleteNote(id) {
-        if (confirm("Notiz wirklich löschen?")) {
-            const { error } = await supabaseClient.from('notes').delete().eq('id', id);
-            if (!error) {
-                notesList = notesList.filter(n => n.id !== id);
-                renderNotes();
-            } else {
-                alert("Fehler beim Löschen: " + error.message);
-            }
-        }
     }
 
     function renderNotes() {
         const container = document.getElementById('notes-container');
         if (!container) return;
-
-        const openStates = {};
-        container.querySelectorAll('details[data-note-id]').forEach(el => {
-            openStates[el.getAttribute('data-note-id')] = el.open;
-        });
-
         container.innerHTML = '';
 
         if (notesList.length === 0) {
-            container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Notizen vorhanden.</div>`;
+            container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px; background: #162032; border-radius: 8px; border: 1px solid var(--border-color);">Keine Notizen vorhanden.</div>`;
             return;
         }
-
-        const sortedNotes = [...notesList].sort((a, b) => b.id - a.id);
-
-        sortedNotes.forEach(note => {
-            const labelName = note.label || 'Notiz';
-            let labelClass = 'label-notiz';
-            if (labelName.toLowerCase() === 'telegram') labelClass = 'label-telegram';
-            if (labelName.toLowerCase() === 'info') labelClass = 'label-info';
-
-            const firstLine = note.content.split('\n')[0] || '';
-            const previewText = firstLine.length > 60 ? firstLine.substring(0, 60) + '...' : firstLine;
-
-            const noteDetails = document.createElement('details');
-            noteDetails.setAttribute('data-note-id', note.id);
-            
-            if (openStates[note.id] !== undefined) {
-                noteDetails.open = openStates[note.id];
-            }
-
-            noteDetails.style.cssText = 'background: #162032; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);';
-
-            const summaryEl = document.createElement('summary');
-            summaryEl.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 12px; width: 100%; overflow: hidden;">
-                    <span class="note-label ${labelClass}">${labelName}</span>
-                    <span style="font-size: 0.95rem; font-weight: 600; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${previewText}</span>
-                    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal; margin-left: auto; margin-right: 20px;">${note.createdAt || ''}</span>
-                </div>
-            `;
-
-            const contentBody = document.createElement('div');
-            contentBody.style.cssText = 'margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;';
-
-            const viewDiv = document.createElement('div');
-            viewDiv.id = `note-view-${note.id}`;
-            viewDiv.style.cssText = 'font-size: 0.95rem; color: var(--text-color); white-space: pre-wrap; word-break: break-word; line-height: 1.5;';
-            viewDiv.innerText = note.content;
-
-            const editDiv = document.createElement('div');
-            editDiv.id = `note-edit-${note.id}`;
-            editDiv.className = 'spellcheck-editor';
-            editDiv.setAttribute('contenteditable', 'true');
-            editDiv.setAttribute('spellcheck', 'false');
-            editDiv.style.display = 'none';
-            editDiv.innerText = note.content;
-
-            const btnContainer = document.createElement('div');
-            btnContainer.id = `note-btn-container-${note.id}`;
-            btnContainer.style.cssText = 'display: flex; gap: 8px; margin-top: 12px;';
-            btnContainer.innerHTML = `
-                <button class="btn" style="height: 34px; font-size: 0.85rem; background-color: #334155;" onclick="toggleEditNote(${note.id})">Bearbeiten</button>
-                <button class="btn btn-danger" style="height: 34px; font-size: 0.85rem;" onclick="deleteNote(${note.id})">Löschen</button>
-            `;
-
-            const editActions = document.createElement('div');
-            editActions.id = `note-edit-actions-${note.id}`;
-            editActions.style.cssText = 'display: none; gap: 8px; margin-top: 12px;';
-            editActions.innerHTML = `
-                <button class="btn btn-success" style="height: 34px; font-size: 0.85rem;" onclick="saveEditedNote(${note.id})">Speichern</button>
-                <button class="btn" style="height: 34px; font-size: 0.85rem; background-color: #334155;" onclick="toggleEditNote(${note.id})">Abbrechen</button>
-            `;
-
-            contentBody.appendChild(viewDiv);
-            contentBody.appendChild(editDiv);
-            contentBody.appendChild(btnContainer);
-            contentBody.appendChild(editActions);
-
-            noteDetails.appendChild(summaryEl);
-            noteDetails.appendChild(contentBody);
-            container.appendChild(noteDetails);
-        });
     }
 
-    window.onload = () => {
+    window.addEventListener('DOMContentLoaded', () => {
         initOrderPositionInputs();
         initRecipeIngredientInputs();
         loadDataFromSupabase();
-    };
+    });
 </script>
 </body>
 </html>
