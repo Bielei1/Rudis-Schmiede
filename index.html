@@ -987,10 +987,11 @@
     <!-- TAB 9: NOTIZEN -->
     <div id="tab-notizen" class="tab-content">
         <details>
-            <summary>+ Neue Notiz hinzufügen</summary>
+            <summary id="note-form-summary">+ Neue Notiz hinzufügen</summary>
             <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
-                <h2>+ Neue Notiz hinzufügen</h2>
-                <form class="add-form" onsubmit="handleAddNote(event)">
+                <h2 id="note-form-title">+ Neue Notiz hinzufügen</h2>
+                <form id="note-add-form" onsubmit="handleAddNote(event)">
+                    <input type="hidden" id="note-edit-id" value="">
                     <div class="form-group" style="max-width: 250px;">
                         <label for="note-add-label">Label auswählen</label>
                         <select id="note-add-label" required>
@@ -1003,7 +1004,10 @@
                         <label for="note-add-content">Notiztext</label>
                         <div id="note-add-content" class="spellcheck-editor" contenteditable="true" spellcheck="false" data-placeholder="Schreibe hier deine Notiz hinein..."></div>
                     </div>
-                    <button type="submit" class="btn btn-success">Notiz speichern</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-success" id="note-submit-btn">Notiz speichern</button>
+                        <button type="button" class="btn" style="background-color: #334155; display: none;" id="note-cancel-btn" onclick="cancelNoteEdit()">Abbrechen</button>
+                    </div>
                 </form>
             </div>
         </details>
@@ -1472,6 +1476,32 @@
         });
 
         return accumulator;
+    }
+
+    function getRecursiveProductionSteps(itemName, neededQty, stepsList = []) {
+        const recipe = recipesList.find(r => r.outputName.toLowerCase() === itemName.toLowerCase());
+        if (!recipe || !recipe.ingredients || recipe.ingredients.length === 0 || recipe.outputQty <= 0) {
+            return stepsList;
+        }
+
+        let multiplier = Math.ceil(neededQty / recipe.outputQty);
+        let actualProduced = multiplier * recipe.outputQty;
+
+        recipe.ingredients.forEach(ing => {
+            getRecursiveProductionSteps(ing.name, ing.qty * multiplier, stepsList);
+        });
+
+        if (!stepsList.some(s => s.itemName.toLowerCase() === recipe.outputName.toLowerCase())) {
+            stepsList.push({
+                itemName: recipe.outputName,
+                neededQty: neededQty,
+                multiplier: multiplier,
+                actualProduced: actualProduced,
+                ingredients: recipe.ingredients
+            });
+        }
+
+        return stepsList;
     }
 
     function renderStockTable() {
@@ -2803,10 +2833,19 @@
 
     function clearRecipeSearch() {
         const selectEl = document.getElementById('recipe-search-select');
+        const globalInput = document.getElementById('global-recipe-target-qty');
+        
         if (selectEl) {
             selectEl.value = 'ALL';
-            renderRecipes();
         }
+        if (globalInput) {
+            globalInput.value = '1';
+        }
+        recipeTargetAmounts = {};
+        renderRecipes();
+
+        document.getElementById('crafting-action-box').style.display = 'none';
+        document.getElementById('crafting-action-content').innerHTML = '';
     }
 
     function applyGlobalTargetQty() {
@@ -2840,81 +2879,91 @@
 
     function triggerCraftingView() {
         const selectEl = document.getElementById('recipe-search-select');
-        const actionBox = document.getElementById('crafting-action-box');
-        const contentBox = document.getElementById('crafting-action-content');
-        if (!selectEl || !actionBox || !contentBox) return;
+        const craftingBox = document.getElementById('crafting-action-box');
+        const contentDiv = document.getElementById('crafting-action-content');
 
-        const selectedRecipeName = selectEl.value;
-        if (!selectedRecipeName || selectedRecipeName === 'ALL') {
-            alert("Bitte wähle im Dropdown ein spezifisches Rezept aus, um die Herstellung zu starten.");
-            actionBox.style.display = 'none';
+        if (!selectEl || !craftingBox || !contentDiv) return;
+
+        const selectedValue = selectEl.value;
+        if (selectedValue === 'ALL') {
+            alert("Bitte wähle zuerst ein spezifisches Rezept aus dem Dropdown aus.");
+            craftingBox.style.display = 'none';
             return;
         }
 
-        const recipe = recipesList.find(r => r.outputName === selectedRecipeName);
-        if (!recipe) return;
+        const recipe = recipesList.find(r => r.outputName === selectedValue);
+        if (!recipe) {
+            craftingBox.style.display = 'none';
+            return;
+        }
 
-        const targetQty = recipeTargetAmounts[recipe.id] || 1;
-        const batchesNeeded = Math.ceil(targetQty / recipe.outputQty);
+        const targetAmount = recipeTargetAmounts[recipe.id] !== undefined ? recipeTargetAmounts[recipe.id] : recipe.outputQty;
+        
+        let productionSteps = [];
+        getRecursiveProductionSteps(recipe.outputName, targetAmount, productionSteps);
+
+        let html = '';
+        
+        if (productionSteps.length <= 1) {
+            html += `<div style="color: var(--text-muted); margin-bottom: 12px; font-size: 1rem;">Dieses Produkt benötigt keine Zwischenschritte. Es setzt sich direkt aus Rohmaterialien zusammen:</div>`;
+        } else {
+            html += `<div style="font-size: 1rem; font-weight: 700; color: #f8fafc; margin-bottom: 12px;">Zwischenschritte (von links nach rechts):</div>`;
+            html += `<div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;">`;
+            
+            let stepCounter = 1;
+            let intermediateSteps = productionSteps.filter(s => s.itemName.toLowerCase() !== recipe.outputName.toLowerCase());
+
+            intermediateSteps.forEach(step => {
+                let stock = getStockAmount(step.itemName);
+                html += `<div style="background: #101726; border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; flex: 1; min-width: 240px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">`;
+                html += `<div style="font-weight: 700; color: #38bdf8; font-size: 0.95rem; margin-bottom: 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Schritt ${stepCounter}: <strong>${step.actualProduced}x ${step.itemName}</strong></div>`;
+                html += `<div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Benötigte Materialien:</div>`;
+                
+                step.ingredients.forEach(ing => {
+                    let reqMatQty = ing.qty * step.multiplier;
+                    let matStock = getStockAmount(ing.name);
+                    let hasMatOk = matStock >= reqMatQty;
+                    html += `<div style="margin-left: 8px; font-size: 0.85rem; margin-bottom: 2px;">• <strong>${reqMatQty}x</strong> ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${hasMatOk ? '#34d399' : '#f87171'}; font-weight: 600;">${matStock}</span>)</span></div>`;
+                });
+                html += `</div>`;
+                stepCounter++;
+            });
+            html += `</div>`;
+        }
+
+        html += `<div style="background: #162238; border: 2px solid #34d399; padding: 16px; border-radius: 8px; margin-top: 12px;">`;
+        html += `<div style="font-size: 1.1rem; font-weight: 700; color: #34d399; margin-bottom: 10px;">📦 Benötigte Rohmaterialien für ${targetAmount}x ${recipe.outputName}:</div>`;
 
         let rawMaterialMap = {};
-        recipe.ingredients.forEach(ing => {
-            resolveRawMaterials(ing.name, ing.qty * batchesNeeded, rawMaterialMap);
-        });
+        resolveRawMaterials(recipe.outputName, targetAmount, rawMaterialMap);
 
-        let ingredientsListHtml = '';
-        let allIngredientsOk = true;
-
-        recipe.ingredients.forEach(ing => {
-            let totalNeededForRecipe = ing.qty * batchesNeeded;
-            let currentStock = getStockAmount(ing.name);
-            let hasEnough = currentStock >= totalNeededForRecipe;
-            if (!hasEnough) allIngredientsOk = false;
-
-            let colorStyle = currentStock === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnough ? '#34d399' : '#f87171');
-            ingredientsListHtml += `<div>• <strong>${totalNeededForRecipe}x</strong> ${ing.name} <span style="font-size: 0.85rem; color: var(--text-muted);">(Lager: <span style="color: ${colorStyle}">${currentStock}</span>)</span></div>`;
-        });
-
-        let rawListHtml = '';
-        let allRawOk = true;
+        let rawHtml = '';
+        let allMaterialsOk = true;
         Object.keys(rawMaterialMap).forEach(matName => {
-            let reqQty = rawMaterialMap[matName];
-            let stockQty = getStockAmount(matName);
-            let hasEnough = stockQty >= reqQty;
-            if (!hasEnough) allRawOk = false;
-
-            let colorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnough ? '#34d399' : '#f87171');
-            rawListHtml += `<div>• <strong>${reqQty}x</strong> ${matName} <span style="font-size: 0.85rem; color: var(--text-muted);">(Lager: <span style="color: ${colorStyle}">${stockQty}</span>)</span></div>`;
+            let req = rawMaterialMap[matName];
+            let stock = getStockAmount(matName);
+            let ok = stock >= req;
+            if (!ok) allMaterialsOk = false;
+            let stockColor = stock === 0 ? 'color: var(--danger-color); font-weight: bold;' : (ok ? '#34d399' : '#f87171');
+            rawHtml += `<div style="margin-bottom: 4px; font-size: 0.95rem;">• <strong>${req}x</strong> ${matName} <span style="color: var(--text-muted);">(Lagerbestand: <span style="color: ${stockColor}; font-weight: 600;">${stock}</span>)</span></div>`;
         });
 
-        let canCraftStatus = allIngredientsOk ? `<span style="color: #34d399; font-weight: 700;">✓ Genug Materialien im Lager vorhanden!</span>` : `<span style="color: #f87171; font-weight: 700;">✕ Es fehlen Materialien im Lager!</span>`;
+        html += rawHtml;
+        if (allMaterialsOk) {
+            html += `<div style="margin-top: 12px; font-weight: 700; color: #34d399;">✓ Du hast alle benötigten Rohmaterialien auf Lager!</div>`;
+        } else {
+            html += `<div style="margin-top: 12px; font-weight: 700; color: #f87171;">✕ Dir fehlen einige Rohmaterialien im Lager!</div>`;
+        }
+        html += `</div>`;
 
-        contentBox.innerHTML = `
-            <div style="margin-bottom: 12px;">Ziel: <strong>${targetQty}x ${recipe.outputName}</strong> hergestellt durch ${batchesNeeded} Handwerks-Durchläufe (Rezept ergibt ${recipe.outputQty} Stk.).</div>
-            <div style="margin-bottom: 12px;">Status: ${canCraftStatus}</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
-                <div style="background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-                    <div style="font-weight: 600; color: #38bdf8; margin-bottom: 6px;">Direkte Rezept-Zutaten:</div>
-                    ${ingredientsListHtml}
-                </div>
-                <div style="background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-                    <div style="font-weight: 600; color: #f59e0b; margin-bottom: 6px;">Vollständiger Rohmaterial-Bedarf:</div>
-                    ${rawListHtml}
-                </div>
-            </div>
-        `;
-        actionBox.style.display = 'block';
+        contentDiv.innerHTML = html;
+        craftingBox.style.display = 'block';
     }
 
     function renderRecipes() {
         const tbody = document.getElementById('recipes-table-body');
         if (!tbody) return;
         tbody.innerHTML = '';
-
-        if (recipesList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte hinterlegt.</td></tr>`;
-            return;
-        }
 
         const selectEl = document.getElementById('recipe-search-select');
         const selectedValue = selectEl ? selectEl.value : 'ALL';
@@ -2927,46 +2976,54 @@
         const sortedRecipes = [...filteredRecipes].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
 
         if (sortedRecipes.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine passenden Rezepte gefunden.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte gefunden.</td></tr>`;
             return;
         }
 
         sortedRecipes.forEach(recipe => {
-            const targetQty = recipeTargetAmounts[recipe.id] || 1;
-            const batchesNeeded = Math.ceil(targetQty / recipe.outputQty);
-
+            const targetQty = recipeTargetAmounts[recipe.id] !== undefined ? recipeTargetAmounts[recipe.id] : recipe.outputQty;
+            const stockQty = getStockAmount(recipe.outputName);
+            
             let ingredientsHtml = '';
-            let allOk = true;
+            let allIngredientsAvailable = true;
+            let rawMaterialMap = {};
 
             if (recipe.ingredients && recipe.ingredients.length > 0) {
                 recipe.ingredients.forEach(ing => {
-                    let requiredForBatch = ing.qty * batchesNeeded;
-                    let stockQty = getStockAmount(ing.name);
-                    let hasEnough = stockQty >= requiredForBatch;
-                    if (!hasEnough) allOk = false;
+                    let multiplier = Math.ceil(targetQty / recipe.outputQty);
+                    let requiredSubQty = ing.qty * multiplier;
+                    let subStock = getStockAmount(ing.name);
+                    let isSubOk = subStock >= requiredSubQty;
+                    if (!isSubOk) allIngredientsAvailable = false;
 
-                    let stockColorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnough ? '#34d399' : '#f87171');
-                    ingredientsHtml += `<div>• ${requiredForBatch}x ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${stockColorStyle}">${stockQty}</span>)</span></div>`;
+                    let subStockColor = subStock === 0 ? 'color: var(--danger-color); font-weight: bold;' : (isSubOk ? '#34d399' : '#f87171');
+                    ingredientsHtml += `<div>• ${requiredSubQty}x ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${subStockColor}">${subStock}</span>)</span></div>`;
                 });
+
+                resolveRawMaterials(recipe.outputName, targetQty, rawMaterialMap);
             } else {
                 ingredientsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Zutaten definiert</span>`;
             }
 
-            let statusHtml = allOk ? `<span class="req-status status-ok">✓ Alles im Lager</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
+            let statusHtml = allIngredientsAvailable ? `<span class="req-status status-ok">✓ Zutaten vorhanden</span>` : `<span class="req-status status-missing">✕ Zutaten fehlen</span>`;
+            let stockColorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : '#60a5fa';
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
                         <span class="material-name" style="color: #38bdf8; font-size: 1.05rem;">${recipe.outputName}</span>
-                        <input type="number" min="1" value="${targetQty}" oninput="updateRecipeTargetQty(${recipe.id}, this)" style="width: 80px; padding: 4px 8px;" />
+                        <div class="adjust-box">
+                            <input type="number" min="1" value="${targetQty}" oninput="updateRecipeTargetQty(${recipe.id}, this)" style="width: 80px;" /> Stk.
+                        </div>
                     </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Aktueller Lagerbestand: <span style="color: ${stockColorStyle}; font-weight: 700;">${stockQty}</span></div>
                 </td>
                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${ingredientsHtml}</div></td>
                 <td>${statusHtml}</td>
                 <td>
                     <div style="display: flex; gap: 8px;">
-                        <button class="btn" style="background-color: #334155; padding: 6px 12px; height: auto; font-size: 0.8rem;" onclick="editRecipe(${recipe.id})">Bearbeiten</button>
+                        <button class="btn" style="background-color: #334155; height: 36px; font-size: 0.85rem;" onclick="editRecipe(${recipe.id})">Bearbeiten</button>
                         <button class="btn btn-danger" onclick="deleteRecipe(${recipe.id})">Löschen</button>
                     </div>
                 </td>
@@ -2975,22 +3032,133 @@
         });
     }
 
+    async function handleAddNote(event) {
+        event.preventDefault();
+        const editId = document.getElementById('note-edit-id').value;
+        const labelSelect = document.getElementById('note-add-label');
+        const contentDiv = document.getElementById('note-add-content');
+        
+        const label = labelSelect.value;
+        const content = contentDiv.innerHTML.trim();
+
+        if (!content) return alert("Bitte Notiztext eingeben.");
+
+        const updatedAt = getCurrentTimeString();
+
+        if (editId) {
+            const { error } = await supabaseClient
+                .from('notes')
+                .update({ label, content, updatedAt })
+                .eq('id', editId);
+
+            if (!error) {
+                const existing = notesList.find(n => n.id == editId);
+                if (existing) {
+                    existing.label = label;
+                    existing.content = content;
+                    existing.updatedAt = updatedAt;
+                }
+                cancelNoteEdit();
+                renderNotes();
+            } else {
+                alert("Fehler beim Aktualisieren: " + error.message);
+            }
+        } else {
+            const { data, error } = await supabaseClient
+                .from('notes')
+                .insert([{ label, content, updatedAt }])
+                .select();
+
+            if (!error && data) {
+                notesList.push(data[0]);
+                contentDiv.innerHTML = '';
+                renderNotes();
+            } else {
+                alert("Fehler beim Speichern der Notiz: " + (error ? error.message : ''));
+            }
+        }
+    }
+
+    function editNote(id) {
+        const note = notesList.find(n => n.id === id);
+        if (!note) return;
+
+        document.getElementById('note-edit-id').value = note.id;
+        document.getElementById('note-add-label').value = note.label;
+        document.getElementById('note-add-content').innerHTML = note.content;
+
+        document.getElementById('note-form-title').innerText = `Notiz bearbeiten`;
+        document.getElementById('note-form-summary').innerText = `✏️ Notiz bearbeiten`;
+        document.getElementById('note-submit-btn').innerText = 'Änderungen speichern';
+        document.getElementById('note-cancel-btn').style.display = 'inline-flex';
+
+        // Oben die Erstellen-Sektion aufklappen, falls zu
+        document.querySelector('#tab-notizen details').open = true;
+        document.getElementById('note-add-content').focus();
+    }
+
+    function cancelNoteEdit() {
+        document.getElementById('note-edit-id').value = '';
+        document.getElementById('note-add-label').value = 'Notiz';
+        document.getElementById('note-add-content').innerHTML = '';
+
+        document.getElementById('note-form-title').innerText = '+ Neue Notiz hinzufügen';
+        document.getElementById('note-form-summary').innerText = '+ Neue Notiz hinzufügen';
+        document.getElementById('note-submit-btn').innerText = 'Notiz speichern';
+        document.getElementById('note-cancel-btn').style.display = 'none';
+    }
+
+    async function deleteNote(id) {
+        if (confirm("Notiz wirklich löschen?")) {
+            const { error } = await supabaseClient.from('notes').delete().eq('id', id);
+            if (!error) {
+                notesList = notesList.filter(n => n.id !== id);
+                renderNotes();
+            } else {
+                alert("Fehler beim Löschen: " + error.message);
+            }
+        }
+    }
+
     function renderNotes() {
         const container = document.getElementById('notes-container');
         if (!container) return;
         container.innerHTML = '';
 
         if (notesList.length === 0) {
-            container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px; background: #162032; border-radius: 8px; border: 1px solid var(--border-color);">Keine Notizen vorhanden.</div>`;
+            container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Notizen vorhanden.</div>`;
             return;
         }
+
+        const sortedNotes = [...notesList].sort((a, b) => b.id - a.id);
+
+        sortedNotes.forEach(note => {
+            let labelColor = '#3b82f6';
+            if (note.label === 'Telegram') labelColor = '#0ea5e9';
+            if (note.label === 'Info') labelColor = '#10b981';
+
+            const details = document.createElement('details');
+            details.innerHTML = `
+                <summary style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background: ${labelColor}22; color: ${labelColor}; border: 1px solid ${labelColor}; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">${note.label}</span>
+                        <span style="font-size: 0.95rem; color: var(--text-muted); font-weight: normal;">Zuletzt geändert: ${note.updatedAt || '-'}</span>
+                    </div>
+                </summary>
+                <div style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                    <div style="font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: var(--text-color); margin-bottom: 14px;">${note.content}</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn" style="background-color: #334155; height: 34px; font-size: 0.85rem;" onclick="editNote(${note.id})">Bearbeiten</button>
+                        <button class="btn btn-danger" onclick="deleteNote(${note.id})">Löschen</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(details);
+        });
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-        initOrderPositionInputs();
-        initRecipeIngredientInputs();
-        loadDataFromSupabase();
-    });
+    loadDataFromSupabase();
 </script>
+
 </body>
 </html>
