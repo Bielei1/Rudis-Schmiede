@@ -544,8 +544,10 @@
                 <h2>+ Neuen Artikel hinzufügen</h2>
                 <form class="add-form" onsubmit="handleAddStockItem(event)">
                     <div class="form-group">
-                        <label for="stock-add-name">Artikelname</label>
-                        <input type="text" id="stock-add-name" placeholder="z. B. Lagerprodukt" required />
+                        <label for="stock-add-name">Artikel / Rohstoff aus Rezepten auswählen</label>
+                        <select id="stock-add-name" required>
+                            <option value="" disabled selected>-- Artikel / Rohstoff wählen --</option>
+                        </select>
                     </div>
                     <div class="form-group" style="max-width: 200px;">
                         <label for="stock-add-qty">Anfangsbestand</label>
@@ -1091,6 +1093,37 @@
         const minutes = String(now.getMinutes()).padStart(2, '0');
         return `${dateStr}, ${hours}:${minutes} Uhr`;
     }
+	
+	function updateStockAddDropdown() {
+        const selectEl = document.getElementById('stock-add-name');
+        if (!selectEl) return;
+        const currentSelected = selectEl.value;
+
+        // Alle Endprodukte und Zutaten aus den Rezepten sammeln
+        let allItemsSet = new Set();
+        recipesList.forEach(recipe => {
+            if (recipe.outputName) allItemsSet.add(recipe.outputName);
+            if (recipe.ingredients) {
+                recipe.ingredients.forEach(ing => {
+                    if (ing.name) allItemsSet.add(ing.name);
+                });
+            }
+        });
+
+        const sortedItems = [...allItemsSet].sort((a, b) => a.localeCompare(b, 'de'));
+
+        selectEl.innerHTML = '<option value="" disabled selected>-- Artikel / Rohstoff wählen --</option>';
+        sortedItems.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item;
+            opt.innerText = item;
+            selectEl.appendChild(opt);
+        });
+
+        if (sortedItems.includes(currentSelected)) {
+            selectEl.value = currentSelected;
+        }
+    }
 
     function switchTab(tabName) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -1203,6 +1236,7 @@
             if (nots) notesList = nots;
 
             renderTables();
+			updateStockAddDropdown();
         } catch (error) {
             console.error("Fehler beim Laden der Supabase-Daten:", error);
         }
@@ -1210,6 +1244,7 @@
 
     function renderTables() {
         renderStockTable();
+		updateStockAddDropdown();
         updateProductionCostSelect();
         renderProductionCostsTable();
         updateOrderCustomerDropdown();
@@ -2778,6 +2813,7 @@
         }
 
         updateRecipeSearchSelect();
+		updateStockAddDropdown();
         updateProductionCostSelect();
         updateCustomerPricesRecipeSelect();
         updateSalesPriceRecipeDropdown();
