@@ -1746,7 +1746,7 @@
             if (nameSelect && qtyInput) {
                 const name = nameSelect.value;
                 const qty = parseInt(qtyInput.value, 10);
-                if (name && !isNaN(qty) && qty > 0) items.push({ name, qty });
+                if (name && !isNaN(qty) && qty > 0) items.push({ name, qty, produced: false });
             }
         });
 
@@ -1768,6 +1768,27 @@
             renderOrders();
         } else {
             alert("Fehler beim Speichern der Bestellung: " + (error ? error.message : ''));
+        }
+    }
+
+    async function toggleOrderProductionStatus(orderId, itemIndex, checkboxEl) {
+        const order = ordersList.find(o => o.id === orderId);
+        if (!order || !order.items[itemIndex]) return;
+
+        order.items[itemIndex].produced = checkboxEl.checked;
+
+        const { error } = await supabaseClient
+            .from('orders')
+            .update({ items: order.items })
+            .eq('id', orderId);
+
+        if (error) {
+            alert("Fehler beim Aktualisieren des Produktionsstatus: " + error.message);
+            checkboxEl.checked = !checkboxEl.checked;
+            order.items[itemIndex].produced = checkboxEl.checked;
+        } else {
+            // FIX: Re-render orders so the UI updates immediately when the checkbox is toggled
+            renderOrders();
         }
     }
 
@@ -1846,10 +1867,11 @@
             let itemsHtml = '';
             let allOk = true;
             let totalOrderSum = 0;
+            let totalProductionCostSum = 0;
 
             let rawMaterialMap = {};
 
-            order.items.forEach(ordItem => {
+            order.items.forEach((ordItem, idx) => {
                 const available = getStockAmount(ordItem.name);
                 const isEnough = available >= ordItem.qty;
                 if (!isEnough) allOk = false;
@@ -1858,14 +1880,27 @@
                 const itemTotal = priceInfo.price * ordItem.qty;
                 totalOrderSum += itemTotal;
 
-                let badgeColor = priceInfo.type === 'Sonderpreis' ? '#38bdf8' : '#94a3b8';
+                const unitCost = getRecipeCostPerUnit(ordItem.name);
+                totalProductionCostSum += unitCost * ordItem.qty;
 
-                itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${ordItem.qty}x</strong> ${ordItem.name} à $${priceInfo.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${priceInfo.type}</span> = <span style="color: #34d399; font-weight: 600;">$${itemTotal.toFixed(2)}</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${isEnough ? '#34d399' : '#f87171'}">${available}</span>)</span></div>`;
+                let badgeColor = priceInfo.type === 'Sonderpreis' ? '#38bdf8' : '#94a3b8';
+                let isChecked = ordItem.produced ? 'checked' : '';
+                let textDecoration = ordItem.produced ? 'text-decoration: line-through; opacity: 0.7;' : '';
+
+                itemsHtml += `
+                    <div style="margin-bottom: 6px; display: flex; align-items: center; gap: 8px; ${textDecoration}">
+                        <input type="checkbox" ${isChecked} onchange="toggleOrderProductionStatus(${order.id}, ${idx}, this)" title="Artikel fertig produziert" style="width: 16px; height: 16px; cursor: pointer;" />
+                        <span>• <strong>${ordItem.qty}x</strong> ${ordItem.name} à $${priceInfo.price.toFixed(2)} 
+                        <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${priceInfo.type}</span> = 
+                        <span style="color: #34d399; font-weight: 600;">$${itemTotal.toFixed(2)}</span> 
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${isEnough ? '#34d399' : '#f87171'}">${available}</span>)</span></span>
+                    </div>`;
 
                 resolveRawMaterials(ordItem.name, ordItem.qty, rawMaterialMap);
             });
 
-            itemsHtml += `<div style="margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 6px; font-weight: 700; color: #f59e0b;">Gesamtsumme Bestellung: $${totalOrderSum.toFixed(2)}</div>`;
+            itemsHtml += `<div style="margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 6px; font-weight: 700; color: #f59e0b;">Der Kunde bezahlt die Gesamtsumme der Bestellung: $${totalOrderSum.toFixed(2)}</div>`;
+            itemsHtml += `<div style="margin-top: 4px; font-weight: 700; color: #ef4444;">Die Herstellungskosten werden in die Kasse eingezahlt: $${totalProductionCostSum.toFixed(2)}</div>`;
 
             let rawMaterialsHtml = '';
             const rawKeys = Object.keys(rawMaterialMap);
@@ -2911,40 +2946,135 @@
         if (globalInput) {
             globalInput.value = '1';
         }
-        recipeTargetAmounts = {};
         renderRecipes();
-
-        document.getElementById('crafting-action-box').style.display = 'none';
-        document.getElementById('crafting-action-content').innerHTML = '';
     }
 
     function applyGlobalTargetQty() {
         const globalInput = document.getElementById('global-recipe-target-qty');
-        const selectEl = document.getElementById('recipe-search-select');
-        if (!globalInput || !selectEl) return;
-
+        if (!globalInput) return;
         let val = parseInt(globalInput.value, 10);
         if (isNaN(val) || val < 1) val = 1;
 
-        const selectedRecipeName = selectEl.value;
-        if (selectedRecipeName && selectedRecipeName !== 'ALL') {
-            const recipe = recipesList.find(r => r.outputName === selectedRecipeName);
-            if (recipe) {
-                recipeTargetAmounts[recipe.id] = val;
-            }
-        } else {
-            recipesList.forEach(r => {
-                recipeTargetAmounts[r.id] = val;
-            });
-        }
+        recipesList.forEach(recipe => {
+            recipeTargetAmounts[recipe.id] = val;
+        });
         renderRecipes();
     }
 
-    function updateRecipeTargetQty(recipeId, inputEl) {
+    function renderRecipes() {
+        const tbody = document.getElementById('recipes-table-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (recipesList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte hinterlegt.</td></tr>`;
+            return;
+        }
+
+        const selectEl = document.getElementById('recipe-search-select');
+        const selectedRecipeName = selectEl ? selectEl.value : 'ALL';
+
+        let filteredRecipes = recipesList;
+        if (selectedRecipeName !== 'ALL') {
+            filteredRecipes = recipesList.filter(r => r.outputName === selectedRecipeName);
+        }
+
+        const sortedRecipes = [...filteredRecipes].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+
+        if (sortedRecipes.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Kein passendes Rezept gefunden.</td></tr>`;
+            return;
+        }
+
+        sortedRecipes.forEach(recipe => {
+            let targetQty = recipeTargetAmounts[recipe.id] || parseInt(document.getElementById('global-recipe-target-qty')?.value, 10) || 1;
+            recipeTargetAmounts[recipe.id] = targetQty;
+
+            let multiplier = Math.ceil(targetQty / recipe.outputQty);
+            let actualProduced = multiplier * recipe.outputQty;
+
+            let ingredientsHtml = '';
+            let allIngredientsAvailable = true;
+
+            if (recipe.ingredients && recipe.ingredients.length > 0) {
+                recipe.ingredients.forEach(ing => {
+                    let requiredQty = ing.qty * multiplier;
+                    let availableStock = getStockAmount(ing.name);
+                    let hasEnough = availableStock >= requiredQty;
+                    if (!hasEnough) allIngredientsAvailable = false;
+
+                    let stockColor = availableStock === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnough ? '#34d399' : '#f87171');
+
+                    ingredientsHtml += `
+                        <div style="margin-bottom: 4px;">
+                            • <strong>${requiredQty}x</strong> ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${stockColor}">${availableStock}</span>)</span>
+                        </div>`;
+                });
+            } else {
+                ingredientsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Zutaten</span>`;
+            }
+
+            let statusHtml = allIngredientsAvailable ? 
+                `<span class="req-status status-ok">✓ Genug Materialien (${actualProduced} Stk.)</span>` : 
+                `<span class="req-status status-missing">✕ Material fehlt</span>`;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div class="material-name" style="color: #38bdf8; font-size: 1.05rem;">${recipe.outputName}</div>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px;">
+                        <input type="number" min="1" value="${targetQty}" id="recipe-target-input-${recipe.id}" oninput="updateRecipeTargetQty(${recipe.id})" style="width: 90px; height: 34px; padding: 4px 8px; font-size: 0.9rem;" />
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">(Ertrag pro Einheit: ${recipe.outputQty})</span>
+                    </div>
+                </td>
+                <td><div style="font-size: 0.9rem; line-height: 1.4;">${ingredientsHtml}</div></td>
+                <td>${statusHtml}</td>
+                <td>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button class="btn btn-success" onclick="craftRecipe(${recipe.id})" style="padding: 6px 12px; height: 36px; font-size: 0.85rem;">Herstellen</button>
+                        <button class="btn" onclick="editRecipe(${recipe.id})" style="background-color: #334155; padding: 6px 12px; height: 36px; font-size: 0.85rem;">Bearbeiten</button>
+                        <button class="btn btn-danger" onclick="deleteRecipe(${recipe.id})" style="padding: 6px 12px; height: 36px; font-size: 0.85rem;">Löschen</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function updateRecipeTargetQty(recipeId) {
+        const inputEl = document.getElementById(`recipe-target-input-${recipeId}`);
+        if (!inputEl) return;
         let val = parseInt(inputEl.value, 10);
         if (isNaN(val) || val < 1) val = 1;
         recipeTargetAmounts[recipeId] = val;
-        renderRecipes();
+        
+        const recipe = recipesList.find(r => r.id === recipeId);
+        if (recipe) {
+            const tr = inputEl.closest('tr');
+            if (tr) {
+                let multiplier = Math.ceil(val / recipe.outputQty);
+                let actualProduced = multiplier * recipe.outputQty;
+                let allOk = true;
+
+                let ingredientsHtml = '';
+                if (recipe.ingredients && recipe.ingredients.length > 0) {
+                    recipe.ingredients.forEach(ing => {
+                        let requiredQty = ing.qty * multiplier;
+                        let availableStock = getStockAmount(ing.name);
+                        let hasEnough = availableStock >= requiredQty;
+                        if (!hasEnough) allOk = false;
+                        let stockColor = availableStock === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnough ? '#34d399' : '#f87171');
+                        ingredientsHtml += `<div style="margin-bottom: 4px;">• <strong>${requiredQty}x</strong> ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${stockColor}">${availableStock}</span>)</span></div>`;
+                    });
+                } else {
+                    ingredientsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Zutaten</span>`;
+                }
+
+                let statusHtml = allOk ? `<span class="req-status status-ok">✓ Genug Materialien (${actualProduced} Stk.)</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
+                tr.children[1].innerHTML = ingredientsHtml;
+                tr.children[2].innerHTML = statusHtml;
+            }
+        }
     }
 
     function triggerCraftingView() {
@@ -3102,12 +3232,51 @@
         });
     }
 
+    async function craftRecipe(recipeId) {
+        const recipe = recipesList.find(r => r.id === recipeId);
+        if (!recipe) return;
+        let targetQty = recipeTargetAmounts[recipeId] || recipe.outputQty;
+        await executeCrafting(recipe.outputName, targetQty);
+    }
+
+    function initNoteContentEditor() {
+        const editor = document.getElementById('note-add-content');
+        if (!editor) return;
+        editor.innerHTML = '';
+    }
+
+    function editNote(id) {
+        const note = notesList.find(n => n.id === id);
+        if (!note) return;
+
+        document.getElementById('note-edit-id').value = note.id;
+        document.getElementById('note-add-label').value = note.label || 'Notiz';
+        document.getElementById('note-add-content').innerText = note.content || '';
+
+        document.getElementById('note-form-title').innerText = `Notiz bearbeiten`;
+        document.getElementById('note-form-summary').innerText = `✏️ Notiz bearbeiten`;
+        document.getElementById('note-submit-btn').innerText = 'Änderungen speichern';
+        document.getElementById('note-cancel-btn').style.display = 'inline-flex';
+
+        document.getElementById('note-add-content').focus();
+    }
+
+    function cancelNoteEdit() {
+        document.getElementById('note-edit-id').value = '';
+        document.getElementById('note-add-label').value = 'Notiz';
+        initNoteContentEditor();
+
+        document.getElementById('note-form-title').innerText = '+ Neue Notiz hinzufügen';
+        document.getElementById('note-form-summary').innerText = '+ Neue Notiz hinzufügen';
+        document.getElementById('note-submit-btn').innerText = 'Notiz speichern';
+        document.getElementById('note-cancel-btn').style.display = 'none';
+    }
+
     async function handleAddNote(event) {
         event.preventDefault();
         const editId = document.getElementById('note-edit-id').value;
         const label = document.getElementById('note-add-label').value;
-        const contentEl = document.getElementById('note-add-content');
-        const content = contentEl.innerHTML.trim();
+        const content = document.getElementById('note-add-content').innerText.trim();
 
         if (!content) return alert("Bitte Notiztext eingeben.");
 
@@ -3139,40 +3308,12 @@
 
             if (!error && data) {
                 notesList.unshift(data[0]);
-                contentEl.innerHTML = '';
+                cancelNoteEdit();
                 renderNotes();
             } else {
-                alert("Fehler beim Speichern der Notiz: " + (error ? error.message : ''));
+                alert("Fehler beim Speichern: " + (error ? error.message : ''));
             }
         }
-    }
-
-    function editNote(id) {
-        const note = notesList.find(n => n.id === id);
-        if (!note) return;
-
-        document.getElementById('note-edit-id').value = note.id;
-        document.getElementById('note-add-label').value = note.label;
-        document.getElementById('note-add-content').innerText = note.content;
-
-        document.getElementById('note-form-title').innerText = 'Notiz bearbeiten';
-        document.getElementById('note-form-summary').innerText = '✏️ Notiz bearbeiten';
-        document.getElementById('note-submit-btn').innerText = 'Änderungen speichern';
-        document.getElementById('note-cancel-btn').style.display = 'inline-flex';
-
-        document.querySelector('#tab-notizen details').open = true;
-        document.getElementById('note-add-content').focus();
-    }
-
-    function cancelNoteEdit() {
-        document.getElementById('note-edit-id').value = '';
-        document.getElementById('note-add-label').value = 'Notiz';
-        document.getElementById('note-add-content').innerHTML = '';
-
-        document.getElementById('note-form-title').innerText = '+ Neue Notiz hinzufügen';
-        document.getElementById('note-form-summary').innerText = '+ Neue Notiz hinzufügen';
-        document.getElementById('note-submit-btn').innerText = 'Notiz speichern';
-        document.getElementById('note-cancel-btn').style.display = 'none';
     }
 
     async function deleteNote(id) {
@@ -3226,6 +3367,7 @@
         initOrderPositionInputs();
         initCustomerPricePositionInputs();
         initRecipeIngredientInputs();
+        initNoteContentEditor();
         loadDataFromSupabase();
     });
 </script>
