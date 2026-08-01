@@ -778,6 +778,15 @@
             <summary>Standard-Verkaufspreis hinzufügen</summary>
             <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
                 <h2>+ Standard-Verkaufspreis hinzufügen</h2>
+				
+				<!-- Checkbox für das Ausblenden bereits eingetragener Artikel / Rezepte -->
+                <div style="margin-bottom: 12px;">
+                    <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: var(--text-color);">
+                        <input type="checkbox" id="sales-price-hide-existing-checkbox" onchange="updateSalesPriceRecipeDropdown()" style="width: 16px; height: 16px; cursor: pointer;" />
+                        Nur nicht eingetragene Artikel oder Rezepte anzeigen
+                    </label>
+                </div>
+				
                 <form class="add-form" onsubmit="handleAddPriceItem(event)">
                     <div class="form-group">
                         <label for="price-add-name">Artikelname manuell eintragen (optional)</label>
@@ -2179,11 +2188,21 @@
     }
 
     function updateSalesPriceRecipeDropdown() {
+		const hideCheckbox = document.getElementById('sales-price-hide-existing-checkbox');
         const selectEl = document.getElementById('price-add-select');
         if (!selectEl) return;
         const currentSelected = selectEl.value;
+		
+		// Bereits eingetragene Standard-Verkaufspreise ermitteln
+        const existingNames = new Set(salesPricesList.map(sp => sp.name.toLowerCase()));
 
-        const sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+        let sortedRecipes = [...recipesList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+
+        // Wenn Checkbox aktiv ist, nur Artikel/Rezepte filtern, die noch nicht in salesPricesList stehen
+        if (hideCheckbox && hideCheckbox.checked) {
+            sortedRecipes = sortedRecipes.filter(rec => !existingNames.has(rec.outputName.toLowerCase()));
+        }
+		
         selectEl.innerHTML = '<option value="">-- Kein Rezept gewählt --</option>';
         sortedRecipes.forEach(rec => {
             const opt = document.createElement('option');
@@ -3195,6 +3214,5 @@
 
     loadDataFromSupabase();
 </script>
-
 </body>
 </html>
