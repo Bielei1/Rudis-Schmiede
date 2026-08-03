@@ -782,6 +782,18 @@
     <!-- TAB 5: VERKAUFSPREISE -->
     <div id="tab-verkaufspreise" class="tab-content">
         
+        <!-- NEU: Rabattanzeige Box -->
+        <div class="filter-card" style="background: #162032; border: 1px solid var(--primary-color); margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+            <div>
+                <h3 style="font-size: 1rem; color: #38bdf8; margin-bottom: 4px;">🏷️ Rabatt-Aktion auf Standardverkaufspreise</h3>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">Trage einen Rabatt in Prozent ein, um alle aktuellen Verkaufspreise sofort zu reduzieren.</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label for="global-discount-input" style="font-size: 0.9rem; font-weight: 600; color: var(--text-color);">Rabatt (%):</label>
+                <input type="number" id="global-discount-input" value="0" min="0" max="100" step="0.5" style="width: 100px; height: 42px;" oninput="renderPriceTable()" onchange="renderPriceTable()" />
+            </div>
+        </div>
+
         <details>
             <summary>Automatische Verkaufspreise (Rechner)</summary>
             <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; margin-top: 10px;">
@@ -1311,7 +1323,10 @@
                 sp.name.toLowerCase() === itemName.toLowerCase()
             );
             if (salesPriceObj) {
-                return { price: salesPriceObj.price, type: 'Standard-VK' };
+                const discountInput = document.getElementById('global-discount-input');
+                let discountPercent = discountInput ? parseFloat(discountInput.value) || 0 : 0;
+                let finalPrice = salesPriceObj.price * (1 - (discountPercent / 100));
+                return { price: finalPrice, type: discountPercent > 0 ? `Standard-VK (${discountPercent}% Rabatt)` : 'Standard-VK' };
             }
             return { price: 0.00, type: 'Kein Preis' };
         }
@@ -1328,7 +1343,10 @@
             sp.name.toLowerCase() === itemName.toLowerCase()
         );
         if (salesPriceObj) {
-            return { price: salesPriceObj.price, type: 'Standard-VK' };
+            const discountInput = document.getElementById('global-discount-input');
+            let discountPercent = discountInput ? parseFloat(discountInput.value) || 0 : 0;
+            let finalPrice = salesPriceObj.price * (1 - (discountPercent / 100));
+            return { price: finalPrice, type: discountPercent > 0 ? `Standard-VK (${discountPercent}% Rabatt)` : 'Standard-VK' };
         }
 
         return { price: 0.00, type: 'Kein Preis' };
@@ -2483,6 +2501,9 @@
         const selectEl = document.getElementById('sales-price-search');
         const selectedValue = selectEl ? selectEl.value : 'ALL';
 
+        const discountInput = document.getElementById('global-discount-input');
+        let discountPercent = discountInput ? parseFloat(discountInput.value) || 0 : 0;
+
         let filteredList = salesPricesList;
         if (selectedValue !== 'ALL') {
             filteredList = salesPricesList.filter(item => item.name === selectedValue);
@@ -2501,13 +2522,20 @@
             const costClass = isZero ? "current-cost zero-cost" : "current-cost";
             const nameColorStyle = isZero ? "color: var(--danger-color) !important;" : "";
 
+            let effectivePrice = item.price * (1 - (discountPercent / 100));
+
             let markupText = "-%";
             let markupColor = "var(--text-muted)";
 
             if (costPerUnit > 0 && !isZero) {
-                const markupPercent = ((item.price - costPerUnit) / costPerUnit) * 100;
+                const markupPercent = ((effectivePrice - costPerUnit) / costPerUnit) * 100;
                 markupText = `${markupPercent >= 0 ? '+' : ''}${markupPercent.toFixed(1)}%`;
                 markupColor = markupPercent >= 0 ? '#34d399' : '#f87171';
+            }
+
+            let priceDisplayHtml = `$${effectivePrice.toFixed(2)}`;
+            if (discountPercent > 0) {
+                priceDisplayHtml += ` <span style="font-size: 0.75rem; text-decoration: line-through; color: var(--text-muted);">$${item.price.toFixed(2)}</span>`;
             }
 
             const tr = document.createElement('tr');
@@ -2519,7 +2547,7 @@
                     </div>
                 </td>
                 <td><span class="${costClass}">$${costPerUnit.toFixed(2)}</span></td>
-                <td class="current-price">$${item.price.toFixed(2)}</td>
+                <td class="current-price">${priceDisplayHtml}</td>
                 <td><span style="font-weight: 700; color: ${markupColor};">${markupText}</span></td>
                 <td>
                     <div class="adjust-box">
