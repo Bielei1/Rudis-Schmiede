@@ -344,7 +344,6 @@
             position: relative;
         }
 
-        /* Spezieller Container für die Herstellungstabelle mit Scrollfunktion und fixiertem Kopf */
         .table-container-scrollable {
             max-height: 800px;
             overflow-y: auto;
@@ -681,6 +680,24 @@
             <h2>Ausgelieferte Bestellungen (Archiv)</h2>
             <button class="btn btn-danger" onclick="clearArchive()" id="clear-archive-btn">Archiv leeren</button>
         </div>
+
+        <!-- NEU: Zusammenfassungs-Box für mehrere ausgelieferte Bestellungen -->
+        <div id="archive-summary-box" style="display: none; margin-bottom: 16px; background: #162032; border: 1px solid var(--border-color); padding: 16px; border-radius: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="font-size: 1.05rem; font-weight: 600; color: var(--text-color);">
+                📊 Gesamtübersicht aller ausgelieferten Bestellungen im Archiv:
+            </div>
+            <div style="display: flex; gap: 24px; align-items: center;">
+                <div>
+                    <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">Gesamtsumme:</span>
+                    <span id="archive-total-sum" style="font-size: 1.2rem; font-weight: 700; color: #34d399;">$0.00</span>
+                </div>
+                <div>
+                    <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">Herstellungskosten:</span>
+                    <span id="archive-total-cost" style="font-size: 1.2rem; font-weight: 700; color: #f59e0b;">$0.00</span>
+                </div>
+            </div>
+        </div>
+
         <div class="table-container">
             <table>
                 <thead>
@@ -1963,7 +1980,41 @@
 
     function renderArchive() {
         const tbody = document.getElementById('archive-table-body');
+        const summaryBox = document.getElementById('archive-summary-box');
+        const totalSumEl = document.getElementById('archive-total-sum');
+        const totalCostEl = document.getElementById('archive-total-cost');
+        
         tbody.innerHTML = '';
+
+        // Prüfen, ob mehr als eine ausgelieferte Bestellung im Archiv ist
+        if (archivedOrdersList.length > 1) {
+            let combinedSum = 0;
+            let combinedCost = 0;
+
+            archivedOrdersList.forEach(archivedOrder => {
+                combinedSum += archivedOrder.totalSum || 0;
+                
+                let orderProdCost = 0;
+                if (archivedOrder.totalProductionCost !== undefined && archivedOrder.totalProductionCost !== null) {
+                    orderProdCost = archivedOrder.totalProductionCost;
+                } else {
+                    archivedOrder.items.forEach(item => {
+                        if (item.productionCost !== undefined && item.productionCost !== null) {
+                            orderProdCost += item.productionCost;
+                        } else {
+                            orderProdCost += getRecipeCostPerUnit(item.name) * item.qty;
+                        }
+                    });
+                }
+                combinedCost += orderProdCost;
+            });
+
+            totalSumEl.innerText = `$${combinedSum.toFixed(2)}`;
+            totalCostEl.innerText = `$${combinedCost.toFixed(2)}`;
+            summaryBox.style.display = 'flex';
+        } else {
+            summaryBox.style.display = 'none';
+        }
 
         if (archivedOrdersList.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Noch keine ausgelieferten Bestellungen im Archiv.</td></tr>`;
