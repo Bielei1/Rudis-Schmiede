@@ -3317,18 +3317,18 @@
         document.getElementById('note-add-label').value = note.label || 'Notiz';
         document.getElementById('note-add-content').innerText = note.content || '';
 
-        document.getElementById('note-form-title').innerText = '✏️ Notiz bearbeiten';
-        document.getElementById('note-form-summary').innerText = '✏️ Notiz bearbeiten';
+        document.getElementById('note-form-title').innerText = `Notiz bearbeiten`;
+        document.getElementById('note-form-summary').innerText = `✏️ Notiz bearbeiten`;
         document.getElementById('note-submit-btn').innerText = 'Änderungen speichern';
         document.getElementById('note-cancel-btn').style.display = 'inline-flex';
 
-        document.querySelector('#tab-notizen details').open = true;
+        document.getElementById('note-add-content').focus();
     }
 
     function cancelNoteEdit() {
         document.getElementById('note-edit-id').value = '';
         document.getElementById('note-add-label').value = 'Notiz';
-        document.getElementById('note-add-content').innerText = '';
+        initNoteContentEditor();
 
         document.getElementById('note-form-title').innerText = '+ Neue Notiz hinzufügen';
         document.getElementById('note-form-summary').innerText = '+ Neue Notiz hinzufügen';
@@ -3342,14 +3342,14 @@
         const label = document.getElementById('note-add-label').value;
         const content = document.getElementById('note-add-content').innerText.trim();
 
-        if (!content) return alert("Bitte einen Text für die Notiz eingeben.");
+        if (!content) return alert("Bitte Notiztext eingeben.");
 
-        const createdAt = getCurrentTimeString();
+        const updatedAt = getCurrentTimeString();
 
         if (editId) {
             const { error } = await supabaseClient
                 .from('notes')
-                .update({ label, content })
+                .update({ label, content, updatedAt })
                 .eq('id', editId);
 
             if (!error) {
@@ -3357,6 +3357,7 @@
                 if (existing) {
                     existing.label = label;
                     existing.content = content;
+                    existing.updatedAt = updatedAt;
                 }
                 cancelNoteEdit();
                 renderNotes();
@@ -3366,32 +3367,30 @@
         } else {
             const { data, error } = await supabaseClient
                 .from('notes')
-                .insert([{ label, content, createdAt }])
+                .insert([{ label, content, updatedAt }])
                 .select();
 
             if (!error && data) {
-                notesList.push(data[0]);
+                notesList.unshift(data[0]);
                 cancelNoteEdit();
                 renderNotes();
             } else {
-                alert("Fehler beim Speichern der Notiz: " + (error ? error.message : ''));
+                alert("Fehler beim Speichern: " + (error ? error.message : ''));
             }
         }
     }
 
     async function deleteNote(id) {
-        if (confirm("Notiz wirklich löschen?")) {
+        if (confirm("Notiz löschen?")) {
             const { error } = await supabaseClient.from('notes').delete().eq('id', id);
             if (!error) {
                 notesList = notesList.filter(n => n.id !== id);
                 renderNotes();
-            } else {
-                alert("Fehler beim Löschen: " + error.message);
             }
         }
     }
-	
-	function renderNotes() {
+
+    function renderNotes() {
         const container = document.getElementById('notes-container');
         if (!container) return;
         container.innerHTML = '';
