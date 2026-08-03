@@ -344,6 +344,23 @@
             position: relative;
         }
 
+        /* Spezieller Container für die Herstellungstabelle mit Scrollfunktion und fixiertem Kopf */
+        .table-container-scrollable {
+            max-height: 800px;
+            overflow-y: auto;
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .table-container-scrollable thead th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background-color: var(--table-header-bg);
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -671,6 +688,7 @@
                         <th>Kunde</th>
                         <th>Gelieferte Artikel & Positionen</th>
                         <th>Gesamtsumme</th>
+                        <th>Herstellungskosten</th>
                         <th>Bestellt am</th>
                         <th>Ausgeliefert am</th>
                         <th>Aktion</th>
@@ -774,7 +792,6 @@
             <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
                 <h2>+ Standard-Verkaufspreis hinzufügen</h2>
 				
-				<!-- Checkbox für das Ausblenden bereits eingetragener Artikel / Rezepte -->
                 <div style="margin-bottom: 12px;">
                     <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: var(--text-color);">
                         <input type="checkbox" id="sales-price-hide-existing-checkbox" onchange="updateSalesPriceRecipeDropdown()" style="width: 16px; height: 16px; cursor: pointer;" />
@@ -802,7 +819,6 @@
             </div>
         </details>
 		
-        <!-- Korrigiertes Dropdown für Artikel / Verkaufspreise filtern -->
         <div class="filter-card" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 300px;">
                 <label for="sales-price-search">Artikel auswählen:</label>
@@ -975,7 +991,7 @@
             <div id="crafting-action-content" style="font-size: 0.95rem; line-height: 1.5;"></div>
         </div>
 
-        <div class="table-container" style="margin-top: 16px;">
+        <div class="table-container-scrollable" style="margin-top: px;">
             <table>
                 <thead>
                     <tr>
@@ -1787,7 +1803,6 @@
             checkboxEl.checked = !checkboxEl.checked;
             order.items[itemIndex].produced = checkboxEl.checked;
         } else {
-            // FIX: Re-render orders so the UI updates immediately when the checkbox is toggled
             renderOrders();
         }
     }
@@ -1810,16 +1825,24 @@
         const order = ordersList[orderIndex];
 
         let totalSum = 0;
+        let totalProductionCostSum = 0;
+
         const archivedItems = order.items.map(item => {
             const priceInfo = getPriceDetailsForCustomer(order.customerName, item.name);
             const itemTotal = priceInfo.price * item.qty;
             totalSum += itemTotal;
+
+            const unitCost = getRecipeCostPerUnit(item.name);
+            const itemProductionCost = unitCost * item.qty;
+            totalProductionCostSum += itemProductionCost;
+
             return {
                 name: item.name,
                 qty: item.qty,
                 price: priceInfo.price,
                 priceType: priceInfo.type,
-                total: itemTotal
+                total: itemTotal,
+                productionCost: itemProductionCost
             };
         });
 
@@ -1829,6 +1852,7 @@
             customerName: order.customerName,
             items: archivedItems,
             totalSum: totalSum,
+            totalProductionCost: totalProductionCostSum,
             createdAt: order.createdAt,
             deliveredAt: deliveredAt
         };
@@ -1942,13 +1966,26 @@
         tbody.innerHTML = '';
 
         if (archivedOrdersList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Noch keine ausgelieferten Bestellungen im Archiv.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Noch keine ausgelieferten Bestellungen im Archiv.</td></tr>`;
             return;
         }
 
         archivedOrdersList.forEach(archivedOrder => {
             const tr = document.createElement('tr');
             let itemsHtml = '';
+
+            let totalProdCost = 0;
+            if (archivedOrder.totalProductionCost !== undefined && archivedOrder.totalProductionCost !== null) {
+                totalProdCost = archivedOrder.totalProductionCost;
+            } else {
+                archivedOrder.items.forEach(item => {
+                    if (item.productionCost !== undefined && item.productionCost !== null) {
+                        totalProdCost += item.productionCost;
+                    } else {
+                        totalProdCost += getRecipeCostPerUnit(item.name) * item.qty;
+                    }
+                });
+            }
 
             archivedOrder.items.forEach(item => {
                 let badgeColor = item.priceType === 'Sonderpreis' ? '#38bdf8' : '#94a3b8';
@@ -1959,6 +1996,7 @@
                 <td><div class="material-name" style="color: #38bdf8; font-size: 1.05rem;">${archivedOrder.customerName}</div></td>
                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${itemsHtml}</div></td>
                 <td><span class="current-price">$${archivedOrder.totalSum.toFixed(2)}</span></td>
+                <td><span class="current-cost">$${totalProdCost.toFixed(2)}</span></td>
                 <td class="time-text">${archivedOrder.createdAt || '-'}</td>
                 <td class="time-text">${archivedOrder.deliveredAt || '-'}</td>
                 <td>
@@ -2946,7 +2984,11 @@
         if (globalInput) {
             globalInput.value = '1';
         }
+        recipeTargetAmounts = {};
         renderRecipes();
+
+        document.getElementById('crafting-action-box').style.display = 'none';
+        document.getElementById('crafting-action-content').innerHTML = '';
     }
 
     function applyGlobalTargetQty() {
@@ -2955,8 +2997,8 @@
         let val = parseInt(globalInput.value, 10);
         if (isNaN(val) || val < 1) val = 1;
 
-        recipesList.forEach(recipe => {
-            recipeTargetAmounts[recipe.id] = val;
+        recipesList.forEach(r => {
+            recipeTargetAmounts[r.id] = val;
         });
         renderRecipes();
     }
@@ -2967,73 +3009,69 @@
         tbody.innerHTML = '';
 
         if (recipesList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte hinterlegt.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte vorhanden.</td></tr>`;
             return;
         }
 
         const selectEl = document.getElementById('recipe-search-select');
-        const selectedRecipeName = selectEl ? selectEl.value : 'ALL';
+        const selectedValue = selectEl ? selectEl.value : 'ALL';
 
-        let filteredRecipes = recipesList;
-        if (selectedRecipeName !== 'ALL') {
-            filteredRecipes = recipesList.filter(r => r.outputName === selectedRecipeName);
+        let filteredList = recipesList;
+        if (selectedValue !== 'ALL') {
+            filteredList = recipesList.filter(r => r.outputName === selectedValue);
         }
 
-        const sortedRecipes = [...filteredRecipes].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
+        const sortedRecipes = [...filteredList].sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
 
         if (sortedRecipes.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Kein passendes Rezept gefunden.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Rezepte gefunden.</td></tr>`;
             return;
         }
 
         sortedRecipes.forEach(recipe => {
-            let targetQty = recipeTargetAmounts[recipe.id] || parseInt(document.getElementById('global-recipe-target-qty')?.value, 10) || 1;
-            recipeTargetAmounts[recipe.id] = targetQty;
+            let targetQty = recipeTargetAmounts[recipe.id] || 1;
 
             let multiplier = Math.ceil(targetQty / recipe.outputQty);
             let actualProduced = multiplier * recipe.outputQty;
 
             let ingredientsHtml = '';
-            let allIngredientsAvailable = true;
+            let allEnough = true;
 
             if (recipe.ingredients && recipe.ingredients.length > 0) {
                 recipe.ingredients.forEach(ing => {
-                    let requiredQty = ing.qty * multiplier;
-                    let availableStock = getStockAmount(ing.name);
-                    let hasEnough = availableStock >= requiredQty;
-                    if (!hasEnough) allIngredientsAvailable = false;
+                    let needed = ing.qty * multiplier;
+                    let stock = getStockAmount(ing.name);
+                    let isEnough = stock >= needed;
+                    if (!isEnough) allEnough = false;
 
-                    let stockColor = availableStock === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnough ? '#34d399' : '#f87171');
+                    let stockColor = stock === 0 ? 'color: var(--danger-color); font-weight: bold;' : (isEnough ? '#34d399' : '#f87171');
 
-                    ingredientsHtml += `
-                        <div style="margin-bottom: 4px;">
-                            • <strong>${requiredQty}x</strong> ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${stockColor}">${availableStock}</span>)</span>
-                        </div>`;
+                    ingredientsHtml += `<div>• <strong>${needed}x</strong> ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${stockColor}">${stock}</span>)</span></div>`;
                 });
             } else {
                 ingredientsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Zutaten</span>`;
             }
 
-            let statusHtml = allIngredientsAvailable ? 
-                `<span class="req-status status-ok">✓ Genug Materialien (${actualProduced} Stk.)</span>` : 
-                `<span class="req-status status-missing">✕ Material fehlt</span>`;
+            let statusHtml = allEnough 
+                ? `<span class="req-status status-ok">✓ Zutaten im Lager</span>` 
+                : `<span class="req-status status-missing">✕ Zutaten fehlen</span>`;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
                     <div class="material-name" style="color: #38bdf8; font-size: 1.05rem;">${recipe.outputName}</div>
-                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px;">
-                        <input type="number" min="1" value="${targetQty}" id="recipe-target-input-${recipe.id}" oninput="updateRecipeTargetQty(${recipe.id})" style="width: 90px; height: 34px; padding: 4px 8px; font-size: 0.9rem;" />
-                        <span style="font-size: 0.85rem; color: var(--text-muted);">(Ertrag pro Einheit: ${recipe.outputQty})</span>
+                    <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Gewünschte Menge:</span>
+                        <input type="number" min="1" value="${targetQty}" onchange="updateRecipeTargetQty(${recipe.id}, this.value)" style="width: 80px; padding: 4px 8px;" />
+                        <span style="font-size: 0.8rem; color: #34d399;">(Ertrag: ${actualProduced} Stk.)</span>
                     </div>
                 </td>
                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${ingredientsHtml}</div></td>
                 <td>${statusHtml}</td>
                 <td>
-                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                        <button class="btn btn-success" onclick="craftRecipe(${recipe.id})" style="padding: 6px 12px; height: 36px; font-size: 0.85rem;">Herstellen</button>
-                        <button class="btn" onclick="editRecipe(${recipe.id})" style="background-color: #334155; padding: 6px 12px; height: 36px; font-size: 0.85rem;">Bearbeiten</button>
-                        <button class="btn btn-danger" onclick="deleteRecipe(${recipe.id})" style="padding: 6px 12px; height: 36px; font-size: 0.85rem;">Löschen</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn" style="background-color: #334155;" onclick="editRecipe(${recipe.id})">Bearbeiten</button>
+                        <button class="btn btn-danger" onclick="deleteRecipe(${recipe.id})">Löschen</button>
                     </div>
                 </td>
             `;
@@ -3041,40 +3079,11 @@
         });
     }
 
-    function updateRecipeTargetQty(recipeId) {
-        const inputEl = document.getElementById(`recipe-target-input-${recipeId}`);
-        if (!inputEl) return;
-        let val = parseInt(inputEl.value, 10);
-        if (isNaN(val) || val < 1) val = 1;
-        recipeTargetAmounts[recipeId] = val;
-        
-        const recipe = recipesList.find(r => r.id === recipeId);
-        if (recipe) {
-            const tr = inputEl.closest('tr');
-            if (tr) {
-                let multiplier = Math.ceil(val / recipe.outputQty);
-                let actualProduced = multiplier * recipe.outputQty;
-                let allOk = true;
-
-                let ingredientsHtml = '';
-                if (recipe.ingredients && recipe.ingredients.length > 0) {
-                    recipe.ingredients.forEach(ing => {
-                        let requiredQty = ing.qty * multiplier;
-                        let availableStock = getStockAmount(ing.name);
-                        let hasEnough = availableStock >= requiredQty;
-                        if (!hasEnough) allOk = false;
-                        let stockColor = availableStock === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnough ? '#34d399' : '#f87171');
-                        ingredientsHtml += `<div style="margin-bottom: 4px;">• <strong>${requiredQty}x</strong> ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${stockColor}">${availableStock}</span>)</span></div>`;
-                    });
-                } else {
-                    ingredientsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Zutaten</span>`;
-                }
-
-                let statusHtml = allOk ? `<span class="req-status status-ok">✓ Genug Materialien (${actualProduced} Stk.)</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
-                tr.children[1].innerHTML = ingredientsHtml;
-                tr.children[2].innerHTML = statusHtml;
-            }
-        }
+    function updateRecipeTargetQty(recipeId, val) {
+        let parsed = parseInt(val, 10);
+        if (isNaN(parsed) || parsed < 1) parsed = 1;
+        recipeTargetAmounts[recipeId] = parsed;
+        renderRecipes();
     }
 
     function triggerCraftingView() {
@@ -3181,49 +3190,53 @@
         }
 
         sortedRecipes.forEach(recipe => {
-            const targetQty = recipeTargetAmounts[recipe.id] !== undefined ? recipeTargetAmounts[recipe.id] : recipe.outputQty;
-            const stockQty = getStockAmount(recipe.outputName);
-            
+            let targetQty = recipeTargetAmounts[recipe.id] !== undefined ? recipeTargetAmounts[recipe.id] : 1;
+            let multiplier = Math.ceil(targetQty / recipe.outputQty);
+            let actualProduced = multiplier * recipe.outputQty;
+
             let ingredientsHtml = '';
-            let allIngredientsAvailable = true;
-            let rawMaterialMap = {};
+            let allIngredientsOk = true;
 
             if (recipe.ingredients && recipe.ingredients.length > 0) {
                 recipe.ingredients.forEach(ing => {
-                    let multiplier = Math.ceil(targetQty / recipe.outputQty);
-                    let requiredSubQty = ing.qty * multiplier;
-                    let subStock = getStockAmount(ing.name);
-                    let isSubOk = subStock >= requiredSubQty;
-                    if (!isSubOk) allIngredientsAvailable = false;
+                    let requiredAmount = ing.qty * multiplier;
+                    let stockQty = getStockAmount(ing.name);
+                    let isEnough = stockQty >= requiredAmount;
+                    if (!isEnough) allIngredientsOk = false;
 
-                    let subStockColor = subStock === 0 ? 'color: var(--danger-color); font-weight: bold;' : (isSubOk ? '#34d399' : '#f87171');
-                    ingredientsHtml += `<div>• ${requiredSubQty}x ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${subStockColor}">${subStock}</span>)</span></div>`;
+                    let stockColorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : (isEnough ? '#34d399' : '#f87171');
+
+                    ingredientsHtml += `
+                        <div style="margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                            <span>• <strong>${requiredAmount}x</strong> ${ing.name}</span>
+                            <span style="font-size: 0.85rem; color: var(--text-muted);">(Lager: <span style="color: ${stockColorStyle}; font-weight: 600;">${stockQty}</span>)</span>
+                        </div>`;
                 });
-
-                resolveRawMaterials(recipe.outputName, targetQty, rawMaterialMap);
             } else {
                 ingredientsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Zutaten definiert</span>`;
             }
 
-            let statusHtml = allIngredientsAvailable ? `<span class="req-status status-ok">✓ Zutaten vorhanden</span>` : `<span class="req-status status-missing">✕ Zutaten fehlen</span>`;
-            let stockColorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : '#60a5fa';
+            let statusHtml = allIngredientsOk ? 
+                `<span class="req-status status-ok">✓ Rohstoffe vorhanden</span>` : 
+                `<span class="req-status status-missing">✕ Rohstoffe fehlen</span>`;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
                         <span class="material-name" style="color: #38bdf8; font-size: 1.05rem;">${recipe.outputName}</span>
-                        <div class="adjust-box">
-                            <input type="number" min="1" value="${targetQty}" oninput="updateRecipeTargetQty(${recipe.id}, this)" style="width: 80px;" /> Stk.
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-muted);">
+                            <span>Rezept-Ertrag: <strong>${recipe.outputQty} Stk.</strong></span>
+                             
                         </div>
+                        <div style="font-size: 0.9rem; color: #34d399; font-weight: 600;">🡒 Daraus resultierender Ertrag: ${actualProduced} Stk. (${multiplier} Durchgänge)</div>
                     </div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Aktueller Lagerbestand: <span style="color: ${stockColorStyle}; font-weight: 700;">${stockQty}</span></div>
                 </td>
-                <td><div style="font-size: 0.9rem; line-height: 1.4;">${ingredientsHtml}</div></td>
+                <td><div style="font-size: 0.9rem; line-height: 1.4; background: #162032; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);">${ingredientsHtml}</div></td>
                 <td>${statusHtml}</td>
                 <td>
                     <div style="display: flex; gap: 8px;">
-                        <button class="btn" style="background-color: #334155; height: 36px; font-size: 0.85rem;" onclick="editRecipe(${recipe.id})">Bearbeiten</button>
+                        <button class="btn" style="background-color: #334155; height: 38px; font-size: 0.85rem;" onclick="editRecipe(${recipe.id})">Bearbeiten</button>
                         <button class="btn btn-danger" onclick="deleteRecipe(${recipe.id})">Löschen</button>
                     </div>
                 </td>
@@ -3231,8 +3244,8 @@
             tbody.appendChild(tr);
         });
     }
-
-    async function craftRecipe(recipeId) {
+	
+	async function craftRecipe(recipeId) {
         const recipe = recipesList.find(r => r.id === recipeId);
         if (!recipe) return;
         let targetQty = recipeTargetAmounts[recipeId] || recipe.outputQty;
@@ -3253,18 +3266,18 @@
         document.getElementById('note-add-label').value = note.label || 'Notiz';
         document.getElementById('note-add-content').innerText = note.content || '';
 
-        document.getElementById('note-form-title').innerText = `Notiz bearbeiten`;
-        document.getElementById('note-form-summary').innerText = `✏️ Notiz bearbeiten`;
+        document.getElementById('note-form-title').innerText = '✏️ Notiz bearbeiten';
+        document.getElementById('note-form-summary').innerText = '✏️ Notiz bearbeiten';
         document.getElementById('note-submit-btn').innerText = 'Änderungen speichern';
         document.getElementById('note-cancel-btn').style.display = 'inline-flex';
 
-        document.getElementById('note-add-content').focus();
+        document.querySelector('#tab-notizen details').open = true;
     }
 
     function cancelNoteEdit() {
         document.getElementById('note-edit-id').value = '';
         document.getElementById('note-add-label').value = 'Notiz';
-        initNoteContentEditor();
+        document.getElementById('note-add-content').innerText = '';
 
         document.getElementById('note-form-title').innerText = '+ Neue Notiz hinzufügen';
         document.getElementById('note-form-summary').innerText = '+ Neue Notiz hinzufügen';
@@ -3278,14 +3291,14 @@
         const label = document.getElementById('note-add-label').value;
         const content = document.getElementById('note-add-content').innerText.trim();
 
-        if (!content) return alert("Bitte Notiztext eingeben.");
+        if (!content) return alert("Bitte einen Text für die Notiz eingeben.");
 
-        const updatedAt = getCurrentTimeString();
+        const createdAt = getCurrentTimeString();
 
         if (editId) {
             const { error } = await supabaseClient
                 .from('notes')
-                .update({ label, content, updatedAt })
+                .update({ label, content })
                 .eq('id', editId);
 
             if (!error) {
@@ -3293,7 +3306,6 @@
                 if (existing) {
                     existing.label = label;
                     existing.content = content;
-                    existing.updatedAt = updatedAt;
                 }
                 cancelNoteEdit();
                 renderNotes();
@@ -3303,30 +3315,32 @@
         } else {
             const { data, error } = await supabaseClient
                 .from('notes')
-                .insert([{ label, content, updatedAt }])
+                .insert([{ label, content, createdAt }])
                 .select();
 
             if (!error && data) {
-                notesList.unshift(data[0]);
+                notesList.push(data[0]);
                 cancelNoteEdit();
                 renderNotes();
             } else {
-                alert("Fehler beim Speichern: " + (error ? error.message : ''));
+                alert("Fehler beim Speichern der Notiz: " + (error ? error.message : ''));
             }
         }
     }
 
     async function deleteNote(id) {
-        if (confirm("Notiz löschen?")) {
+        if (confirm("Notiz wirklich löschen?")) {
             const { error } = await supabaseClient.from('notes').delete().eq('id', id);
             if (!error) {
                 notesList = notesList.filter(n => n.id !== id);
                 renderNotes();
+            } else {
+                alert("Fehler beim Löschen: " + error.message);
             }
         }
     }
-
-    function renderNotes() {
+	
+	function renderNotes() {
         const container = document.getElementById('notes-container');
         if (!container) return;
         container.innerHTML = '';
@@ -3367,7 +3381,6 @@
         initOrderPositionInputs();
         initCustomerPricePositionInputs();
         initRecipeIngredientInputs();
-        initNoteContentEditor();
         loadDataFromSupabase();
     });
 </script>
