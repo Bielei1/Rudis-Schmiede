@@ -1043,7 +1043,7 @@
         }
         .permission-grid {
             display: grid;
-            grid-template-columns: minmax(220px, 1fr) 120px 120px;
+            grid-template-columns: minmax(220px, 1fr) 110px 110px 110px;
             border: 1px solid var(--border-color);
             border-radius: 10px;
             overflow: hidden;
@@ -1053,8 +1053,9 @@
             border-bottom: 1px solid var(--border-color-soft);
             background: var(--card-bg);
         }
-        .permission-grid > div:nth-child(3n+2),
-        .permission-grid > div:nth-child(3n+3) { text-align: center; }
+        .permission-grid > div:nth-child(4n+2),
+        .permission-grid > div:nth-child(4n+3),
+        .permission-grid > div:nth-child(4n+4) { text-align: center; }
         .permission-grid .head {
             background: var(--table-header-bg);
             color: var(--text-muted);
@@ -1668,11 +1669,11 @@
                 <button type="button" class="permission-modal-close" onclick="closePermissionModal()" aria-label="Schließen">×</button>
             </div>
             <div class="permission-grid" id="permission-grid">
-                <div class="head">Tab</div><div class="head">Anschauen</div><div class="head">Bearbeiten</div>
+                <div class="head">Tab</div><div class="head">Anschauen</div><div class="head">Bearbeiten</div><div class="head">Löschen</div>
             </div>
             <div class="permission-help">
-                <b>Anschauen</b> = Tab sichtbar und lesbar. &nbsp; <b>Bearbeiten</b> = zusätzlich Änderungen, neue Einträge und Löschen.
-                „Bearbeiten“ aktiviert automatisch „Anschauen“.
+                <b>Anschauen</b> = Tab sichtbar und lesbar. &nbsp; <b>Bearbeiten</b> = Änderungen und neue Einträge. &nbsp; <b>Löschen</b> = eigene Löschaktionen in diesem Tab.
+                „Bearbeiten“ aktiviert automatisch „Anschauen“. Löschrechte sind unabhängig von Bearbeitungsrechten.
             </div>
             <div class="permission-modal-actions">
                 <button type="button" class="btn" style="background-color:var(--card-bg-raised);color:var(--text-color);border:1px solid var(--border-color);" onclick="closePermissionModal()">Abbrechen</button>
@@ -1970,7 +1971,7 @@
     <div id="tab-archiv" class="tab-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h2>Ausgelieferte Bestellungen (Archiv)</h2>
-            <button class="btn btn-danger" onclick="clearArchive()" id="clear-archive-btn">Archiv leeren</button>
+            <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="clearArchive()" id="clear-archive-btn">Archiv leeren</button>
         </div>
 
         <!-- NEU: Zusammenfassungs-Box für mehrere ausgelieferte Bestellungen -->
@@ -2523,8 +2524,15 @@
         { key: 'archiv', label: 'Bestellung Archiv' },
         { key: 'notizen', label: 'Notizen' }
     ];
+    // Tabs, in denen es tatsächlich gespeicherte Löschaktionen gibt.
+    // Diese Rechte sind bewusst unabhängig von „Bearbeiten“.
+    const DELETE_PERMISSION_TABS = new Set([
+        'lagerbestand', 'bestellungen', 'archiv', 'kunden',
+        'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen'
+    ]);
+
     const DEFAULT_TAB_PERMISSIONS = Object.fromEntries(
-        TAB_DEFINITIONS.map(t => [t.key, { view: true, edit: false }])
+        TAB_DEFINITIONS.map(t => [t.key, { view: true, edit: false, del: false }])
     );
 
     let currentUser = null;   // { username, isAdmin, permission, tabPermissions }
@@ -2871,7 +2879,7 @@
 
     function getAdminTabPermissions() {
         return Object.fromEntries(
-            TAB_DEFINITIONS.map(t => [t.key, { view: true, edit: true }])
+            TAB_DEFINITIONS.map(t => [t.key, { view: true, edit: true, del: true }])
         );
     }
 
@@ -2879,8 +2887,13 @@
         const result = {};
         TAB_DEFINITIONS.forEach(tab => {
             const p = raw && raw[tab.key] ? raw[tab.key] : DEFAULT_TAB_PERMISSIONS[tab.key];
-            result[tab.key] = { view: !!p.view, edit: !!p.edit };
+            result[tab.key] = {
+                view: !!p.view,
+                edit: !!p.edit,
+                del: DELETE_PERMISSION_TABS.has(tab.key) ? !!(p.del ?? p.delete ?? p.can_delete) : false
+            };
             if (result[tab.key].edit) result[tab.key].view = true;
+            if (result[tab.key].del) result[tab.key].view = true;
         });
         return result;
     }
@@ -2899,6 +2912,13 @@
         return !!(p && p.edit);
     }
 
+    function canDeleteTab(tabName) {
+        if (!currentUser) return false;
+        if (currentUser.isAdmin) return true;
+        const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
+        return !!(p && p.del);
+    }
+
     function canEdit() {
         const active = document.querySelector('.tab-content.active');
         const tabName = active ? active.id.replace(/^tab-/, '') : 'uebersicht';
@@ -2912,7 +2932,7 @@
         try {
             const { data, error } = await supabaseClient
                 .from('app_user_tab_permissions')
-                .select('tab_key, can_view, can_edit')
+                .select('tab_key, can_view, can_edit, can_delete')
                 .eq('user_id', currentUser.id);
 
             if (error) {
@@ -2924,8 +2944,9 @@
                 data.forEach(row => {
                     if (currentUser.tabPermissions[row.tab_key]) {
                         currentUser.tabPermissions[row.tab_key] = {
-                            view: !!row.can_view || !!row.can_edit,
-                            edit: !!row.can_edit
+                            view: !!row.can_view || !!row.can_edit || !!row.can_delete,
+                            edit: !!row.can_edit,
+                            del: !!row.can_delete
                         };
                     }
                 });
@@ -2984,6 +3005,19 @@
         if (!isControl && !isContentEditable) return;
         if (el.classList.contains('tab-btn')) return;
 
+        const isDeleteAction = el.dataset.permissionAction === 'delete' || el.classList.contains('delete-action');
+        const allowed = isDeleteAction ? canDeleteTab(tabName) : canEditTab(tabName);
+
+        if (allowed) {
+            el.classList.remove('view-locked');
+            if (el.dataset.permissionDisabled === 'true') {
+                el.disabled = false;
+                delete el.dataset.permissionDisabled;
+            }
+            el.removeAttribute('title');
+            return;
+        }
+
         if (isContentEditable) {
             el.setAttribute('contenteditable', 'false');
         } else if (!el.matches('#log-category-filter, .filter-card select, .filter-card input')) {
@@ -2991,6 +3025,7 @@
             el.dataset.permissionDisabled = 'true';
         }
         el.classList.add('view-locked');
+        el.title = isDeleteAction ? 'Keine Löschrechte für diesen Tab.' : 'Keine Bearbeitungsrechte für diesen Tab.';
     }
 
     function applyPermissionUI() {
@@ -3045,11 +3080,15 @@
         try {
             const { data, error } = await supabaseClient
                 .from('app_user_tab_permissions')
-                .select('tab_key, can_view, can_edit')
+                .select('tab_key, can_view, can_edit, can_delete')
                 .eq('user_id', userId);
             if (!error && data) {
                 data.forEach(row => {
-                    result[row.tab_key] = { view: !!row.can_view || !!row.can_edit, edit: !!row.can_edit };
+                    result[row.tab_key] = {
+                        view: !!row.can_view || !!row.can_edit || !!row.can_delete,
+                        edit: !!row.can_edit,
+                        del: !!row.can_delete
+                    };
                 });
             }
         } catch (e) {
@@ -3064,10 +3103,11 @@
         if (!grid || !editingPermissionUser) return;
 
         userEl.textContent = `Benutzer: ${editingPermissionUser.username}`;
-        grid.innerHTML = '<div class="head">Tab</div><div class="head">Anschauen</div><div class="head">Bearbeiten</div>';
+        grid.innerHTML = '<div class="head">Tab</div><div class="head">Anschauen</div><div class="head">Bearbeiten</div><div class="head">Löschen</div>';
 
         TAB_DEFINITIONS.forEach(tab => {
-            const p = editingPermissionDraft[tab.key] || { view: false, edit: false };
+            const p = editingPermissionDraft[tab.key] || { view: false, edit: false, del: false };
+            const supportsDelete = DELETE_PERMISSION_TABS.has(tab.key);
             grid.insertAdjacentHTML('beforeend', `
                 <div class="tab-name">${tab.label}</div>
                 <div>
@@ -3077,6 +3117,10 @@
                 <div>
                     <input type="checkbox" id="perm-edit-${tab.key}" ${p.edit ? 'checked' : ''}
                            onchange="syncPermissionCheckboxes('${tab.key}')">
+                </div>
+                <div>
+                    ${supportsDelete ? `<input type="checkbox" id="perm-delete-${tab.key}" ${p.del ? 'checked' : ''}
+                           onchange="syncPermissionDeleteCheckbox('${tab.key}')" title="Löschen erlauben">` : '<span style="color:var(--text-muted);">—</span>'}
                 </div>
             `);
         });
@@ -3088,6 +3132,13 @@
         if (!view || !edit) return;
         if (edit.checked) view.checked = true;
         if (!view.checked) edit.checked = false;
+    }
+
+    function syncPermissionDeleteCheckbox(tabKey) {
+        const view = document.getElementById(`perm-view-${tabKey}`);
+        const del = document.getElementById(`perm-delete-${tabKey}`);
+        if (!view || !del) return;
+        if (del.checked) view.checked = true;
     }
 
     function closePermissionModal() {
@@ -3108,18 +3159,21 @@
         TAB_DEFINITIONS.forEach(tab => {
             const view = document.getElementById(`perm-view-${tab.key}`);
             const edit = document.getElementById(`perm-edit-${tab.key}`);
+            const del = document.getElementById(`perm-delete-${tab.key}`);
             permissions[tab.key] = {
                 view: !!(view && view.checked),
-                edit: !!(edit && edit.checked)
+                edit: !!(edit && edit.checked),
+                del: DELETE_PERMISSION_TABS.has(tab.key) ? !!(del && del.checked) : false
             };
-            if (permissions[tab.key].edit) permissions[tab.key].view = true;
+            if (permissions[tab.key].edit || permissions[tab.key].del) permissions[tab.key].view = true;
         });
 
         const rows = TAB_DEFINITIONS.map(tab => ({
             user_id: editingPermissionUser.id,
             tab_key: tab.key,
             can_view: permissions[tab.key].view,
-            can_edit: permissions[tab.key].edit
+            can_edit: permissions[tab.key].edit,
+            can_delete: permissions[tab.key].del
         }));
 
         try {
@@ -3199,7 +3253,8 @@
             user_id: userId,
             tab_key: tab.key,
             can_view: true,
-            can_edit: false
+            can_edit: false,
+            can_delete: false
         }));
         try {
             await supabaseClient.from('app_user_tab_permissions').insert(rows);
@@ -4323,7 +4378,7 @@
                     </div>
                 </td>
                 <td>
-                    <button class="btn btn-danger" onclick="deleteStockItem(${item.id})">Löschen</button>
+                    <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteStockItem(${item.id})">Löschen</button>
                 </td>
                 <td class="time-text">${item.stockupdated || '-'}</td>
             `;
@@ -4361,6 +4416,10 @@
     }
 
     async function deleteStockItem(id) {
+        if (!canDeleteTab('lagerbestand')) {
+            showToast('Du hast für diesen Tab keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
+            return;
+        }
         if (await customConfirm("Artikel wirklich löschen?")) {
             const item = inventoryList.find(i => i.id === id);
             const { error } = await supabaseClient.from('inventory').delete().eq('id', id);
@@ -4609,6 +4668,10 @@
     }
 
     async function deleteOrder(id) {
+        if (!canDeleteTab('bestellungen')) {
+            showToast('Du hast für diesen Tab keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
+            return;
+        }
         if (await customConfirm("Bestellung löschen?")) {
             const order = ordersList.find(o => o.id === id);
             const { error } = await supabaseClient.from('orders').delete().eq('id', id);
@@ -4765,7 +4828,7 @@
                 <td>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-success" onclick="fulfillOrder(${order.id})">Ausliefern</button>
-                        <button class="btn btn-danger" onclick="deleteOrder(${order.id})">Löschen</button>
+                        <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteOrder(${order.id})">Löschen</button>
                     </div>
                 </td>
             `;
@@ -4845,7 +4908,7 @@
                 <td class="time-text">${archivedOrder.createdAt || '-'}</td>
                 <td class="time-text">${archivedOrder.deliveredAt || '-'}</td>
                 <td>
-                    <button class="btn btn-danger" onclick="deleteArchivedOrder(${archivedOrder.id})">Eintrag löschen</button>
+                    <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteArchivedOrder(${archivedOrder.id})">Eintrag löschen</button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -4853,6 +4916,10 @@
     }
 
     async function deleteArchivedOrder(id) {
+        if (!canDeleteTab('archiv')) {
+            showToast('Du hast für diesen Tab keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
+            return;
+        }
         if (await customConfirm("Archivierte Bestellung löschen?")) {
             const { error } = await supabaseClient.from('archive').delete().eq('id', id);
             if (!error) {
@@ -4864,6 +4931,10 @@
     }
 
     async function clearArchive() {
+        if (!canDeleteTab('archiv')) {
+            showToast('Du hast für diesen Tab keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
+            return;
+        }
         if (archivedOrdersList.length === 0) return alert("Das Archiv ist bereits leer.");
         if (await customConfirm("Möchtest du wirklich das gesamte Archiv leeren?")) {
             const { error } = await supabaseClient.from('archive').delete().neq('id', 0);
@@ -5010,7 +5081,7 @@
                         <button class="btn" onclick="updateCustomerPrice(${item.id})">Speichern</button>
                     </div>
                 </td>
-                <td><button class="btn btn-danger" onclick="deleteCustomerPrice(${item.id})">Löschen</button></td>
+                <td><button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteCustomerPrice(${item.id})">Löschen</button></td>
                 <td class="time-text">${item.priceUpdated || '-'}</td>
             `;
             tbody.appendChild(tr);
@@ -5050,6 +5121,10 @@
     }
 
     async function deleteCustomerPrice(id) {
+        if (!canDeleteTab('kunden')) {
+            showToast('Du hast für diesen Tab keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
+            return;
+        }
         if (await customConfirm("Kundenpreis wirklich löschen?")) {
             const item = customerPricesList.find(i => i.id === id);
             const { error } = await supabaseClient.from('customer_prices').delete().eq('id', id);
@@ -5338,7 +5413,7 @@
                         <button class="btn" onclick="updatePrice(${item.id})">Bestätigen</button>
                     </div>
                 </td>
-                <td><button class="btn btn-danger" onclick="deletePriceItem(${item.id})">Löschen</button></td>
+                <td><button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deletePriceItem(${item.id})">Löschen</button></td>
                 <td class="time-text">${item.priceUpdated || '-'}</td>
             `;
             tbody.appendChild(tr);
@@ -5371,6 +5446,10 @@
     }
 
     async function deletePriceItem(id) {
+        if (!canDeleteTab('verkaufspreise')) {
+            showToast('Du hast für diesen Tab keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
+            return;
+        }
         if (await customConfirm("Standardverkaufspreis löschen?")) {
             const item = salesPricesList.find(i => i.id === id);
             const { error } = await supabaseClient.from('sales_prices').delete().eq('id', id);
@@ -5470,7 +5549,7 @@
                         <button class="btn" onclick="updateCost(${item.id})">Speichern</button>
                     </div>
                 </td>
-                <td><button class="btn btn-danger" onclick="deletePurchaseItem(${item.id})">Löschen</button></td>
+                <td><button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deletePurchaseItem(${item.id})">Löschen</button></td>
                 <td class="time-text">${item.costUpdated || '-'}</td>
             `;
             tbody.appendChild(tr);
@@ -5512,6 +5591,10 @@
     }
 
     async function deletePurchaseItem(id) {
+        if (!canDeleteTab('einkaufspreise')) {
+            showToast('Du hast für diesen Tab keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
+            return;
+        }
         if (await customConfirm("Eintrag löschen?")) {
             const item = purchasePricesList.find(i => i.id === id);
             const { error } = await supabaseClient.from('purchase_prices').delete().eq('id', id);
@@ -5817,6 +5900,10 @@
     }
 
     async function deleteRecipe(id) {
+        if (!canDeleteTab('herstellung')) {
+            showToast('Du hast für diesen Tab keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
+            return;
+        }
         if (await customConfirm("Rezept löschen?")) {
             const recipe = recipesList.find(r => r.id === id);
             const { error } = await supabaseClient.from('recipes').delete().eq('id', id);
@@ -6039,7 +6126,7 @@
                 <td>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn" style="background-color: #334155; height: 38px; font-size: 0.85rem;" onclick="editRecipe(${recipe.id})">Bearbeiten</button>
-                        <button class="btn btn-danger" onclick="deleteRecipe(${recipe.id})">Löschen</button>
+                        <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteRecipe(${recipe.id})">Löschen</button>
                     </div>
                 </td>
             `;
@@ -6134,6 +6221,10 @@
     }
 
     async function deleteNote(id) {
+        if (!canDeleteTab('notizen')) {
+            showToast('Du hast für diesen Tab keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
+            return;
+        }
         if (await customConfirm("Notiz löschen?")) {
             const { error } = await supabaseClient.from('notes').delete().eq('id', id);
             if (!error) {
@@ -6173,7 +6264,7 @@
                     <div style="font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: var(--text-color); margin-bottom: 14px;">${note.content}</div>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn" style="background-color: #334155; height: 34px; font-size: 0.85rem;" onclick="editNote(${note.id})">Bearbeiten</button>
-                        <button class="btn btn-danger" onclick="deleteNote(${note.id})">Löschen</button>
+                        <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteNote(${note.id})">Löschen</button>
                     </div>
                 </div>
             `;
