@@ -3139,6 +3139,7 @@
             closePermissionModal();
             renderUsersTab();
             showToast(`Die Tab-Rechte für „${savedUsername}“ wurden gespeichert.`, 'success', 'Tab-Rechte geändert');
+            await logActivity('Benutzerverwaltung', `Tab-Rechte für Benutzer „${savedUsername}“ geändert`);
         } catch (e) {
             showToast('Tab-Rechte konnten nicht gespeichert werden: ' + e.message, 'danger');
         }
@@ -3187,6 +3188,7 @@
             renderUsersTab();
             event.target.reset();
             showToast(`${isAdmin ? 'Administrator' : 'Benutzer'} „${username}“ wurde angelegt und freigeschaltet.`, 'success', 'Benutzer angelegt');
+            await logActivity('Benutzerverwaltung', `${isAdmin ? 'Administrator' : 'Benutzer'} „${username}“ wurde angelegt und freigeschaltet`);
         } finally {
             submitBtn.disabled = false;
         }
@@ -3375,7 +3377,9 @@
                 showToast('Fehler beim Zurücksetzen: ' + error.message, 'danger');
                 return;
             }
+            const targetUser = appUsersList.find(u => u.id === resetPasswordTargetUserId);
             showToast('Das Passwort wurde geändert und sicher gespeichert.', 'success', 'Passwort geändert');
+            await logActivity('Benutzerverwaltung', `Passwort für Benutzer „${targetUser ? targetUser.username : resetPasswordTargetUserId}“ wurde geändert`);
             closeResetPasswordModal();
         } finally {
             submitBtn.disabled = false;
@@ -3388,7 +3392,11 @@
             const u = appUsersList.find(x => x.id === id);
             if (u) u.approved = approve;
             renderUsersTab();
+            const username = u ? u.username : id;
             showToast(approve ? 'Der Benutzer kann sich wieder anmelden.' : 'Der Benutzer kann sich nicht mehr anmelden.', 'success', approve ? 'Benutzer freigeschaltet' : 'Benutzer gesperrt');
+            const approvalUser = appUsersList.find(x => x.id === id);
+            await logActivity('Benutzerverwaltung', `Benutzer „${approvalUser ? approvalUser.username : id}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`);
+            await logActivity('Benutzerverwaltung', `Benutzer „${username}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`);
         } else {
             showToast('Fehler: ' + error.message, 'danger');
         }
@@ -3396,12 +3404,15 @@
 
     async function deleteAppUser(id) {
         if (!(await customConfirm('Diesen Benutzer wirklich löschen?'))) return;
+        const deletedUser = appUsersList.find(x => x.id === id);
         const { error } = await supabaseClient.from('app_users').delete().eq('id', id);
         if (!error) {
             try { await supabaseClient.from('app_user_tab_permissions').delete().eq('user_id', id); } catch (e) {}
             appUsersList = appUsersList.filter(x => x.id !== id);
             renderUsersTab();
             showToast('Der Benutzer und seine gespeicherten Tab-Rechte wurden entfernt.', 'success', 'Benutzer gelöscht');
+            await logActivity('Benutzerverwaltung', `Benutzer „${deletedUser ? deletedUser.username : id}“ wurde gelöscht`);
+            await logActivity('Benutzerverwaltung', `Benutzer „${id}“ wurde gelöscht`);
         } else {
             showToast('Fehler: ' + error.message, 'danger');
         }
@@ -3493,24 +3504,80 @@
     };
 
     // ============ ÄNDERUNGSPROTOKOLL (Log) ============
+    // Dauerhaftes Protokoll in Supabase. Die lokale Liste ist nur für die
+    // sofortige Darstellung zuständig; die Datenbank ist die eigentliche Quelle.
     let activityLogList = [];
+    let activityLogRefreshTimer = null;
+    let activityLogLoadInProgress = false;
+
+    async function loadActivityLog(showError = false) {
+        if (activityLogLoadInProgress) return false;
+        activityLogLoadInProgress = true;
+        try {
+            const { data, error } = await supabaseClient
+                .from('activity_log')
+                .select('*')
+                .order('id', { ascending: false })
+                .limit(300);
+
+            if (error) {
+                console.error('Änderungsprotokoll konnte nicht geladen werden:', error.message);
+                if (showError) showToast('Änderungsprotokoll konnte nicht geladen werden: ' + error.message, 'danger');
+                return false;
+            }
+
+            activityLogList = Array.isArray(data) ? data : [];
+            renderActivityLog();
+            return true;
+        } catch (e) {
+            console.error('Änderungsprotokoll konnte nicht geladen werden:', e);
+            if (showError) showToast('Änderungsprotokoll konnte nicht geladen werden.', 'danger');
+            return false;
+        } finally {
+            activityLogLoadInProgress = false;
+        }
+    }
+
+    function startActivityLogRefresh() {
+        if (activityLogRefreshTimer) clearInterval(activityLogRefreshTimer);
+        activityLogRefreshTimer = setInterval(() => {
+            if (currentUser && currentUser.isAdmin) loadActivityLog(false);
+        }, 5000);
+    }
 
     async function logActivity(category, message) {
-        // Jede erfolgreiche Änderung erzeugt automatisch den Hinweis unten rechts.
+        // Sofortige Anzeige unten rechts.
         showToast(message, 'success', category + ' geändert');
-        const entry = { category, message, createdAt: getCurrentTimeString(), username: (currentUser && currentUser.username) || 'Unbekannt' };
+
+        const entry = {
+            category,
+            message,
+            createdAt: getCurrentTimeString(),
+            username: (currentUser && currentUser.username) || 'Unbekannt'
+        };
+
+        // Optimistische Anzeige – anschließend wird immer aus Supabase neu geladen.
         activityLogList.unshift(entry);
         renderActivityLog();
 
         try {
-            const { data, error } = await supabaseClient.from('activity_log').insert([entry]).select();
-            if (!error && data && data[0] && data[0].id !== undefined) {
-                entry.id = data[0].id;
-            } else if (error) {
-                console.warn('Änderungsprotokoll konnte nicht in Supabase gespeichert werden (Tabelle "activity_log" fehlt evtl.):', error.message);
+            const { error } = await supabaseClient
+                .from('activity_log')
+                .insert([entry]);
+
+            if (error) {
+                console.error('Änderungsprotokoll wurde NICHT gespeichert:', error.message);
+                showToast('Änderungsprotokoll konnte nicht gespeichert werden. Prüfe die Supabase-Tabelle "activity_log".', 'danger');
+                return false;
             }
+
+            // Echte DB-Version laden, damit ID und Reihenfolge stimmen.
+            await loadActivityLog(false);
+            return true;
         } catch (e) {
-            console.warn('Änderungsprotokoll konnte nicht in Supabase gespeichert werden:', e);
+            console.error('Änderungsprotokoll wurde NICHT gespeichert:', e);
+            showToast('Änderungsprotokoll konnte nicht dauerhaft gespeichert werden.', 'danger');
+            return false;
         }
     }
 
@@ -3786,16 +3853,8 @@
             const { data: nots } = await supabaseClient.from('notes').select('*');
             if (nots) notesList = nots;
 
-            try {
-                const { data: logData, error: logError } = await supabaseClient
-                    .from('activity_log')
-                    .select('*')
-                    .order('id', { ascending: false })
-                    .limit(300);
-                if (!logError && logData) activityLogList = logData;
-            } catch (e) {
-                console.warn('Änderungsprotokoll-Tabelle "activity_log" noch nicht vorhanden.', e);
-            }
+            await loadActivityLog(false);
+            if (currentUser && currentUser.isAdmin) startActivityLogRefresh();
 
             renderTables();
 			updateStockAddDropdown();
