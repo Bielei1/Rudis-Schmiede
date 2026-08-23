@@ -383,6 +383,7 @@
         updateTabVisibility();
         ensureAllowedTabSelected();
         applyPermissionUI();
+        startPresence();
     }
 
     function logoutUser() {
