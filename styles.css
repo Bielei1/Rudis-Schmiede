@@ -862,8 +862,8 @@
         }
 
         .pinboard-row .pinboard-meta {
-            color: var(--text-faint);
-            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
             flex-shrink: 0;
         }
 
