@@ -1,0 +1,989 @@
+    // ============ AUTHENTIFIZIERUNG / BENUTZERVERWALTUNG ============
+    const ADMIN_USERNAME = 'admin';
+    const ADMIN_PASSWORD = '0815';
+    const AUTH_STORAGE_KEY = 'rs_auth_session';
+    const APP_NAME_STORAGE_KEY = 'rs_app_name';
+    const DEFAULT_APP_NAME = 'Rudis Schmiede';
+
+    function getStoredAppName() {
+        try {
+            return localStorage.getItem(APP_NAME_STORAGE_KEY) || DEFAULT_APP_NAME;
+        } catch (e) {
+            return DEFAULT_APP_NAME;
+        }
+    }
+
+    function applyAppName(name) {
+        const finalName = (name || '').trim() || DEFAULT_APP_NAME;
+        const loginTitleEl = document.getElementById('login-hero-title');
+        if (loginTitleEl) loginTitleEl.innerText = finalName;
+        const mainTitleEl = document.getElementById('main-title');
+        if (mainTitleEl) mainTitleEl.innerText = finalName;
+        document.title = finalName + " - Verwaltung";
+    }
+
+    // Gespeicherten Namen sofort anwenden (auch vor dem Login)
+    applyAppName(getStoredAppName());
+
+    const TAB_DEFINITIONS = [
+        { key: 'uebersicht', label: 'Übersicht' },
+        { key: 'lagerbestand', label: 'Lagerbestand' },
+        { key: 'herstellung', label: 'Herstellung' },
+        { key: 'bestellungen', label: 'Bestellungen' },
+        { key: 'verkaufspreise', label: 'Verkaufspreise' },
+        { key: 'kunden', label: 'Kunden-Preise' },
+        { key: 'einkaufspreise', label: 'Einkaufspreise' },
+        { key: 'einkaufsliste', label: 'Einkaufsliste' },
+        { key: 'herstellungskosten', label: 'Herstellungskosten' },
+        { key: 'archiv', label: 'Bestellung Archiv' },
+        { key: 'notizen', label: 'Notizen' }
+    ];
+    // Tabs, in denen es tatsächlich gespeicherte Löschaktionen gibt.
+    // Diese Rechte sind bewusst unabhängig von „Bearbeiten“.
+    const DELETE_PERMISSION_TABS = new Set([
+        'lagerbestand', 'bestellungen', 'archiv', 'kunden',
+        'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen'
+    ]);
+
+    const DEFAULT_TAB_PERMISSIONS = Object.fromEntries(
+        TAB_DEFINITIONS.map(t => [t.key, { view: true, edit: false, del: false }])
+    );
+
+    let currentUser = null;   // { username, isAdmin, permission, tabPermissions }
+    let appUsersList = [];    // nur für Admin geladen
+    let editingPermissionUser = null;
+    let editingPermissionDraft = null;
+
+    async function hashPassword(password) {
+        const enc = new TextEncoder().encode(password);
+        const buf = await crypto.subtle.digest('SHA-256', enc);
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function showLoginForm() {
+        document.getElementById('register-form').style.display = 'none';
+        document.getElementById('forgot-password-form').style.display = 'none';
+        document.getElementById('login-form').style.display = 'block';
+        hideAuthMsg('login-error');
+    }
+
+    function showRegisterForm() {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('forgot-password-form').style.display = 'none';
+        document.getElementById('register-form').style.display = 'block';
+        hideAuthMsg('register-error');
+        document.getElementById('register-info').classList.remove('show');
+    }
+
+    function showForgotPasswordForm() {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('register-form').style.display = 'none';
+        document.getElementById('forgot-password-form').style.display = 'block';
+        hideAuthMsg('forgot-error');
+        hideAuthMsg('forgot-info');
+        document.getElementById('forgot-request-step').style.display = 'block';
+        document.getElementById('forgot-code-step').style.display = 'none';
+        document.getElementById('forgot-code').value = '';
+        document.getElementById('forgot-new-password').value = '';
+        document.getElementById('forgot-new-password2').value = '';
+    }
+
+    function showAuthMsg(id, message) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.innerText = message;
+        el.classList.add('show');
+    }
+
+    function hideAuthMsg(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('show');
+    }
+
+    async function handleLogin(event) {
+        event.preventDefault();
+        hideAuthMsg('login-error');
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+        if (!username || !password) return;
+
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        try {
+            // Fest hinterlegter Admin-Zugang
+            if (username.toLowerCase() === ADMIN_USERNAME) {
+                if (password === ADMIN_PASSWORD) {
+                    await completeLogin({ username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions() }, password, true);
+                } else {
+                    showAuthMsg('login-error', 'Benutzername oder Passwort falsch.');
+                }
+                return;
+            }
+
+            const passwordHash = await hashPassword(password);
+            const { data, error } = await supabaseClient
+                .from('app_users')
+                .select('*')
+                .ilike('username', username)
+                .limit(1);
+
+            if (error) {
+                showAuthMsg('login-error', 'Anmeldung aktuell nicht möglich: ' + error.message);
+                return;
+            }
+            const user = data && data[0];
+            if (!user || user.password_hash !== passwordHash) {
+                showAuthMsg('login-error', 'Benutzername oder Passwort falsch.');
+                return;
+            }
+            if (!user.approved) {
+                showAuthMsg('login-error', 'Dein Konto wartet noch auf Freischaltung durch den Admin.');
+                return;
+            }
+
+            await completeLogin({ username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view' }, password, !!user.is_admin);
+        } finally {
+            submitBtn.disabled = false;
+        }
+    }
+
+
+    let activePasswordResetRequestId = null;
+
+    function generateResetCode() {
+        return String(Math.floor(10000000 + Math.random() * 90000000));
+    }
+
+    async function handleForgotPassword(event) {
+        event.preventDefault();
+        hideAuthMsg('forgot-error');
+        hideAuthMsg('forgot-info');
+
+        const username = document.getElementById('forgot-username').value.trim();
+        const codeStep = document.getElementById('forgot-code-step');
+        const requestStep = document.getElementById('forgot-request-step');
+        const code = document.getElementById('forgot-code').value.trim();
+        const newPassword = document.getElementById('forgot-new-password').value;
+        const newPassword2 = document.getElementById('forgot-new-password2').value;
+        if (!username) return showAuthMsg('forgot-error', 'Bitte deinen Benutzernamen eingeben.');
+
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+        try {
+            // 1. Anfrage stellen / bestehenden Status prüfen
+            if (codeStep.style.display === 'none') {
+                if (username.toLowerCase() === ADMIN_USERNAME) {
+                    showAuthMsg('forgot-error', 'Für den fest eingebauten Admin kann kein Passwort-Reset angefordert werden.');
+                    return;
+                }
+                const { data: users, error: userError } = await supabaseClient
+                    .from('app_users').select('id, username').ilike('username', username).limit(1);
+                if (userError) return showAuthMsg('forgot-error', 'Benutzer konnte nicht geprüft werden: ' + userError.message);
+                const user = users && users[0];
+                if (!user) return showAuthMsg('forgot-error', 'Benutzername wurde nicht gefunden.');
+
+                const { data: existing, error: existingError } = await supabaseClient
+                    .from('password_reset_requests').select('id,status,request_code')
+                    .eq('user_id', user.id).in('status',['pending','approved'])
+                    .order('created_at',{ascending:false}).limit(1).maybeSingle();
+                if (existingError) return showAuthMsg('forgot-error', 'Die Reset-Funktion ist noch nicht mit Supabase verbunden. Bitte die Tabelle "password_reset_requests" anlegen.');
+
+                if (existing) {
+                    activePasswordResetRequestId = existing.id;
+                    document.getElementById('forgot-code').value = existing.request_code || '';
+                    if (existing.status === 'approved') {
+                        requestStep.style.display='none'; codeStep.style.display='block';
+                        showAuthMsg('forgot-info','Deine Anfrage wurde vom Admin freigegeben. Du kannst jetzt ein neues Passwort festlegen.');
+                    } else {
+                        requestStep.style.display='block'; codeStep.style.display='none';
+                        showAuthMsg('forgot-info','Deine Reset-Anfrage wartet noch auf die Bestätigung durch einen Admin.');
+                    }
+                    return;
+                }
+
+                const requestCode = generateResetCode();
+                const { data: request, error: requestError } = await supabaseClient
+                    .from('password_reset_requests')
+                    .insert([{user_id:user.id,username:user.username,request_code:requestCode,status:'pending'}])
+                    .select('id,request_code').single();
+                if (requestError) return showAuthMsg('forgot-error','Reset-Anfrage konnte nicht erstellt werden: '+requestError.message);
+                activePasswordResetRequestId = request.id;
+                document.getElementById('forgot-code').value = request.request_code;
+                showAuthMsg('forgot-info','Reset-Anfrage wurde an den Admin gesendet. Bitte warte auf die Freigabe.');
+                return;
+            }
+
+            // 2. Nach Admin-Freigabe Passwort ändern
+            if (!code) return showAuthMsg('forgot-error','Bitte den Reset-Code eingeben.');
+            if (newPassword.length < 4) return showAuthMsg('forgot-error','Das neue Passwort muss mindestens 4 Zeichen lang sein.');
+            if (newPassword !== newPassword2) return showAuthMsg('forgot-error','Die neuen Passwörter stimmen nicht überein.');
+
+            let query = supabaseClient.from('password_reset_requests')
+                .select('id,user_id,username,request_code,status')
+                .eq('status','approved').eq('request_code',code).ilike('username',username);
+            if (activePasswordResetRequestId) query=query.eq('id',activePasswordResetRequestId);
+            const { data: requests, error: requestError } = await query.limit(1);
+            if (requestError) return showAuthMsg('forgot-error','Reset konnte nicht geprüft werden: '+requestError.message);
+            const request=requests && requests[0];
+            if (!request) return showAuthMsg('forgot-error','Reset-Code ist ungültig oder wurde noch nicht vom Admin freigegeben.');
+
+            const passwordHash=await hashPassword(newPassword);
+            const { error: passwordError }=await supabaseClient.from('app_users')
+                .update({password_hash:passwordHash}).eq('id',request.user_id);
+            if (passwordError) return showAuthMsg('forgot-error','Passwort konnte nicht gespeichert werden: '+passwordError.message);
+
+            await supabaseClient.from('password_reset_requests').update({status:'completed',completed_at:new Date().toISOString()}).eq('id',request.id);
+            document.getElementById('forgot-password-form').reset();
+            requestStep.style.display='block'; codeStep.style.display='none'; activePasswordResetRequestId=null;
+            showLoginForm();
+            const loginMsg=document.getElementById('login-error');
+            loginMsg.innerText='Passwort erfolgreich geändert. Du kannst dich jetzt mit deinem neuen Passwort anmelden.';
+            loginMsg.classList.remove('error'); loginMsg.classList.add('info','show');
+        } finally { if (submitBtn) submitBtn.disabled=false; }
+    }
+
+    async function handleRegister(event) {
+        event.preventDefault();
+        hideAuthMsg('register-error');
+        document.getElementById('register-info').classList.remove('show');
+
+        const username = document.getElementById('register-username').value.trim();
+        const password = document.getElementById('register-password').value;
+        const password2 = document.getElementById('register-password2').value;
+
+        if (!username) return;
+        if (password.length < 4) return showAuthMsg('register-error', 'Passwort muss mindestens 4 Zeichen lang sein.');
+        if (password !== password2) return showAuthMsg('register-error', 'Die Passwörter stimmen nicht überein.');
+        if (username.toLowerCase() === ADMIN_USERNAME) return showAuthMsg('register-error', 'Dieser Benutzername ist reserviert.');
+
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        try {
+            const passwordHash = await hashPassword(password);
+            const { error } = await supabaseClient
+                .from('app_users')
+                .insert([{ username, password_hash: passwordHash, permission: 'view', is_admin: false, approved: false }]);
+
+            if (error) {
+                if (String(error.message).toLowerCase().includes('duplicate') || String(error.code) === '23505') {
+                    showAuthMsg('register-error', 'Dieser Benutzername ist bereits vergeben.');
+                } else {
+                    showAuthMsg('register-error', 'Registrierung fehlgeschlagen: ' + error.message);
+                }
+                return;
+            }
+
+            try {
+                const { data: createdUser } = await supabaseClient
+                    .from('app_users')
+                    .select('id')
+                    .ilike('username', username)
+                    .limit(1)
+                    .maybeSingle();
+                if (createdUser && createdUser.id) await saveDefaultTabPermissionsForUser(createdUser.id);
+            } catch (e) {
+                console.warn('Standard-Tab-Rechte für Registrierung konnten nicht angelegt werden.', e);
+            }
+
+            event.target.reset();
+            showAuthMsg('register-info', '');
+            const infoEl = document.getElementById('register-info');
+            infoEl.innerText = 'Konto erstellt! Bitte warte, bis der Admin dich freischaltet.';
+            infoEl.classList.add('show');
+        } finally {
+            submitBtn.disabled = false;
+        }
+    }
+
+    async function completeLogin(user, plainPassword, isAdmin) {
+        currentUser = user;
+        const passwordHash = isAdmin ? await hashPassword(plainPassword) : await hashPassword(plainPassword);
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ username: user.username, passwordHash }));
+        await enterApp();
+    }
+
+    async function tryRestoreSession() {
+        const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (!raw) return false;
+
+        let stored;
+        try { stored = JSON.parse(raw); } catch (e) { return false; }
+        if (!stored || !stored.username) return false;
+
+        if (stored.username.toLowerCase() === ADMIN_USERNAME) {
+            const adminHash = await hashPassword(ADMIN_PASSWORD);
+            if (stored.passwordHash !== adminHash) return false;
+            currentUser = { username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions() };
+            await enterApp();
+            return true;
+        }
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('app_users')
+                .select('*')
+                .ilike('username', stored.username)
+                .limit(1);
+            if (error || !data || !data[0]) return false;
+            const user = data[0];
+            if (user.password_hash !== stored.passwordHash || !user.approved) return false;
+            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view' };
+            await enterApp();
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    async function enterApp() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+        const loadingOverlay = document.getElementById('app-loading-overlay');
+        if (loadingOverlay) loadingOverlay.classList.add('visible');
+
+        if (!currentUser) {
+            if (loadingOverlay) loadingOverlay.classList.remove('visible');
+            return;
+        }
+
+        // Admin hat immer Vollzugriff und benötigt keine Supabase-Rechteabfrage.
+        if (currentUser.isAdmin) {
+            currentUser.tabPermissions = getAdminTabPermissions();
+        } else {
+            await loadUserTabPermissions();
+        }
+
+        document.body.classList.toggle('is-admin', !!currentUser.isAdmin);
+        document.body.classList.toggle('view-only-mode', false);
+
+        const nameEl = document.getElementById('sidebar-username');
+        const roleEl = document.getElementById('sidebar-userrole');
+        if (nameEl) nameEl.innerText = currentUser.username;
+        if (roleEl) roleEl.innerText = currentUser.isAdmin
+            ? 'Administrator'
+            : (currentUser.isAdmin ? 'Administrator' : 'Benutzer – Tab-Rechte individuell');
+
+        // Daten laden: Fehler dürfen den Login nicht blockieren.
+        try {
+            await loadDataFromSupabase();
+        } catch (e) {
+            console.warn('Daten konnten nach dem Login nicht vollständig geladen werden:', e);
+        }
+
+        if (currentUser.isAdmin) {
+            try { await loadAppUsers(); } catch (e) { console.warn('Benutzer konnten nicht geladen werden:', e); }
+            try { await loadPasswordResetRequests(); } catch (e) { console.warn('Passwort-Reset-Anfragen konnten nicht geladen werden:', e); }
+        }
+
+        if (loadingOverlay) loadingOverlay.classList.remove('visible');
+
+        updateTabVisibility();
+        ensureAllowedTabSelected();
+        applyPermissionUI();
+    }
+
+    function logoutUser() {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        currentUser = null;
+        location.reload();
+    }
+
+    function getAdminTabPermissions() {
+        return Object.fromEntries(
+            TAB_DEFINITIONS.map(t => [t.key, { view: true, edit: true, del: true }])
+        );
+    }
+
+    function normalizeTabPermissions(raw) {
+        const result = {};
+        TAB_DEFINITIONS.forEach(tab => {
+            const p = raw && raw[tab.key] ? raw[tab.key] : DEFAULT_TAB_PERMISSIONS[tab.key];
+            result[tab.key] = {
+                view: !!p.view,
+                edit: !!p.edit,
+                del: DELETE_PERMISSION_TABS.has(tab.key) ? !!(p.del ?? p.delete ?? p.can_delete) : false
+            };
+            if (result[tab.key].edit) result[tab.key].view = true;
+            if (result[tab.key].del) result[tab.key].view = true;
+        });
+        return result;
+    }
+
+    function canViewTab(tabName) {
+        if (!currentUser) return false;
+        if (currentUser.isAdmin) return true;
+        const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
+        return !!(p && p.view);
+    }
+
+    function canEditTab(tabName) {
+        if (!currentUser) return false;
+        if (currentUser.isAdmin) return true;
+        const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
+        return !!(p && p.edit);
+    }
+
+    function canDeleteTab(tabName) {
+        if (!currentUser) return false;
+        if (currentUser.isAdmin) return true;
+        const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
+        return !!(p && p.del);
+    }
+
+    function canEdit() {
+        const active = document.querySelector('.tab-content.active');
+        const tabName = active ? active.id.replace(/^tab-/, '') : 'uebersicht';
+        return canEditTab(tabName);
+    }
+
+    async function loadUserTabPermissions() {
+        currentUser.tabPermissions = normalizeTabPermissions(null);
+        if (!currentUser.id) return;
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('app_user_tab_permissions')
+                .select('tab_key, can_view, can_edit, can_delete')
+                .eq('user_id', currentUser.id);
+
+            if (error) {
+                console.warn('Tab-Rechte konnten nicht geladen werden. Standard: nur Ansicht.', error.message);
+                return;
+            }
+
+            if (data) {
+                data.forEach(row => {
+                    if (currentUser.tabPermissions[row.tab_key]) {
+                        currentUser.tabPermissions[row.tab_key] = {
+                            view: !!row.can_view || !!row.can_edit || !!row.can_delete,
+                            edit: !!row.can_edit,
+                            del: !!row.can_delete
+                        };
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('Tab-Rechte konnten nicht geladen werden.', e);
+        }
+    }
+
+    function getFirstAllowedTab() {
+        const first = TAB_DEFINITIONS.find(t => canViewTab(t.key));
+        return first ? first.key : null;
+    }
+
+    function ensureAllowedTabSelected() {
+        const active = document.querySelector('.tab-content.active');
+        const activeName = active ? active.id.replace(/^tab-/, '') : null;
+        if (activeName && canViewTab(activeName)) {
+            updateTabVisibility();
+            return;
+        }
+        const fallback = getFirstAllowedTab();
+        if (fallback) switchTab(fallback, true);
+        else {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        }
+    }
+
+    function updateTabVisibility() {
+        document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+            const tab = btn.dataset.tab;
+            const allowed = (tab === 'log' || tab === 'benutzer')
+                ? !!(currentUser && currentUser.isAdmin)
+                : canViewTab(tab);
+            btn.style.display = allowed ? '' : 'none';
+        });
+    }
+
+    function lockElementIfNeeded(el) {
+        if (!(el instanceof HTMLElement)) return;
+        const tabContent = el.closest('.tab-content');
+        if (!tabContent) return;
+        const tabName = tabContent.id.replace(/^tab-/, '');
+        if (canEditTab(tabName)) {
+            el.classList.remove('view-locked');
+            if (el.dataset.permissionDisabled === 'true') {
+                el.disabled = false;
+                delete el.dataset.permissionDisabled;
+            }
+            return;
+        }
+        const tag = el.tagName;
+        const isControl = tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+        const isContentEditable = el.getAttribute && el.getAttribute('contenteditable') === 'true';
+        if (!isControl && !isContentEditable) return;
+        if (el.classList.contains('tab-btn')) return;
+
+        const isDeleteAction = el.dataset.permissionAction === 'delete' || el.classList.contains('delete-action');
+        const allowed = isDeleteAction ? canDeleteTab(tabName) : canEditTab(tabName);
+
+        if (allowed) {
+            el.classList.remove('view-locked');
+            if (el.dataset.permissionDisabled === 'true') {
+                el.disabled = false;
+                delete el.dataset.permissionDisabled;
+            }
+            el.removeAttribute('title');
+            return;
+        }
+
+        if (isContentEditable) {
+            el.setAttribute('contenteditable', 'false');
+        } else if (!el.matches('#log-category-filter, .filter-card select, .filter-card input')) {
+            el.disabled = true;
+            el.dataset.permissionDisabled = 'true';
+        }
+        el.classList.add('view-locked');
+        el.title = isDeleteAction ? 'Keine Löschrechte für diesen Tab.' : 'Keine Bearbeitungsrechte für diesen Tab.';
+    }
+
+    function applyPermissionUI() {
+        updateTabVisibility();
+        document.querySelectorAll('main.content-area .tab-content').forEach(tabContent => {
+            const tabName = tabContent.id.replace(/^tab-/, '');
+            if (!canViewTab(tabName) && tabName !== 'log' && tabName !== 'benutzer') {
+                tabContent.classList.remove('active');
+                return;
+            }
+            tabContent.querySelectorAll('button, input, select, textarea, [contenteditable="true"]')
+                .forEach(lockElementIfNeeded);
+        });
+    }
+
+    let viewOnlyObserverStarted = false;
+    function setupViewOnlyObserver() {
+        if (viewOnlyObserverStarted) return;
+        viewOnlyObserverStarted = true;
+        const target = document.querySelector('main.content-area');
+        if (!target) return;
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(m => {
+                m.addedNodes.forEach(node => {
+                    if (!(node instanceof HTMLElement)) return;
+                    lockElementIfNeeded(node);
+                    node.querySelectorAll && node.querySelectorAll('button, input, select, textarea, [contenteditable="true"]').forEach(lockElementIfNeeded);
+                });
+            });
+        });
+        observer.observe(target, { childList: true, subtree: true });
+    }
+
+
+    function openPermissionModal(userId) {
+        if (!currentUser || !currentUser.isAdmin) return;
+        const user = appUsersList.find(u => String(u.id) === String(userId));
+        if (!user) return;
+
+        editingPermissionUser = user;
+        editingPermissionDraft = normalizeTabPermissions(null);
+
+        loadPermissionsForAdminUser(user.id).then(perms => {
+            editingPermissionDraft = normalizeTabPermissions(perms);
+            renderPermissionModal();
+            document.getElementById('permission-modal-backdrop').classList.add('open');
+        });
+    }
+
+    async function loadPermissionsForAdminUser(userId) {
+        const result = {};
+        try {
+            const { data, error } = await supabaseClient
+                .from('app_user_tab_permissions')
+                .select('tab_key, can_view, can_edit, can_delete')
+                .eq('user_id', userId);
+            if (!error && data) {
+                data.forEach(row => {
+                    result[row.tab_key] = {
+                        view: !!row.can_view || !!row.can_edit || !!row.can_delete,
+                        edit: !!row.can_edit,
+                        del: !!row.can_delete
+                    };
+                });
+            }
+        } catch (e) {
+            console.warn('Rechte konnten nicht geladen werden.', e);
+        }
+        return result;
+    }
+
+    function renderPermissionModal() {
+        const grid = document.getElementById('permission-grid');
+        const userEl = document.getElementById('permission-modal-user');
+        if (!grid || !editingPermissionUser) return;
+
+        userEl.textContent = `Benutzer: ${editingPermissionUser.username}`;
+        grid.innerHTML = '<div class="head">Tab</div><div class="head">Anschauen</div><div class="head">Bearbeiten</div><div class="head">Löschen</div>';
+
+        TAB_DEFINITIONS.forEach(tab => {
+            const p = editingPermissionDraft[tab.key] || { view: false, edit: false, del: false };
+            const supportsDelete = DELETE_PERMISSION_TABS.has(tab.key);
+            grid.insertAdjacentHTML('beforeend', `
+                <div class="tab-name">${tab.label}</div>
+                <div>
+                    <input type="checkbox" id="perm-view-${tab.key}" ${p.view ? 'checked' : ''}
+                           onchange="syncPermissionCheckboxes('${tab.key}')">
+                </div>
+                <div>
+                    <input type="checkbox" id="perm-edit-${tab.key}" ${p.edit ? 'checked' : ''}
+                           onchange="syncPermissionCheckboxes('${tab.key}')">
+                </div>
+                <div>
+                    ${supportsDelete ? `<input type="checkbox" id="perm-delete-${tab.key}" ${p.del ? 'checked' : ''}
+                           onchange="syncPermissionDeleteCheckbox('${tab.key}')" title="Löschen erlauben">` : '<span style="color:var(--text-muted);">—</span>'}
+                </div>
+            `);
+        });
+    }
+
+    function syncPermissionCheckboxes(tabKey) {
+        const view = document.getElementById(`perm-view-${tabKey}`);
+        const edit = document.getElementById(`perm-edit-${tabKey}`);
+        if (!view || !edit) return;
+        if (edit.checked) view.checked = true;
+        if (!view.checked) edit.checked = false;
+    }
+
+    function syncPermissionDeleteCheckbox(tabKey) {
+        const view = document.getElementById(`perm-view-${tabKey}`);
+        const del = document.getElementById(`perm-delete-${tabKey}`);
+        if (!view || !del) return;
+        if (del.checked) view.checked = true;
+    }
+
+    function closePermissionModal() {
+        const modal = document.getElementById('permission-modal-backdrop');
+        if (modal) modal.classList.remove('open');
+        editingPermissionUser = null;
+        editingPermissionDraft = null;
+    }
+
+    function closePermissionModalOnBackdrop(event) {
+        if (event.target && event.target.id === 'permission-modal-backdrop') closePermissionModal();
+    }
+
+    async function saveCurrentTabPermissions() {
+        if (!editingPermissionUser || !currentUser || !currentUser.isAdmin) return;
+
+        const permissions = {};
+        TAB_DEFINITIONS.forEach(tab => {
+            const view = document.getElementById(`perm-view-${tab.key}`);
+            const edit = document.getElementById(`perm-edit-${tab.key}`);
+            const del = document.getElementById(`perm-delete-${tab.key}`);
+            permissions[tab.key] = {
+                view: !!(view && view.checked),
+                edit: !!(edit && edit.checked),
+                del: DELETE_PERMISSION_TABS.has(tab.key) ? !!(del && del.checked) : false
+            };
+            if (permissions[tab.key].edit || permissions[tab.key].del) permissions[tab.key].view = true;
+        });
+
+        const rows = TAB_DEFINITIONS.map(tab => ({
+            user_id: editingPermissionUser.id,
+            tab_key: tab.key,
+            can_view: permissions[tab.key].view,
+            can_edit: permissions[tab.key].edit,
+            can_delete: permissions[tab.key].del
+        }));
+
+        try {
+            const { error: deleteError } = await supabaseClient
+                .from('app_user_tab_permissions')
+                .delete()
+                .eq('user_id', editingPermissionUser.id);
+            if (deleteError) throw deleteError;
+
+            const { error: insertError } = await supabaseClient
+                .from('app_user_tab_permissions')
+                .insert(rows);
+            if (insertError) throw insertError;
+
+            const savedUsername = editingPermissionUser.username;
+            editingPermissionUser.tabPermissions = permissions;
+            closePermissionModal();
+            renderUsersTab();
+            showToast(`Die Tab-Rechte für „${savedUsername}“ wurden gespeichert.`, 'success', 'Tab-Rechte geändert');
+            await logActivity('Benutzerverwaltung', `Tab-Rechte für Benutzer „${savedUsername}“ geändert`);
+        } catch (e) {
+            showToast('Tab-Rechte konnten nicht gespeichert werden: ' + e.message, 'danger');
+        }
+    }
+
+    // ---- Benutzerverwaltung (nur Admin) ----
+    async function handleAdminCreateUser(event) {
+        event.preventDefault();
+        const username = document.getElementById('admin-new-username').value.trim();
+        const password = document.getElementById('admin-new-password').value;
+        const role = document.getElementById('admin-new-role').value;
+        const isAdmin = role === 'admin';
+
+        if (!username || password.length < 4) {
+            showToast('Bitte Benutzername und Passwort (mind. 4 Zeichen) angeben.', 'danger');
+            return;
+        }
+        if (username.toLowerCase() === ADMIN_USERNAME) {
+            showToast('Der fest eingebaute Admin-Benutzername "admin" ist reserviert.', 'danger');
+            return;
+        }
+
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        try {
+            const passwordHash = await hashPassword(password);
+            const { data, error } = await supabaseClient
+                .from('app_users')
+                .insert([{ username, password_hash: passwordHash, permission: isAdmin ? 'edit' : 'view', is_admin: isAdmin, approved: true }])
+                .select();
+
+            if (error) {
+                if (String(error.message).toLowerCase().includes('duplicate') || String(error.code) === '23505') {
+                    showToast('Dieser Benutzername ist bereits vergeben.', 'danger');
+                } else {
+                    showToast('Fehler beim Anlegen: ' + error.message, 'danger');
+                }
+                return;
+            }
+
+            if (data && data[0]) {
+                appUsersList.unshift(data[0]);
+                // Auch Administratoren bekommen Einträge, diese werden bei Login aber automatisch auf Vollzugriff gesetzt.
+                await saveDefaultTabPermissionsForUser(data[0].id);
+            }
+            renderUsersTab();
+            event.target.reset();
+            showToast(`${isAdmin ? 'Administrator' : 'Benutzer'} „${username}“ wurde angelegt und freigeschaltet.`, 'success', 'Benutzer angelegt');
+            await logActivity('Benutzerverwaltung', `${isAdmin ? 'Administrator' : 'Benutzer'} „${username}“ wurde angelegt und freigeschaltet`);
+        } finally {
+            submitBtn.disabled = false;
+        }
+    }
+
+    async function saveDefaultTabPermissionsForUser(userId) {
+        const rows = TAB_DEFINITIONS.map(tab => ({
+            user_id: userId,
+            tab_key: tab.key,
+            can_view: true,
+            can_edit: false,
+            can_delete: false
+        }));
+        try {
+            await supabaseClient.from('app_user_tab_permissions').insert(rows);
+        } catch (e) {
+            console.warn('Standard-Tab-Rechte konnten nicht angelegt werden.', e);
+        }
+    }
+
+    async function loadAppUsers() {
+        const { data, error } = await supabaseClient.from('app_users').select('*').order('created_at', { ascending: false });
+        if (!error && data) {
+            appUsersList = data;
+            renderUsersTab();
+        }
+    }
+
+
+    async function loadPasswordResetRequests() {
+        if (!currentUser || !currentUser.isAdmin) return;
+        const { data, error } = await supabaseClient.from('password_reset_requests').select('*').order('created_at', { ascending: false });
+        const body = document.getElementById('password-reset-requests-body');
+        if (error) {
+            if (body) body.innerHTML = `<tr><td colspan="5" style="color:var(--danger-color);padding:16px;">Die Tabelle "password_reset_requests" fehlt oder ist nicht erreichbar.</td></tr>`;
+            return;
+        }
+        renderPasswordResetRequests(data || []);
+    }
+
+    function renderPasswordResetRequests(requests) {
+        const body = document.getElementById('password-reset-requests-body');
+        if (!body) return;
+        const countEl = document.getElementById('password-reset-count');
+        const openCount = (requests || []).filter(r => r.status === 'pending').length;
+        if (countEl) {
+            countEl.textContent = `${openCount} offen`;
+            countEl.style.display = openCount ? 'inline-flex' : 'none';
+        }
+        if (!requests.length) {
+            body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:16px;">Keine Passwort-Zurücksetzungen vorhanden.</td></tr>`;
+            return;
+        }
+        body.innerHTML = requests.map(r => {
+            const created = r.created_at ? new Date(r.created_at).toLocaleString('de-DE') : '-';
+            const statusHtml = r.status === 'approved'
+                ? `<span class="status-pill approved">Freigegeben</span>`
+                : r.status === 'completed'
+                    ? `<span class="status-pill completed">Erledigt</span>`
+                    : `<span class="status-pill pending">Wartet auf Admin</span>`;
+            const actionHtml = r.status === 'pending'
+                ? `<button class="btn btn-success" style="height:34px;font-size:.8rem;" onclick="approvePasswordReset(${r.id})">Freigeben</button>`
+                : r.status === 'approved'
+                    ? `<button class="btn" style="height:34px;font-size:.8rem;background-color:var(--card-bg-raised);color:var(--text-color);border:1px solid var(--border-color);" onclick="revokePasswordReset(${r.id})">Freigabe zurücknehmen</button>`
+                    : `<span style="color:var(--text-muted);font-size:.8rem;">Abgeschlossen</span>`;
+            return `<tr><td>${r.username || '-'}</td><td><span class="time-text" style="letter-spacing:1px;">${r.request_code || '-'}</span></td><td>${statusHtml}</td><td class="time-text">${created}</td><td>${actionHtml}</td></tr>`;
+        }).join('');
+    }
+
+    async function approvePasswordReset(id) {
+        if (!currentUser || !currentUser.isAdmin) return;
+        const { error } = await supabaseClient.from('password_reset_requests')
+            .update({ status: 'approved', approved_at: new Date().toISOString(), approved_by: currentUser.username })
+            .eq('id', id).eq('status', 'pending');
+        if (error) return showToast('Reset-Anfrage konnte nicht freigegeben werden: ' + error.message, 'danger');
+        await loadPasswordResetRequests();
+        showToast('Die Passwort-Zurücksetzung wurde für den Benutzer freigegeben.', 'success', 'Passwort-Zurücksetzung freigegeben');
+    }
+
+    async function revokePasswordReset(id) {
+        if (!currentUser || !currentUser.isAdmin) return;
+        const { error } = await supabaseClient.from('password_reset_requests')
+            .update({ status: 'pending', approved_at: null, approved_by: null })
+            .eq('id', id).eq('status', 'approved');
+        if (error) return showToast('Freigabe konnte nicht zurückgenommen werden: ' + error.message, 'danger');
+        await loadPasswordResetRequests();
+        showToast('Die Freigabe wurde zurückgenommen. Der Benutzer kann noch kein neues Passwort setzen.', 'success', 'Passwort-Zurücksetzung geändert');
+    }
+
+    function renderUsersTab() {
+        const tbody = document.getElementById('users-table-body');
+        if (!tbody) return;
+
+        if (appUsersList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;">Noch keine Benutzer registriert.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = appUsersList.map(u => {
+            const registeredDate = u.created_at ? new Date(u.created_at).toLocaleDateString('de-DE') : '-';
+            const statusHtml = u.approved
+                ? `<span class="status-pill approved">Freigeschaltet</span>`
+                : `<span class="status-pill pending">Wartet</span>`;
+            const roleHtml = u.is_admin
+                ? `<span class="status-pill approved">Administrator</span>`
+                : `<span class="status-pill">Benutzer</span>`;
+            const permissionButton = u.is_admin
+                ? `<span style="color:var(--text-muted);font-size:.82rem;padding:8px 4px;">Vollzugriff</span>`
+                : `<button class="btn" style="height:34px;font-size:.8rem;background-color:var(--primary-soft);color:#ffb27a;border:1px solid rgba(255,106,26,.35);" onclick="openPermissionModal(${u.id})">Tab-Rechte</button>`;
+            return `
+                <tr>
+                    <td>${u.username}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <span style="color:var(--text-muted);font-size:.78rem;">Aus Sicherheitsgründen nicht auslesbar</span>
+                            <button type="button" class="btn" style="height:34px;font-size:.78rem;padding:6px 12px;background-color:var(--card-bg-raised);color:var(--text-color);border:1px solid var(--border-color);" onclick="openResetPasswordModal(${u.id}, '${String(u.username).replace(/'/g, "\'")}')">Passwort setzen / anzeigen</button>
+                        </div>
+                    </td>
+                    <td>${statusHtml}</td>
+                    <td>${roleHtml}</td>
+                    <td class="time-text">${registeredDate}</td>
+                    <td>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                            ${permissionButton}
+                            <button class="btn ${u.approved ? '' : 'btn-success'}" style="height:34px;font-size:.8rem;${u.approved ? 'background-color:var(--card-bg-raised);color:var(--text-color);border:1px solid var(--border-color);' : ''}" onclick="toggleUserApproval(${u.id}, ${!u.approved})">${u.approved ? 'Sperren' : 'Freischalten'}</button>
+                            <button class="btn btn-danger" onclick="deleteAppUser(${u.id})">Löschen</button>
+                        </div>
+                    </td>
+                </tr>`;
+        }).join('');
+    }
+
+    let resetPasswordTargetUserId = null;
+
+    function openResetPasswordModal(id, username) {
+        resetPasswordTargetUserId = id;
+        document.getElementById('reset-password-modal-user').innerText = `Für Benutzer „${username}“`;
+        const passwordInput = document.getElementById('reset-password-input');
+        passwordInput.value = '';
+        passwordInput.type = 'password';
+        const visibilityBtn = document.getElementById('toggle-reset-password-visibility');
+        if (visibilityBtn) {
+            visibilityBtn.textContent = '👁';
+            visibilityBtn.setAttribute('aria-label', 'Passwort anzeigen');
+            visibilityBtn.setAttribute('title', 'Passwort anzeigen');
+        }
+        document.getElementById('reset-password-modal-backdrop').classList.add('open');
+        setTimeout(() => document.getElementById('reset-password-input').focus(), 50);
+    }
+
+    function toggleResetPasswordVisibility() {
+        const input = document.getElementById('reset-password-input');
+        const btn = document.getElementById('toggle-reset-password-visibility');
+        if (!input) return;
+        const visible = input.type === 'text';
+        input.type = visible ? 'password' : 'text';
+        if (btn) {
+            btn.textContent = visible ? '👁' : '🙈';
+            btn.setAttribute('aria-label', visible ? 'Passwort anzeigen' : 'Passwort ausblenden');
+            btn.setAttribute('title', visible ? 'Passwort anzeigen' : 'Passwort ausblenden');
+        }
+    }
+
+    function closeResetPasswordModal() {
+        document.getElementById('reset-password-modal-backdrop').classList.remove('open');
+        resetPasswordTargetUserId = null;
+    }
+
+    function handleResetPasswordBackdropClick(event) {
+        if (event.target.id === 'reset-password-modal-backdrop') closeResetPasswordModal();
+    }
+
+    async function submitResetPassword(event) {
+        event.preventDefault();
+        if (!resetPasswordTargetUserId) return;
+        const newPassword = document.getElementById('reset-password-input').value;
+        if (!newPassword || newPassword.length < 4) {
+            showToast('Das Passwort muss mindestens 4 Zeichen lang sein.', 'danger');
+            return;
+        }
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        try {
+            const passwordHash = await hashPassword(newPassword);
+            const { error } = await supabaseClient.from('app_users').update({ password_hash: passwordHash }).eq('id', resetPasswordTargetUserId);
+            if (error) {
+                showToast('Fehler beim Zurücksetzen: ' + error.message, 'danger');
+                return;
+            }
+            const targetUser = appUsersList.find(u => u.id === resetPasswordTargetUserId);
+            showToast('Das Passwort wurde geändert und sicher gespeichert.', 'success', 'Passwort geändert');
+            await logActivity('Benutzerverwaltung', `Passwort für Benutzer „${targetUser ? targetUser.username : resetPasswordTargetUserId}“ wurde geändert`);
+            closeResetPasswordModal();
+        } finally {
+            submitBtn.disabled = false;
+        }
+    }
+
+    async function toggleUserApproval(id, approve) {
+        const { error } = await supabaseClient.from('app_users').update({ approved: approve }).eq('id', id);
+        if (!error) {
+            const u = appUsersList.find(x => x.id === id);
+            if (u) u.approved = approve;
+            renderUsersTab();
+            const username = u ? u.username : id;
+            showToast(approve ? 'Der Benutzer kann sich wieder anmelden.' : 'Der Benutzer kann sich nicht mehr anmelden.', 'success', approve ? 'Benutzer freigeschaltet' : 'Benutzer gesperrt');
+            const approvalUser = appUsersList.find(x => x.id === id);
+            await logActivity('Benutzerverwaltung', `Benutzer „${approvalUser ? approvalUser.username : id}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`);
+            await logActivity('Benutzerverwaltung', `Benutzer „${username}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`);
+        } else {
+            showToast('Fehler: ' + error.message, 'danger');
+        }
+    }
+
+    async function deleteAppUser(id) {
+        if (!(await customConfirm('Diesen Benutzer wirklich löschen?'))) return;
+        const deletedUser = appUsersList.find(x => x.id === id);
+        const { error } = await supabaseClient.from('app_users').delete().eq('id', id);
+        if (!error) {
+            try { await supabaseClient.from('app_user_tab_permissions').delete().eq('user_id', id); } catch (e) {}
+            appUsersList = appUsersList.filter(x => x.id !== id);
+            renderUsersTab();
+            showToast('Der Benutzer und seine gespeicherten Tab-Rechte wurden entfernt.', 'success', 'Benutzer gelöscht');
+            await logActivity('Benutzerverwaltung', `Benutzer „${deletedUser ? deletedUser.username : id}“ wurde gelöscht`);
+            await logActivity('Benutzerverwaltung', `Benutzer „${id}“ wurde gelöscht`);
+        } else {
+            showToast('Fehler: ' + error.message, 'danger');
+        }
+    }
+
