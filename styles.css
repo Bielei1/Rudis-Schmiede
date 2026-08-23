@@ -887,11 +887,11 @@
         /* ============ ONLINE-BOX (rechts, unter der Live-Uhr) ============ */
         .online-sidebar {
             position: fixed;
-            top: 84px;
+            top: 112px;
             right: 20px;
             z-index: 1900;
             width: 190px;
-            max-height: calc(100vh - 104px);
+            max-height: calc(100vh - 132px);
             overflow-y: auto;
             padding: 14px 14px;
             border: 1px solid var(--border-color);
