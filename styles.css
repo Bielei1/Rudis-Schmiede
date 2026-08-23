@@ -58,8 +58,6 @@
 
         html {
             scrollbar-color: var(--border-color) var(--bg-color);
-            height: 100%;
-            overflow: hidden;
         }
 
         body {
@@ -69,8 +67,7 @@
                 radial-gradient(ellipse 700px 500px at 100% 0%, rgba(201, 122, 74, 0.07), transparent 55%);
             background-attachment: fixed;
             color: var(--text-color);
-            height: 100%;
-            overflow: hidden;
+            min-height: 100vh;
         }
 
         /* ============ APP SHELL / SIDEBAR LAYOUT ============ */
@@ -81,7 +78,7 @@
             margin: 0 auto;
             display: flex;
             align-items: flex-start;
-            height: 100vh;
+            min-height: 100vh;
         }
 
         .sidebar {
@@ -257,8 +254,6 @@
         .content-area {
             flex: 1;
             min-width: 0;
-            height: 100vh;
-            overflow-y: auto;
             padding: 30px 34px 60px 34px;
         }
 
@@ -496,8 +491,9 @@
         }
 
         .table-container-scrollable {
-            overflow-x: visible;
-            overflow-y: visible;
+            max-height: 800px;
+            overflow-y: auto;
+            overflow-x: auto;
             border-radius: 10px;
             border: 1px solid var(--border-color);
             position: relative;
@@ -512,8 +508,7 @@
 
         table {
             width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
+            border-collapse: collapse;
             text-align: left;
             font-variant-numeric: tabular-nums;
         }
@@ -640,7 +635,7 @@
         }
 
         .adjust-box input[type="number"], .adjust-box input[type="text"] {
-            width: 160px;
+            width: 130px;
         }
 
         .time-text {
@@ -1306,14 +1301,8 @@
         /* ============ RESPONSIVE ============ */
 
         @media (max-width: 980px) {
-            html, body {
-                height: auto;
-                overflow: visible;
-            }
-
             .app-shell {
                 flex-direction: column;
-                height: auto;
             }
 
             .sidebar {
@@ -1336,8 +1325,6 @@
             }
 
             .content-area {
-                height: auto;
-                overflow-y: visible;
                 padding: 22px 16px 50px 16px;
             }
 
