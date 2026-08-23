@@ -87,10 +87,10 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><span class="business-badge">${item.customerName || '-'}</span></td>
-                <td><span class="business-badge" style="background-color: #334155; color: #38bdf8;">${item.business || '-'}</span></td>
+                <td><span class="business-badge" style="background-color: var(--secondary-btn-bg); color: var(--accent-blue);">${item.business || '-'}</span></td>
                 <td class="material-name">
                     <div class="tooltip-container">
-                        <span style="border-bottom: 1px dotted #94a3b8;">${item.name}</span>
+                        <span style="border-bottom: 1px dotted var(--accent-gray);">${item.name}</span>
                         <div class="tooltip-text">${getRecipeTooltipHtml(item.name)}</div>
                     </div>
                 </td>

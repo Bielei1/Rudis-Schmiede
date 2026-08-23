@@ -283,7 +283,7 @@
                 <div class="kpi-value">${outOfStock}</div>
                 <div class="kpi-sub">Bestand = 0</div>
             </div>
-            <div class="kpi-card" style="--kpi-accent: #e0a45c;">
+            <div class="kpi-card" style="--kpi-accent: var(--accent-amber);">
                 <div class="kpi-label">Niedriger Bestand</div>
                 <div class="kpi-value">${lowStock}</div>
                 <div class="kpi-sub">Unter ${LOW_STOCK_THRESHOLD} Stk.</div>

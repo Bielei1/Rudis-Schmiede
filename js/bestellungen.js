@@ -257,7 +257,7 @@
                 const unitCost = getRecipeCostPerUnit(ordItem.name);
                 totalProductionCostSum += unitCost * ordItem.qty;
 
-                let badgeColor = priceInfo.type === 'Sonderpreis' ? '#38bdf8' : '#94a3b8';
+                let badgeColor = priceInfo.type === 'Sonderpreis' ? 'var(--accent-blue)' : 'var(--accent-gray)';
                 let isChecked = ordItem.produced ? 'checked' : '';
                 let textDecoration = ordItem.produced ? 'text-decoration: line-through; opacity: 0.7;' : '';
 
@@ -266,8 +266,8 @@
                         <input type="checkbox" ${isChecked} onchange="toggleOrderProductionStatus(${order.id}, ${idx}, this)" title="Artikel fertig produziert" style="width: 16px; height: 16px; cursor: pointer;" />
                         <span>• <strong>${ordItem.qty}x</strong> ${ordItem.name} à $${priceInfo.price.toFixed(2)} 
                         <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${priceInfo.type}</span> = 
-                        <span style="color: #34d399; font-weight: 600;">$${itemTotal.toFixed(2)}</span> 
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${isEnough ? '#34d399' : '#f87171'}">${available}</span>)</span></span>
+                        <span style="color: var(--accent-green); font-weight: 600;">$${itemTotal.toFixed(2)}</span> 
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${isEnough ? 'var(--accent-green)' : 'var(--accent-red)'}">${available}</span>)</span></span>
                     </div>`;
 
                 resolveRawMaterials(ordItem.name, ordItem.qty, rawMaterialMap);
@@ -291,17 +291,17 @@
                     let hasEnoughMat = stockQty >= reqQty;
                     if (!hasEnoughMat) allOk = false;
 
-                    let stockColorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnoughMat ? '#34d399' : '#f87171');
+                    let stockColorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnoughMat ? 'var(--accent-green)' : 'var(--accent-red)');
                     rawMaterialsHtml += `<div>• <strong>${reqQty}x</strong> ${matName} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${stockColorStyle}">${stockQty}</span>)</span></div>`;
                 });
             } else {
                 rawMaterialsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Rohmaterialien definiert</span>`;
             }
 
-            let statusHtml = allOk ? `<span class="req-status status-ok">✓ Alles im Lager</span>` : `<span class="req-status status-missing">✕ Material fehlt</span>`;
+            let statusHtml = buildStatusBadge(allOk, 'Alles im Lager', 'Material fehlt');
 
             tr.innerHTML = `
-                <td><div class="material-name" style="color: #38bdf8; font-size: 1.05rem;">${order.customerName}</div></td>
+                <td><div class="material-name" style="color: var(--accent-blue); font-size: 1.05rem;">${order.customerName}</div></td>
                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${itemsHtml}</div></td>
                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${rawMaterialsHtml}</div></td>
                 <td class="time-text">${order.createdAt || '-'}</td>
@@ -377,12 +377,12 @@
             }
 
             archivedOrder.items.forEach(item => {
-                let badgeColor = item.priceType === 'Sonderpreis' ? '#38bdf8' : '#94a3b8';
-                itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${item.qty}x</strong> ${item.name} à $${item.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${item.priceType}</span> = <span style="color: #34d399; font-weight: 600;">$${item.total.toFixed(2)}</span></div>`;
+                let badgeColor = item.priceType === 'Sonderpreis' ? 'var(--accent-blue)' : 'var(--accent-gray)';
+                itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${item.qty}x</strong> ${item.name} à $${item.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${item.priceType}</span> = <span style="color: var(--accent-green); font-weight: 600;">$${item.total.toFixed(2)}</span></div>`;
             });
 
             tr.innerHTML = `
-                <td><div class="material-name" style="color: #38bdf8; font-size: 1.05rem;">${archivedOrder.customerName}</div></td>
+                <td><div class="material-name" style="color: var(--accent-blue); font-size: 1.05rem;">${archivedOrder.customerName}</div></td>
                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${itemsHtml}</div></td>
                 <td><span class="current-price">$${archivedOrder.totalSum.toFixed(2)}</span></td>
                 <td><span class="current-cost">$${totalProdCost.toFixed(2)}</span></td>

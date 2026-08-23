@@ -25,6 +25,17 @@
             --radius-sm: 8px;
             --radius: 10px;
             --radius-lg: 14px;
+            /* Akzentfarben, die bisher als Hex-Werte direkt im JS verstreut waren */
+            --accent-blue: #38bdf8;
+            --accent-green: #34d399;
+            --accent-red: #f87171;
+            --accent-gray: #94a3b8;
+            --accent-amber: #e0a45c;
+            --secondary-btn-bg: #334155;
+            --panel-bg-blue: #162032;
+            --label-blue: #3b82f6;
+            --label-cyan: #0ea5e9;
+            --label-green: #10b981;
             --font-display: 'Fraunces', Georgia, serif;
             --font-body: 'Inter', system-ui, -apple-system, sans-serif;
             --font-mono: 'JetBrains Mono', 'Segoe UI', monospace;

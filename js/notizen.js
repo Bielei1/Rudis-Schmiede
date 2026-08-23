@@ -105,9 +105,9 @@
         const sortedNotes = [...notesList].sort((a, b) => b.id - a.id);
 
         sortedNotes.forEach(note => {
-            let labelColor = '#3b82f6';
-            if (note.label === 'Telegram') labelColor = '#0ea5e9';
-            if (note.label === 'Info') labelColor = '#10b981';
+            let labelColor = 'var(--label-blue)';
+            if (note.label === 'Telegram') labelColor = 'var(--label-cyan)';
+            if (note.label === 'Info') labelColor = 'var(--label-green)';
 
             const details = document.createElement('details');
             details.innerHTML = `
@@ -120,7 +120,7 @@
                 <div style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;">
                     <div style="font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: var(--text-color); margin-bottom: 14px;">${note.content}</div>
                     <div style="display: flex; gap: 8px;">
-                        <button class="btn" style="background-color: #334155; height: 34px; font-size: 0.85rem;" onclick="editNote(${note.id})">Bearbeiten</button>
+                        <button class="btn" style="background-color: var(--secondary-btn-bg); height: 34px; font-size: 0.85rem;" onclick="editNote(${note.id})">Bearbeiten</button>
                         <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteNote(${note.id})">Löschen</button>
                     </div>
                 </div>

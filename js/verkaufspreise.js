@@ -17,7 +17,7 @@
 
             const isZero = recipeHasZeroCost(recipe.outputName);
             const costClass = isZero ? "current-cost zero-cost" : "current-cost";
-            const nameColorStyle = isZero ? "color: var(--danger-color) !important;" : "color: #38bdf8;";
+            const nameColorStyle = isZero ? "color: var(--danger-color) !important;" : "color: var(--accent-blue);";
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -25,7 +25,7 @@
                     <div class="tooltip-container">
                         <span class="material-name" style="${nameColorStyle} border-bottom: 1px dotted currentColor;">${recipe.outputName}</span>
                         <div class="tooltip-text">${getRecipeTooltipHtml(recipe.outputName)}</div>
-                        <span style="font-size: 0.85rem; color: #34d399; font-weight: 600; margin-left: 8px;">(${recipe.outputQty} Stk.)</span>
+                        <span style="font-size: 0.85rem; color: var(--accent-green); font-weight: 600; margin-left: 8px;">(${recipe.outputQty} Stk.)</span>
                     </div>
                 </td>
                 <td><span class="${costClass}">$${costPerUnit.toFixed(2)}</span></td>
@@ -134,7 +134,7 @@
             if (costPerUnit > 0 && !isZero) {
                 const markupPercent = ((effectivePrice - costPerUnit) / costPerUnit) * 100;
                 markupText = `${markupPercent >= 0 ? '+' : ''}${markupPercent.toFixed(1)}%`;
-                markupColor = markupPercent >= 0 ? '#34d399' : '#f87171';
+                markupColor = markupPercent >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
             }
 
             let priceDisplayHtml = `$${effectivePrice.toFixed(2)}`;

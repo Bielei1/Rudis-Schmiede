@@ -865,7 +865,7 @@
                 : `<span class="status-pill">Benutzer</span>`;
             const permissionButton = u.is_admin
                 ? `<span style="color:var(--text-muted);font-size:.82rem;padding:8px 4px;">Vollzugriff</span>`
-                : `<button class="btn" style="height:34px;font-size:.8rem;background-color:var(--primary-soft);color:#ffb27a;border:1px solid rgba(255,106,26,.35);" onclick="openPermissionModal(${u.id})">Tab-Rechte</button>`;
+                : `<button class="btn" style="height:34px;font-size:.8rem;background-color:var(--primary-soft);color:var(--primary-bright);border:1px solid rgba(255,106,26,.35);" onclick="openPermissionModal(${u.id})">Tab-Rechte</button>`;
             return `
                 <tr>
                     <td>${u.username}</td>

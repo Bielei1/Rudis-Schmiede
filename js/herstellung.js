@@ -252,14 +252,14 @@
             intermediateSteps.forEach(step => {
                 let stock = getStockAmount(step.itemName);
                 html += `<div style="background: #101726; border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; flex: 1; min-width: 240px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">`;
-                html += `<div style="font-weight: 700; color: #38bdf8; font-size: 0.95rem; margin-bottom: 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Schritt ${stepCounter}: <strong>${step.actualProduced}x ${step.itemName}</strong></div>`;
+                html += `<div style="font-weight: 700; color: var(--accent-blue); font-size: 0.95rem; margin-bottom: 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Schritt ${stepCounter}: <strong>${step.actualProduced}x ${step.itemName}</strong></div>`;
                 html += `<div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Benötigte Materialien:</div>`;
                 
                 step.ingredients.forEach(ing => {
                     let reqMatQty = ing.qty * step.multiplier;
                     let matStock = getStockAmount(ing.name);
                     let hasMatOk = matStock >= reqMatQty;
-                    html += `<div style="margin-left: 8px; font-size: 0.85rem; margin-bottom: 2px;">• <strong>${reqMatQty}x</strong> ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${hasMatOk ? '#34d399' : '#f87171'}; font-weight: 600;">${matStock}</span>)</span></div>`;
+                    html += `<div style="margin-left: 8px; font-size: 0.85rem; margin-bottom: 2px;">• <strong>${reqMatQty}x</strong> ${ing.name} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${hasMatOk ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 600;">${matStock}</span>)</span></div>`;
                 });
                 html += `</div>`;
                 stepCounter++;
@@ -267,8 +267,8 @@
             html += `</div>`;
         }
 
-        html += `<div style="background: #162238; border: 2px solid #34d399; padding: 16px; border-radius: 8px; margin-top: 12px;">`;
-        html += `<div style="font-size: 1.1rem; font-weight: 700; color: #34d399; margin-bottom: 10px;">📦 Benötigte Rohmaterialien für ${targetAmount}x ${recipe.outputName}:</div>`;
+        html += `<div style="background: #162238; border: 2px solid var(--accent-green); padding: 16px; border-radius: 8px; margin-top: 12px;">`;
+        html += `<div style="font-size: 1.1rem; font-weight: 700; color: var(--accent-green); margin-bottom: 10px;">📦 Benötigte Rohmaterialien für ${targetAmount}x ${recipe.outputName}:</div>`;
 
         let rawMaterialMap = {};
         resolveRawMaterials(recipe.outputName, targetAmount, rawMaterialMap);
@@ -280,15 +280,15 @@
             let stock = getStockAmount(matName);
             let ok = stock >= req;
             if (!ok) allMaterialsOk = false;
-            let stockColor = stock === 0 ? 'color: var(--danger-color); font-weight: bold;' : (ok ? '#34d399' : '#f87171');
+            let stockColor = stock === 0 ? 'color: var(--danger-color); font-weight: bold;' : (ok ? 'var(--accent-green)' : 'var(--accent-red)');
             rawHtml += `<div style="margin-bottom: 4px; font-size: 0.95rem;">• <strong>${req}x</strong> ${matName} <span style="color: var(--text-muted);">(Lagerbestand: <span style="color: ${stockColor}; font-weight: 600;">${stock}</span>)</span></div>`;
         });
 
         html += rawHtml;
         if (allMaterialsOk) {
-            html += `<div style="margin-top: 12px; font-weight: 700; color: #34d399;">✓ Du hast alle benötigten Rohmaterialien auf Lager!</div>`;
+            html += `<div style="margin-top: 12px; font-weight: 700; color: var(--accent-green);">✓ Du hast alle benötigten Rohmaterialien auf Lager!</div>`;
         } else {
-            html += `<div style="margin-top: 12px; font-weight: 700; color: #f87171;">✕ Dir fehlen einige Rohmaterialien im Lager!</div>`;
+            html += `<div style="margin-top: 12px; font-weight: 700; color: var(--accent-red);">✕ Dir fehlen einige Rohmaterialien im Lager!</div>`;
         }
         html += `</div>`;
 
@@ -331,7 +331,7 @@
                     let isEnough = stockQty >= requiredAmount;
                     if (!isEnough) allIngredientsOk = false;
 
-                    let stockColorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : (isEnough ? '#34d399' : '#f87171');
+                    let stockColorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : (isEnough ? 'var(--accent-green)' : 'var(--accent-red)');
 
                     ingredientsHtml += `
                         <div style="margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
@@ -343,27 +343,25 @@
                 ingredientsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Zutaten definiert</span>`;
             }
 
-            let statusHtml = allIngredientsOk ? 
-                `<span class="req-status status-ok">✓ Rohstoffe vorhanden</span>` : 
-                `<span class="req-status status-missing">✕ Rohstoffe fehlen</span>`;
+            let statusHtml = buildStatusBadge(allIngredientsOk, 'Rohstoffe vorhanden', 'Rohstoffe fehlen');
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
                     <div style="display: flex; flex-direction: column; gap: 6px;">
-                        <span class="material-name" style="color: #38bdf8; font-size: 1.05rem;">${recipe.outputName}</span>
+                        <span class="material-name" style="color: var(--accent-blue); font-size: 1.05rem;">${recipe.outputName}</span>
                         <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-muted);">
                             <span>Rezept-Ertrag: <strong>${recipe.outputQty} Stk.</strong></span>
                              
                         </div>
-                        <div style="font-size: 0.9rem; color: #34d399; font-weight: 600;">🡒 Daraus resultierender Ertrag: ${actualProduced} Stk. (${multiplier} Durchgänge)</div>
+                        <div style="font-size: 0.9rem; color: var(--accent-green); font-weight: 600;">🡒 Daraus resultierender Ertrag: ${actualProduced} Stk. (${multiplier} Durchgänge)</div>
                     </div>
                 </td>
-                <td><div style="font-size: 0.9rem; line-height: 1.4; background: #162032; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);">${ingredientsHtml}</div></td>
+                <td><div style="font-size: 0.9rem; line-height: 1.4; background: var(--panel-bg-blue); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);">${ingredientsHtml}</div></td>
                 <td>${statusHtml}</td>
                 <td>
                     <div style="display: flex; gap: 8px;">
-                        <button class="btn" style="background-color: #334155; height: 38px; font-size: 0.85rem;" onclick="editRecipe(${recipe.id})">Bearbeiten</button>
+                        <button class="btn" style="background-color: var(--secondary-btn-bg); height: 38px; font-size: 0.85rem;" onclick="editRecipe(${recipe.id})">Bearbeiten</button>
                         <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteRecipe(${recipe.id})">Löschen</button>
                     </div>
                 </td>

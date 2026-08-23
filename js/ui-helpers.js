@@ -83,3 +83,11 @@
         showToast(message);
     };
 
+    // Gemeinsamer Helfer für die "Rohstoffe vorhanden/fehlen"-Badges,
+    // vorher an 3 Stellen (bestellungen.js, herstellung.js) fast identisch dupliziert.
+    function buildStatusBadge(ok, okText, missingText) {
+        return ok
+            ? `<span class="req-status status-ok">✓ ${okText}</span>`
+            : `<span class="req-status status-missing">✕ ${missingText}</span>`;
+    }
+

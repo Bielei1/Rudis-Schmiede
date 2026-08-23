@@ -29,7 +29,7 @@
         if (!recipe || !recipe.ingredients || recipe.ingredients.length === 0) {
             return `<span style="color: var(--text-muted); font-style: italic;">Kein Rezept hinterlegt</span>`;
         }
-        let html = `<div style="font-weight: 600; margin-bottom: 4px; color: #38bdf8;">Rezept (${recipe.outputQty} Stk.):</div>`;
+        let html = `<div style="font-weight: 600; margin-bottom: 4px; color: var(--accent-blue);">Rezept (${recipe.outputQty} Stk.):</div>`;
         recipe.ingredients.forEach(ing => {
             let activeCost = getLowestPurchaseCost(ing.name);
             let costStyle = activeCost === 0 ? 'color: var(--danger-color); font-weight: bold;' : '';
@@ -130,10 +130,10 @@
                     let currentManualVal = manualIngredientPrices[ing.name] !== undefined ? manualIngredientPrices[ing.name] : '';
                     let inputId = `man-ing-input-${recipe.id}-${ingIndex}`;
 
-                    let subTotalColor = (activeCost === 0 || subTotal === 0) ? 'color: var(--danger-color); font-weight: bold;' : 'color: #34d399; font-weight: 600;';
+                    let subTotalColor = (activeCost === 0 || subTotal === 0) ? 'color: var(--danger-color); font-weight: bold;' : 'color: var(--accent-green); font-weight: 600;';
 
                     ingredientsHtml += `
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; background: #162032; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; background: var(--panel-bg-blue); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
                             <span>• ${ing.qty}x <strong>${ing.name}</strong></span>
                             <div style="display: flex; align-items: center; gap: 6px;">
                                 <input type="number" step="0.01" min="0" placeholder="$ Preis" value="${currentManualVal}" id="${inputId}" style="width: 100px; padding: 4px 8px; font-size: 0.85rem;" />
@@ -148,7 +148,7 @@
 
             const isZero = costPerUnit === 0 || hasZeroIngredient;
             const costClass = isZero ? "current-cost zero-cost" : "current-cost";
-            const nameColorStyle = isZero ? "color: var(--danger-color) !important;" : "color: #38bdf8;";
+            const nameColorStyle = isZero ? "color: var(--danger-color) !important;" : "color: var(--accent-blue);";
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
