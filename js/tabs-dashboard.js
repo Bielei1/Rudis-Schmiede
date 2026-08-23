@@ -334,7 +334,7 @@
         container.innerHTML = pinned.map(note => `
             <div class="pinboard-row">
                 <span class="pinboard-text">${escapeHtml(note.content)}</span>
-                <span class="pinboard-meta">${note.updatedAt || ''}</span>
+                <span class="pinboard-meta">${note.createdBy ? `von ${escapeHtml(note.createdBy)} · ` : ''}${note.updatedAt || ''}</span>
                 <button type="button" class="pinboard-delete-btn" title="Entfernen" onclick="deletePinboardNote(${note.id})">✕</button>
             </div>
         `).join('');
@@ -349,7 +349,7 @@
         const updatedAt = getCurrentTimeString();
         const { data, error } = await supabaseClient
             .from('notes')
-            .insert([{ label: 'Pinnwand', content, updatedAt }])
+            .insert([{ label: 'Pinnwand', content, updatedAt, createdBy: currentUser ? currentUser.username : null }])
             .select();
 
         if (!error && data) {
