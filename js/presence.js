@@ -48,3 +48,36 @@
             `;
         }).join('');
     }
+
+    // ============ LIVE-SYNC (Daten anderer User automatisch übernehmen) ============
+    // Lauscht auf Änderungen (Einfügen/Ändern/Löschen) in den zentralen Tabellen und
+    // lädt bei einer Änderung einfach die komplette Datenmenge neu (loadDataFromSupabase()
+    // holt eh alles auf einmal) - einfacher und robuster als jede Tabelle einzeln
+    // im Speicher zu patchen. Mehrere Änderungen kurz hintereinander werden zu
+    // einem einzigen Reload zusammengefasst (Debounce), damit es nicht flackert.
+    const LIVE_SYNC_TABLES = ['inventory', 'orders', 'archive', 'customer_prices', 'sales_prices', 'purchase_prices', 'recipes', 'notes'];
+    let liveSyncChannel = null;
+    let liveSyncDebounceTimer = null;
+
+    function startLiveSync() {
+        if (!currentUser || !supabaseClient) return;
+        if (liveSyncChannel) return; // schon aktiv (z. B. nach Session-Restore)
+
+        liveSyncChannel = supabaseClient.channel('live-data-sync');
+        LIVE_SYNC_TABLES.forEach(table => {
+            liveSyncChannel.on('postgres_changes', { event: '*', schema: 'public', table }, handleRemoteDataChange);
+        });
+        liveSyncChannel.subscribe();
+    }
+
+    function handleRemoteDataChange() {
+        clearTimeout(liveSyncDebounceTimer);
+        liveSyncDebounceTimer = setTimeout(async () => {
+            try {
+                await loadDataFromSupabase();
+            } catch (e) {
+                console.warn('Live-Sync: Daten konnten nicht aktualisiert werden:', e);
+            }
+        }, 400);
+    }
+

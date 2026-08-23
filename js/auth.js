@@ -384,6 +384,7 @@
         ensureAllowedTabSelected();
         applyPermissionUI();
         startPresence();
+        startLiveSync();
     }
 
     function logoutUser() {
