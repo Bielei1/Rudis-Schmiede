@@ -271,9 +271,19 @@
         }
 
         const openOrders = ordersList.length;
-        const outOfStock = inventoryList.filter(i => i.quantity === 0).length;
-        const lowStock = inventoryList.filter(i => i.quantity > 0 && i.quantity < LOW_STOCK_THRESHOLD).length;
         const archivedRevenue = archivedOrdersList.reduce((sum, o) => sum + (o.totalSum || 0), 0);
+
+        // Lagerbestand-Wert: Menge je Artikel × durchschnittlicher Einkaufspreis
+        // (Durchschnitt über alle Gewerbe-Varianten desselben Artikels in den
+        // Einkaufspreisen, damit kein Gewerbe bevorzugt und nichts doppelt gezählt wird)
+        let stockValue = 0;
+        inventoryList.forEach(invItem => {
+            const matches = purchasePricesList.filter(p => p.name.toLowerCase() === invItem.name.toLowerCase());
+            if (matches.length > 0) {
+                const avgCost = matches.reduce((sum, m) => sum + (m.cost || 0), 0) / matches.length;
+                stockValue += invItem.quantity * avgCost;
+            }
+        });
 
         grid.innerHTML = `
             <div class="kpi-card" style="--kpi-accent: var(--primary-color);">
@@ -281,15 +291,10 @@
                 <div class="kpi-value">${openOrders}</div>
                 <div class="kpi-sub">Noch nicht ausgeliefert</div>
             </div>
-            <div class="kpi-card" style="--kpi-accent: var(--danger-color);">
-                <div class="kpi-label">Artikel ohne Bestand</div>
-                <div class="kpi-value">${outOfStock}</div>
-                <div class="kpi-sub">Bestand = 0</div>
-            </div>
-            <div class="kpi-card" style="--kpi-accent: var(--accent-amber);">
-                <div class="kpi-label">Niedriger Bestand</div>
-                <div class="kpi-value">${lowStock}</div>
-                <div class="kpi-sub">Unter ${LOW_STOCK_THRESHOLD} Stk.</div>
+            <div class="kpi-card" style="--kpi-accent: var(--copper-color);">
+                <div class="kpi-label">Lagerbestand-Wert</div>
+                <div class="kpi-value">$${stockValue.toFixed(2)}</div>
+                <div class="kpi-sub">Nach Ø Einkaufspreis</div>
             </div>
             <div class="kpi-card" style="--kpi-accent: var(--success-color);">
                 <div class="kpi-label">Umsatz (Archiv gesamt)</div>
