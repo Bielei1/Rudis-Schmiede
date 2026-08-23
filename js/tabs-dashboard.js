@@ -255,7 +255,8 @@
                 const parts = [];
                 if (newOrders.length > 0) parts.push(`${newOrders.length} neue Bestellung${newOrders.length > 1 ? 'en' : ''}`);
                 if (newNotes.length > 0) parts.push(`${newNotes.length} neue Notiz${newNotes.length > 1 ? 'en' : ''}`);
-                document.getElementById('dashboard-notify-text').innerText = parts.join(' · ') + ' seit deinem letzten Besuch';
+                const textEl = document.getElementById('dashboard-notify-text');
+                if (textEl) textEl.innerText = parts.join(' · ') + ' seit deinem letzten Besuch';
 
                 let actionsHtml = '';
                 if (newOrders.length > 0) {
@@ -264,7 +265,8 @@
                 if (newNotes.length > 0) {
                     actionsHtml += `<button type="button" class="btn" style="height: 34px; font-size: 0.8rem; background-color: var(--card-bg-raised); color: var(--text-color); border: 1px solid var(--border-color);" onclick="switchTab('notizen')">Notizen ansehen</button>`;
                 }
-                document.getElementById('dashboard-notify-actions').innerHTML = actionsHtml;
+                const actionsEl = document.getElementById('dashboard-notify-actions');
+                if (actionsEl) actionsEl.innerHTML = actionsHtml;
             }
         }
 

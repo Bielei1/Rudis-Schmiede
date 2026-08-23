@@ -56,6 +56,7 @@
                 }
                 cancelNoteEdit();
                 renderNotes();
+                renderPinboard();
                 logActivity('Notizen', `Notiz "${label}" wurde geändert.`);
             } else {
                 alert("Fehler beim Aktualisieren: " + error.message);
@@ -70,6 +71,7 @@
                 notesList.unshift(data[0]);
                 cancelNoteEdit();
                 renderNotes();
+                renderPinboard();
                 logActivity('Notizen', `Neue Notiz "${label}" wurde gespeichert.`);
             } else {
                 alert("Fehler beim Speichern: " + (error ? error.message : ''));
@@ -87,6 +89,7 @@
             if (!error) {
                 notesList = notesList.filter(n => n.id !== id);
                 renderNotes();
+                renderPinboard();
                 logActivity('Notizen', `Notiz "${id}" wurde gelöscht.`);
             }
         }
