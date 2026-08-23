@@ -819,10 +819,20 @@
             text-align: center;
         }
 
+        .pinboard-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+            overflow: hidden;
+        }
+
         .pinboard-add-row {
             display: flex;
             gap: 8px;
-            margin-bottom: 12px;
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
         }
 
         .pinboard-add-row input {
@@ -844,44 +854,64 @@
 
         .pinboard-row {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
+            gap: 14px;
+            padding: 14px 18px;
             border-bottom: 1px solid var(--border-color-soft);
+            border-left: 3px solid transparent;
             font-size: 0.9rem;
+            transition: background-color 0.15s, border-left-color 0.15s;
+        }
+
+        .pinboard-row:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+            border-left-color: var(--primary-color);
         }
 
         .pinboard-row:last-child {
             border-bottom: none;
         }
 
+        .pinboard-row .pinboard-body {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
         .pinboard-row .pinboard-text {
             white-space: pre-wrap;
             word-break: break-word;
+            color: var(--text-color);
+            line-height: 1.4;
         }
 
         .pinboard-row .pinboard-meta {
             color: var(--text-muted);
-            font-size: 0.8rem;
-            flex-shrink: 0;
+            font-size: 0.78rem;
         }
 
         .pinboard-delete-btn {
             background: none;
-            border: none;
-            color: var(--text-faint);
+            border: 1px solid transparent;
+            color: var(--text-muted);
             cursor: pointer;
-            font-size: 1.1rem;
+            font-size: 1rem;
             line-height: 1;
-            padding: 4px 6px;
-            border-radius: var(--radius-sm);
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
             flex-shrink: 0;
         }
 
         .pinboard-delete-btn:hover {
             color: var(--danger-color);
-            background-color: rgba(224, 93, 82, 0.12);
+            background-color: rgba(224, 93, 82, 0.14);
+            border-color: rgba(224, 93, 82, 0.35);
         }
 
         /* ============ ONLINE-BOX (rechts, unter der Live-Uhr) ============ */

@@ -278,11 +278,13 @@
         <div class="dashboard-list" id="dashboard-lowstock-list"></div>
 
         <div class="dashboard-section-title">Pinnwand</div>
-        <form class="pinboard-add-row" onsubmit="handlePinboardAdd(event)">
-            <input type="text" id="pinboard-add-input" placeholder="Kurze Notiz anpinnen, z. B. &quot;User XY hat Kupfer bestellt, kommt Freitag&quot;..." maxlength="200" required>
-            <button type="submit" class="btn">Anpinnen</button>
-        </form>
-        <div class="dashboard-list" id="pinboard-list"></div>
+        <div class="pinboard-card">
+            <form class="pinboard-add-row" onsubmit="handlePinboardAdd(event)">
+                <input type="text" id="pinboard-add-input" placeholder="Kurze Notiz anpinnen, z. B. &quot;User XY hat Kupfer bestellt, kommt Freitag&quot;..." maxlength="200" required>
+                <button type="submit" class="btn">Anpinnen</button>
+            </form>
+            <div id="pinboard-list"></div>
+        </div>
     </div>
 
     <!-- TAB 1: LAGERBESTAND -->
