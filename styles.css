@@ -1033,6 +1033,30 @@
             border: 1px solid rgba(148, 130, 219, 0.4);
         }
 
+        .log-badge-archiv {
+            background: rgba(111, 174, 99, 0.15);
+            color: #7fb86a;
+            border: 1px solid rgba(111, 174, 99, 0.4);
+        }
+
+        .log-badge-notizen {
+            background: rgba(59, 130, 246, 0.15);
+            color: #7fa8e0;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+
+        .log-badge-pinnwand {
+            background: rgba(224, 164, 92, 0.16);
+            color: #ffb454;
+            border: 1px solid rgba(224, 164, 92, 0.4);
+        }
+
+        .log-badge-benutzerverwaltung {
+            background: rgba(148, 148, 148, 0.15);
+            color: #b8b8b8;
+            border: 1px solid rgba(148, 148, 148, 0.4);
+        }
+
         /* ============ TOASTS ============ */
 
         .toast-container {
