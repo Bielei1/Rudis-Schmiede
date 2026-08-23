@@ -819,6 +819,71 @@
             text-align: center;
         }
 
+        .pinboard-add-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .pinboard-add-row input {
+            flex: 1;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            color: var(--text-color);
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+        }
+
+        .pinboard-add-row input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--primary-soft);
+        }
+
+        .pinboard-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color-soft);
+            font-size: 0.9rem;
+        }
+
+        .pinboard-row:last-child {
+            border-bottom: none;
+        }
+
+        .pinboard-row .pinboard-text {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .pinboard-row .pinboard-meta {
+            color: var(--text-faint);
+            font-size: 0.78rem;
+            flex-shrink: 0;
+        }
+
+        .pinboard-delete-btn {
+            background: none;
+            border: none;
+            color: var(--text-faint);
+            cursor: pointer;
+            font-size: 1.1rem;
+            line-height: 1;
+            padding: 4px 6px;
+            border-radius: var(--radius-sm);
+            flex-shrink: 0;
+        }
+
+        .pinboard-delete-btn:hover {
+            color: var(--danger-color);
+            background-color: rgba(224, 93, 82, 0.12);
+        }
+
         .notify-banner {
             display: flex;
             align-items: center;

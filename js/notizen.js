@@ -108,6 +108,7 @@
             let labelColor = 'var(--label-blue)';
             if (note.label === 'Telegram') labelColor = 'var(--label-cyan)';
             if (note.label === 'Info') labelColor = 'var(--label-green)';
+            if (note.label === 'Pinnwand') labelColor = 'var(--accent-amber)';
 
             const details = document.createElement('details');
             details.innerHTML = `

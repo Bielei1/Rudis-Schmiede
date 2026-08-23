@@ -180,6 +180,7 @@
         renderRecipes();
         renderNotes();
         renderDashboard();
+        renderPinboard();
         renderActivityLog();
     }
 
@@ -308,6 +309,71 @@
                     : `<span class="stock-badge stock-badge-low">Niedrig</span>`;
                 return `<div class="dashboard-list-row"><span>${item.name}</span><span>${item.quantity} Stk. ${badge}</span></div>`;
             }).join('');
+        }
+    }
+
+    // ============ PINNWAND (Übersicht) ============
+    // Nutzt bewusst dieselbe "notes"-Tabelle wie der Notizen-Tab, nur gefiltert
+    // auf label === 'Pinnwand' - kein separates Supabase-Setup nötig, und
+    // Einträge tauchen ergänzend auch in der vollständigen Notizen-Liste auf.
+    function renderPinboard() {
+        const container = document.getElementById('pinboard-list');
+        if (!container) return;
+
+        const pinned = notesList
+            .filter(n => n.label === 'Pinnwand')
+            .sort((a, b) => b.id - a.id);
+
+        if (pinned.length === 0) {
+            container.innerHTML = `<div class="dashboard-empty">Noch nichts angepinnt.</div>`;
+            return;
+        }
+
+        container.innerHTML = pinned.map(note => `
+            <div class="pinboard-row">
+                <span class="pinboard-text">${escapeHtml(note.content)}</span>
+                <span class="pinboard-meta">${note.updatedAt || ''}</span>
+                <button type="button" class="pinboard-delete-btn" title="Entfernen" onclick="deletePinboardNote(${note.id})">✕</button>
+            </div>
+        `).join('');
+    }
+
+    async function handlePinboardAdd(event) {
+        event.preventDefault();
+        const input = document.getElementById('pinboard-add-input');
+        const content = input.value.trim();
+        if (!content) return;
+
+        const updatedAt = getCurrentTimeString();
+        const { data, error } = await supabaseClient
+            .from('notes')
+            .insert([{ label: 'Pinnwand', content, updatedAt }])
+            .select();
+
+        if (!error && data) {
+            notesList.unshift(data[0]);
+            input.value = '';
+            renderPinboard();
+            logActivity('Pinnwand', `Neuer Pinnwand-Eintrag: "${content}"`);
+        } else {
+            showToast("Fehler beim Speichern: " + (error ? error.message : ''), 'danger');
+        }
+    }
+
+    async function deletePinboardNote(id) {
+        if (!canDeleteTab('notizen')) {
+            showToast('Du hast für diesen Bereich keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
+            return;
+        }
+        if (await customConfirm("Eintrag von der Pinnwand entfernen?")) {
+            const { error } = await supabaseClient.from('notes').delete().eq('id', id);
+            if (!error) {
+                notesList = notesList.filter(n => n.id !== id);
+                renderPinboard();
+                logActivity('Pinnwand', `Pinnwand-Eintrag entfernt.`);
+            } else {
+                showToast("Fehler beim Löschen: " + error.message, 'danger');
+            }
         }
     }
 
