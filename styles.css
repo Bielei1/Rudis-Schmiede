@@ -892,6 +892,12 @@
             font-size: 0.78rem;
         }
 
+        .pinboard-row .pinboard-author {
+            color: var(--primary-bright);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
         .pinboard-delete-btn {
             background: none;
             border: 1px solid transparent;
