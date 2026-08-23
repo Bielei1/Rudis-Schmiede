@@ -1,25 +1,30 @@
         :root {
-            /* Schmiede-Palette: kaltes Eisen + Glut */
-            --bg-color: #14100c;
-            --bg-color-soft: #1a1510;
-            --card-bg: #1e1811;
-            --card-bg-raised: #241d15;
-            --text-color: #f3ead9;
-            --text-muted: #a89985;
+            /* Schmiede-Palette: verfeinertes kaltes Eisen + Glut */
+            --bg-color: #120e0a;
+            --bg-color-soft: #1a1410;
+            --card-bg: #201810;
+            --card-bg-raised: #2a2015;
+            --text-color: #f5ede0;
+            --text-muted: #ab9c88;
+            --text-faint: #6f6555;
             --primary-color: #ff6a1a;
             --primary-hover: #ff8438;
+            --primary-bright: #ffb454;
             --primary-soft: rgba(255, 106, 26, 0.14);
             --copper-color: #c97a4a;
-            --success-color: #6fae63;
-            --success-hover: #5c9950;
-            --danger-color: #d0524b;
-            --danger-hover: #b8423c;
-            --border-color: #382d20;
+            --success-color: #7fb86a;
+            --success-hover: #6ca357;
+            --danger-color: #e05d52;
+            --danger-hover: #c94c42;
+            --border-color: #3a2e20;
             --border-color-soft: #2a2117;
             --table-header-bg: #17130d;
-            --input-bg: #14100c;
-            --tab-active-bg: #1e1811;
+            --input-bg: #120e0a;
+            --tab-active-bg: #201810;
             --tab-inactive-bg: transparent;
+            --radius-sm: 8px;
+            --radius: 10px;
+            --radius-lg: 14px;
             --font-display: 'Fraunces', Georgia, serif;
             --font-body: 'Inter', system-ui, -apple-system, sans-serif;
             --font-mono: 'JetBrains Mono', 'Segoe UI', monospace;
@@ -212,7 +217,7 @@
 
         .tab-btn.active {
             background-color: var(--primary-soft);
-            color: #ffb27a;
+            color: var(--primary-bright);
             border-color: rgba(255, 106, 26, 0.28);
         }
 
@@ -225,7 +230,7 @@
             width: 3px;
             height: 60%;
             border-radius: 3px;
-            background: linear-gradient(180deg, var(--primary-color), var(--copper-color));
+            background: linear-gradient(180deg, var(--primary-bright), var(--copper-color));
             box-shadow: 0 0 10px rgba(255, 106, 26, 0.7);
         }
 
@@ -366,11 +371,11 @@
             color: #17130d;
             border: none;
             padding: 10px 18px;
-            border-radius: 7px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             font-weight: 700;
             font-size: 0.88rem;
-            transition: background-color 0.15s, transform 0.1s, box-shadow 0.15s;
+            transition: box-shadow 0.15s, transform 0.1s, filter 0.15s;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -379,8 +384,8 @@
         }
 
         .btn:hover {
-            background-color: var(--primary-hover);
-            box-shadow: 0 4px 16px rgba(255, 106, 26, 0.3);
+            filter: brightness(1.08);
+            box-shadow: 0 4px 20px rgba(255, 106, 26, 0.38);
         }
 
         .btn-success {
@@ -445,25 +450,25 @@
         }
 
         .req-status {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 700;
-            padding: 4px 9px;
-            border-radius: 5px;
+            padding: 4px 11px;
+            border-radius: 999px;
             display: inline-block;
             margin-top: 4px;
             letter-spacing: 0.2px;
         }
 
         .status-ok {
-            background-color: rgba(111, 174, 99, 0.14);
-            color: #93cf88;
-            border: 1px solid rgba(111, 174, 99, 0.4);
+            background-color: rgba(127, 184, 106, 0.14);
+            color: #9bd489;
+            border: 1px solid rgba(127, 184, 106, 0.35);
         }
 
         .status-missing {
-            background-color: rgba(208, 82, 75, 0.14);
-            color: #ea8c86;
-            border: 1px solid rgba(208, 82, 75, 0.4);
+            background-color: rgba(224, 93, 82, 0.14);
+            color: #ef958c;
+            border: 1px solid rgba(224, 93, 82, 0.35);
         }
 
         .table-container {
