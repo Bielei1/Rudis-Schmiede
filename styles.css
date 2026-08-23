@@ -491,7 +491,7 @@
         }
 
         .table-container-scrollable {
-            max-height: 900px;
+            max-height: 300px;
             overflow-y: auto;
             overflow-x: auto;
             border-radius: 10px;
