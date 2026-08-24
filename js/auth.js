@@ -722,6 +722,8 @@
         const username = document.getElementById('admin-new-username').value.trim();
         const password = document.getElementById('admin-new-password').value;
         const role = document.getElementById('admin-new-role').value;
+        const memberRang = document.getElementById('admin-new-member-rang').value;
+        const memberNotiz = document.getElementById('admin-new-member-notiz').value.trim();
         const isAdmin = role === 'admin';
 
         if (!username || password.length < 4) {
@@ -761,7 +763,7 @@
                 const joinedAt = createdAt ? new Date(createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
                 const { error: memberError } = await supabaseClient
                     .from('members')
-                    .insert([{ name: username, rang: '', joinedAt, notiz: '' }]);
+                    .insert([{ name: username, rang: memberRang, joinedAt, notiz: memberNotiz }]);
 
                 if (memberError) {
                     console.warn('Mitgliedsdatensatz konnte nicht automatisch angelegt werden:', memberError);
