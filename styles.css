@@ -1814,6 +1814,13 @@
 .sales-percent-input input { width:85px; height:36px; text-align:right; }
 .sales-percent-input span { color:var(--text-color); }
 .sales-discount-value strong { color:var(--danger-color); }
+.sales-production-cost-row {
+    padding-top: 6px;
+    margin-top: 4px;
+}
+.sales-production-cost-row strong {
+    color: var(--accent-orange, var(--primary-bright, #ff6a1a));
+}
 .sales-total-row { border-top:1px solid var(--border-color); padding-top:14px; margin-top:14px; margin-bottom:0 !important; }
 .sales-total-row span { color:var(--text-color); font-weight:800; }
 .sales-total-row strong { font-size:1.45rem; color:var(--accent-green, #4ade80); }

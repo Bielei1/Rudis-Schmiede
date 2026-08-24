@@ -831,6 +831,7 @@
                         <div class="sales-percent-input"><input type="number" id="sales-cart-discount" min="0" max="100" step="0.1" value="0" oninput="updateSalesCalculatorTotals()"><span>%</span></div>
                     </div>
                     <div class="sales-discount-value"><span>Rabattbetrag</span><strong id="sales-cart-discount-value">-$0.00</strong></div>
+                    <div class="sales-production-cost-row"><span>Herstellungskosten gesamt</span><strong id="sales-cart-production-cost">$0.00</strong></div>
                     <div class="sales-total-row"><span>Gesamtsumme</span><strong id="sales-cart-total">$0.00</strong></div>
                 </div>
             </aside>
@@ -851,7 +852,7 @@
                     <button type="button" onclick="salesKeypadPress('7')">7</button><button type="button" onclick="salesKeypadPress('8')">8</button><button type="button" onclick="salesKeypadPress('9')">9</button>
                     <button type="button" class="sales-keypad-secondary" onclick="salesKeypadClear()">C</button><button type="button" onclick="salesKeypadPress('0')">0</button><button type="button" class="sales-keypad-secondary" onclick="salesKeypadBackspace()">⌫</button>
                 </div>
-                <button type="button" class="btn btn-success sales-add-cart-btn" onclick="confirmSalesQuantity()">In Warenkorb</button>
+                <button type="button" class="btn btn-success sales-add-cart-btn">In Warenkorb</button>
             </div>
         </div>
     </div>
