@@ -31,6 +31,7 @@
         { key: 'herstellung', label: 'Herstellung' },
         { key: 'bestellungen', label: 'Bestellungen' },
         { key: 'verkaufspreise', label: 'Verkaufspreise' },
+        { key: 'verkaufsrechner', label: 'Verkaufsrechner' },
         { key: 'kunden', label: 'Kunden-Preise' },
         { key: 'einkaufspreise', label: 'Einkaufspreise' },
         { key: 'einkaufsliste', label: 'Einkaufsliste' },
@@ -993,19 +994,23 @@
         const { error } = await supabaseClient.from('app_users').delete().eq('id', id);
         if (!error) {
             try { await supabaseClient.from('app_user_tab_permissions').delete().eq('user_id', id); } catch (e) {}
-            appUsersList = appUsersList.filter(x => x.id !== id);
-            renderUsersTab();
-
-            // Mitgliederliste sofort aktualisieren, damit der gelöschte Benutzer
-            // ohne Seiten-Reload aus dem Tab „Mitglieder“ verschwindet.
-            try {
-                if (typeof loadMemberUsernames === 'function') {
-                    await loadMemberUsernames();
-                    if (typeof renderMembersTable === 'function') renderMembersTable();
+            // Den zugehörigen Mitglieder-Datensatz ebenfalls entfernen.
+            if (deletedUser && deletedUser.username) {
+                const { error: memberDeleteError } = await supabaseClient
+                    .from('members')
+                    .delete()
+                    .eq('name', deletedUser.username);
+                if (memberDeleteError) {
+                    console.warn('Mitgliedsdatensatz konnte nicht gelöscht werden:', memberDeleteError);
                 }
-            } catch (e) {
-                console.warn('Mitgliederliste konnte nach dem Löschen nicht aktualisiert werden:', e);
             }
+
+            appUsersList = appUsersList.filter(x => x.id !== id);
+            if (typeof memberUsernamesList !== 'undefined') {
+                memberUsernamesList = memberUsernamesList.filter(x => x.id !== id);
+            }
+            renderUsersTab();
+            if (typeof renderMembersTable === 'function') renderMembersTable();
 
             showToast('Der Benutzer und seine gespeicherten Tab-Rechte wurden entfernt.', 'success', 'Benutzer gelöscht');
             await logActivity('Benutzerverwaltung', `Benutzer „${deletedUser ? deletedUser.username : id}“ wurde gelöscht`);

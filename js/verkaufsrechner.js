@@ -1,21 +1,26 @@
 // ============ VERKAUFSRECHNER ============
-// Der Rechner verwendet die in "Verkaufspreise" hinterlegten Standard-VK-Preise.
-// Alle Artikel stammen aus den vorhandenen Rezepten (recipesList).
+// Nutzt Rezepte als Produktliste und die Standard-Verkaufspreise als VK.
 
 let salesCalculatorCart = {};
 let salesCalculatorSelectedItem = null;
 let salesCalculatorQuantityBuffer = '';
 
+function escapeSalesCalculatorHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[char]));
+}
+
 function getSalesCalculatorPrice(itemName) {
-    const priceItem = salesPricesList.find(item =>
-        item.name && item.name.toLowerCase() === itemName.toLowerCase()
+    const priceItem = (salesPricesList || []).find(item =>
+        item.name && item.name.toLowerCase() === String(itemName).toLowerCase()
     );
     return priceItem ? Number(priceItem.price) || 0 : 0;
 }
 
 function getSalesCalculatorProducts() {
     const seen = new Set();
-    return [...recipesList]
+    return [...(recipesList || [])]
         .filter(recipe => recipe && recipe.outputName)
         .filter(recipe => {
             const key = recipe.outputName.trim().toLowerCase();
@@ -35,7 +40,7 @@ function renderSalesCalculatorProducts() {
     if (countEl) countEl.textContent = `${products.length} Artikel`;
 
     if (!products.length) {
-        container.innerHTML = `<div class="sales-calculator-empty">Keine herstellbaren Artikel vorhanden. Lege zuerst ein Rezept im Tab „Herstellung“ an.</div>`;
+        container.innerHTML = '<div class="sales-calculator-empty">Keine herstellbaren Artikel vorhanden. Lege zuerst ein Rezept im Tab „Herstellung“ an.</div>';
         return;
     }
 
@@ -54,17 +59,10 @@ function renderSalesCalculatorProducts() {
 
     container.querySelectorAll('[data-sales-product-index]').forEach(card => {
         card.addEventListener('click', () => {
-            const index = Number(card.dataset.salesProductIndex);
-            const product = products[index];
+            const product = products[Number(card.dataset.salesProductIndex)];
             if (product) openSalesQuantityModal(product.outputName);
         });
     });
-}
-
-function escapeSalesCalculatorHtml(value) {
-    return String(value).replace(/[&<>'"]/g, char => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-    }[char]));
 }
 
 function openSalesQuantityModal(itemName) {
@@ -75,9 +73,13 @@ function openSalesQuantityModal(itemName) {
     }
 
     salesCalculatorSelectedItem = itemName;
+    // Wichtig: bewusst leer starten, nicht mit 1.
     salesCalculatorQuantityBuffer = '';
-    document.getElementById('sales-modal-title').textContent = itemName;
-    document.getElementById('sales-modal-price').textContent = `$${price.toFixed(2)} / Stk.`;
+
+    const title = document.getElementById('sales-modal-title');
+    const priceEl = document.getElementById('sales-modal-price');
+    if (title) title.textContent = itemName;
+    if (priceEl) priceEl.textContent = `$${price.toFixed(2)} / Stk.`;
     updateSalesQuantityDisplay();
 
     const modal = document.getElementById('sales-quantity-modal');
@@ -103,7 +105,8 @@ function updateSalesQuantityDisplay() {
 }
 
 function salesKeypadPress(value) {
-    if (salesCalculatorQuantityBuffer === '0') salesCalculatorQuantityBuffer = '';
+    value = String(value);
+    if (!/^\d$/.test(value)) return;
     if (salesCalculatorQuantityBuffer.length >= 4) return;
     if (salesCalculatorQuantityBuffer === '' && value === '0') return;
     salesCalculatorQuantityBuffer += value;
@@ -127,11 +130,10 @@ function confirmSalesQuantity() {
         showToast('Bitte zuerst eine Menge eingeben.', 'warning', 'Menge fehlt');
         return;
     }
-    const key = salesCalculatorSelectedItem.toLowerCase();
-    const existing = salesCalculatorCart[key];
 
-    if (existing) {
-        existing.quantity += quantity;
+    const key = salesCalculatorSelectedItem.toLowerCase();
+    if (salesCalculatorCart[key]) {
+        salesCalculatorCart[key].quantity += quantity;
     } else {
         salesCalculatorCart[key] = {
             name: salesCalculatorSelectedItem,
@@ -153,33 +155,34 @@ function changeSalesCartQuantity(key, delta) {
 }
 
 function removeSalesCartItem(key) {
+    if (!salesCalculatorCart[key]) return;
     delete salesCalculatorCart[key];
     renderSalesCalculatorCart();
 }
 
 function clearSalesCalculatorCart() {
     salesCalculatorCart = {};
+    const discountInput = document.getElementById('sales-cart-discount');
+    if (discountInput) discountInput.value = '0';
     renderSalesCalculatorCart();
 }
 
 function getSalesCalculatorTotals() {
-    const subtotal = Object.values(salesCalculatorCart).reduce((sum, item) =>
-        sum + (item.quantity * item.unitPrice), 0
-    );
-    const productionCostTotal = Object.values(salesCalculatorCart).reduce((sum, item) => {
-        const unitCost = typeof getRecipeCostPerUnit === 'function' ? getRecipeCostPerUnit(item.name) : 0;
-        return sum + (item.quantity * unitCost);
+    const items = Object.values(salesCalculatorCart);
+    const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+    const productionCostTotal = items.reduce((sum, item) => {
+        const unitCost = typeof getRecipeCostPerUnit === 'function' ? Number(getRecipeCostPerUnit(item.name)) || 0 : 0;
+        return sum + item.quantity * unitCost;
     }, 0);
 
     const discountInput = document.getElementById('sales-cart-discount');
     let discountPercent = discountInput ? parseFloat(discountInput.value) : 0;
-    if (isNaN(discountPercent)) discountPercent = 0;
+    if (!Number.isFinite(discountPercent)) discountPercent = 0;
     discountPercent = Math.min(100, Math.max(0, discountPercent));
     if (discountInput) discountInput.value = discountPercent;
 
-    const discountValue = subtotal * (discountPercent / 100);
+    const discountValue = subtotal * discountPercent / 100;
     const total = subtotal - discountValue;
-
     return { subtotal, productionCostTotal, discountPercent, discountValue, total };
 }
 
@@ -212,7 +215,7 @@ function renderSalesCalculatorCart() {
     if (countEl) countEl.textContent = `${positionCount} ${positionCount === 1 ? 'Position' : 'Positionen'}`;
 
     if (!items.length) {
-        container.innerHTML = `<div class="sales-cart-empty">Noch keine Artikel im Warenkorb.<br><span>Klicke links auf einen Artikel.</span></div>`;
+        container.innerHTML = '<div class="sales-cart-empty">Noch keine Artikel im Warenkorb.<br><span>Klicke links auf einen Artikel.</span></div>';
         updateSalesCalculatorTotals();
         return;
     }
@@ -226,24 +229,24 @@ function renderSalesCalculatorCart() {
                     <span>$${item.unitPrice.toFixed(2)} × ${item.quantity}</span>
                 </div>
                 <div class="sales-cart-item-actions" data-sales-cart-key="${escapeSalesCalculatorHtml(key)}">
-                    <button type="button" class="sales-cart-minus" data-action="minus" aria-label="Menge verringern">−</button>
-                    <span>${item.quantity}</span>
-                    <button type="button" class="sales-cart-plus" data-action="plus" aria-label="Menge erhöhen">+</button>
+                    <button type="button" data-action="minus" aria-label="Menge verringern">−</button>
+                    <span class="sales-cart-qty">${item.quantity}</span>
+                    <button type="button" data-action="plus" aria-label="Menge erhöhen">+</button>
                     <strong>$${lineTotal.toFixed(2)}</strong>
                     <button type="button" class="sales-remove-btn" data-action="remove" aria-label="Artikel entfernen">×</button>
                 </div>
             </div>`;
     }).join('');
 
+    // Event-Delegation auf dem Warenkorb: funktioniert auch nach jedem Neurendern.
     container.querySelectorAll('[data-sales-cart-key]').forEach(actions => {
-        actions.addEventListener('click', (event) => {
+        actions.addEventListener('click', event => {
             const button = event.target.closest('button[data-action]');
             if (!button) return;
             const key = actions.dataset.salesCartKey;
-            const action = button.dataset.action;
-            if (action === 'minus') changeSalesCartQuantity(key, -1);
-            else if (action === 'plus') changeSalesCartQuantity(key, 1);
-            else if (action === 'remove') removeSalesCartItem(key);
+            if (button.dataset.action === 'minus') changeSalesCartQuantity(key, -1);
+            if (button.dataset.action === 'plus') changeSalesCartQuantity(key, 1);
+            if (button.dataset.action === 'remove') removeSalesCartItem(key);
         });
     });
 
@@ -260,129 +263,102 @@ function getSalesCartOrderItems() {
 
 async function saveSalesCartAsOrder() {
     const items = getSalesCartOrderItems();
-    if (!items.length) {
-        showToast('Der Warenkorb ist leer.', 'warning', 'Keine Artikel');
-        return;
-    }
+    if (!items.length) return showToast('Der Warenkorb ist leer.', 'warning', 'Keine Artikel');
 
     const totals = getSalesCalculatorTotals();
-    const createdAt = getCurrentTimeString();
-    const payload = {
-        customerName: 'Warenkorb',
-        createdAt,
-        items,
-        discount: totals.discountPercent
-    };
-
     const button = document.querySelector('.sales-cart-save-btn');
     if (button) button.disabled = true;
 
-    const { data, error } = await supabaseClient.from('orders').insert([payload]).select();
-    if (error) {
+    try {
+        const payload = {
+            customerName: 'Warenkorb',
+            createdAt: getCurrentTimeString(),
+            items,
+            discount: totals.discountPercent
+        };
+        const { data, error } = await supabaseClient.from('orders').insert([payload]).select();
+        if (error) throw error;
+
+        if (data && data[0]) {
+            ordersList.push(data[0]);
+            updateOrderCustomerDropdown();
+            renderOrders();
+        }
+
+        logActivity('Bestellung', `Warenkorb wurde von „${currentUser ? currentUser.username : 'Unbekannt'}“ als Bestellung aufgenommen ($${totals.total.toFixed(2)})`);
+        clearSalesCalculatorCart();
+        showToast('Warenkorb wurde bei den Bestellungen aufgenommen.', 'success', 'Bestellung aufgenommen');
+    } catch (error) {
+        showToast('Fehler beim Aufnehmen des Warenkorbs: ' + error.message, 'danger', 'Änderung nicht durchgeführt');
         if (button) button.disabled = false;
-        alert('Fehler beim Aufnehmen des Warenkorbs: ' + error.message);
-        return;
     }
-
-    if (typeof ordersList !== 'undefined' && data && data[0]) {
-        ordersList.push(data[0]);
-        if (typeof updateOrderCustomerDropdown === 'function') updateOrderCustomerDropdown();
-        if (typeof renderOrders === 'function') renderOrders();
-    }
-
-    if (typeof logActivity === 'function') {
-        logActivity('Bestellung', `Warenkorb wurde von „${currentUser ? currentUser.username : 'Unbekannt'}“ als Bestellung aufgenommen (${items.length} Position(en), $${totals.total.toFixed(2)})`);
-    }
-
-    clearSalesCalculatorCart();
-    showToast('Warenkorb wurde bei den Bestellungen aufgenommen.', 'success', 'Bestellung aufgenommen');
 }
 
 async function sellSalesCart() {
     const items = Object.values(salesCalculatorCart);
-    if (!items.length) {
-        showToast('Der Warenkorb ist leer.', 'warning', 'Keine Artikel');
-        return;
-    }
+    if (!items.length) return showToast('Der Warenkorb ist leer.', 'warning', 'Keine Artikel');
 
     const totals = getSalesCalculatorTotals();
-    const archivedItems = items.map(item => {
-        const productionCost = (typeof getRecipeCostPerUnit === 'function' ? getRecipeCostPerUnit(item.name) : 0) * item.quantity;
-        return {
-            name: item.name,
-            qty: item.quantity,
-            price: item.unitPrice,
-            priceType: 'Standardpreis',
-            total: item.quantity * item.unitPrice,
-            productionCost
-        };
-    });
-
-    const soldBy = currentUser ? currentUser.username : 'Unbekannt';
-    const soldAt = getCurrentTimeString();
-
-    // Die archive-Tabelle verwendet in deinem Projekt eine Pflichtspalte `id`,
-    // die nicht automatisch von Supabase erzeugt wird. Beim direkten Verkauf
-    // aus dem Verkaufsrechner existiert deshalb noch keine Bestell-ID.
-    // Wir nehmen die nächste freie ID aus dem Archiv.
-    const { data: lastArchiveRows, error: idLookupError } = await supabaseClient
-        .from('archive')
-        .select('id')
-        .order('id', { ascending: false })
-        .limit(1);
-
-    if (idLookupError) {
-        alert('Fehler beim Ermitteln der Archiv-ID: ' + idLookupError.message);
-        return;
-    }
-
-    const nextArchiveId = lastArchiveRows && lastArchiveRows.length && Number.isFinite(Number(lastArchiveRows[0].id))
-        ? Number(lastArchiveRows[0].id) + 1
-        : 1;
-
-    const payload = {
-        id: nextArchiveId,
-        customerName: 'Warenkorb',
-        items: archivedItems,
-        totalSum: totals.total,
-        totalProductionCost: totals.productionCostTotal,
-        createdAt: soldAt,
-        deliveredAt: soldAt,
-        soldBy
-    };
-
     const button = document.querySelector('.sales-cart-sold-btn');
     if (button) button.disabled = true;
 
-    const { data, error } = await supabaseClient.from('archive').insert([payload]).select();
-    if (error) {
-        if (button) button.disabled = false;
-        alert('Fehler beim Archivieren des verkauften Warenkorbs: ' + error.message + '\n\nFalls die Spalte „soldBy“ noch nicht existiert, führe die mitgelieferte SQL-Datei einmal in Supabase aus.');
-        return;
-    }
+    try {
+        const archivedItems = items.map(item => {
+            const unitCost = typeof getRecipeCostPerUnit === 'function' ? Number(getRecipeCostPerUnit(item.name)) || 0 : 0;
+            return {
+                name: item.name,
+                qty: item.quantity,
+                price: item.unitPrice,
+                priceType: 'Standardpreis',
+                total: item.quantity * item.unitPrice,
+                productionCost: item.quantity * unitCost
+            };
+        });
 
-    if (typeof archivedOrdersList !== 'undefined' && data && data[0]) {
-        archivedOrdersList.unshift(data[0]);
-        if (typeof renderArchive === 'function') renderArchive();
-    }
+        // Die bestehende archive-Tabelle hat eine Pflicht-ID. Daher die nächste
+        // freie ID bestimmen, statt null zu senden.
+        const { data: lastArchiveRows, error: idLookupError } = await supabaseClient
+            .from('archive')
+            .select('id')
+            .order('id', { ascending: false })
+            .limit(1);
+        if (idLookupError) throw idLookupError;
 
-    if (typeof logActivity === 'function') {
+        const nextArchiveId = lastArchiveRows?.length
+            ? Number(lastArchiveRows[0].id) + 1
+            : 1;
+        const soldBy = currentUser ? currentUser.username : 'Unbekannt';
+        const soldAt = getCurrentTimeString();
+
+        const payload = {
+            id: nextArchiveId,
+            customerName: 'Warenkorb',
+            items: archivedItems,
+            totalSum: totals.total,
+            totalProductionCost: totals.productionCostTotal,
+            createdAt: soldAt,
+            deliveredAt: soldAt,
+            soldBy
+        };
+
+        const { data, error } = await supabaseClient.from('archive').insert([payload]).select();
+        if (error) throw error;
+
+        if (data && data[0]) {
+            archivedOrdersList.unshift(data[0]);
+            renderArchive();
+        }
+
         logActivity('Archiv', `Warenkorb wurde von „${soldBy}“ als verkauft archiviert ($${totals.total.toFixed(2)})`);
+        clearSalesCalculatorCart();
+        showToast('Warenkorb wurde als verkauft im Archiv gespeichert.', 'success', 'Verkauft');
+    } catch (error) {
+        showToast('Fehler beim Archivieren des verkauften Warenkorbs: ' + error.message, 'danger', 'Änderung nicht durchgeführt');
+        if (button) button.disabled = false;
     }
-
-    clearSalesCalculatorCart();
-    showToast('Warenkorb wurde als verkauft im Archiv gespeichert.', 'success', 'Verkauft');
 }
 
 function initSalesCalculatorEvents() {
-    const confirmButton = document.querySelector('.sales-add-cart-btn');
-    if (confirmButton && !confirmButton.dataset.salesBound) {
-        confirmButton.dataset.salesBound = '1';
-        confirmButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            confirmSalesQuantity();
-        });
-    }
     renderSalesCalculatorCart();
 }
 
@@ -392,11 +368,11 @@ if (document.readyState === 'loading') {
     initSalesCalculatorEvents();
 }
 
-document.addEventListener('keydown', (event) => {
+document.addEventListener('keydown', event => {
     const modal = document.getElementById('sales-quantity-modal');
     if (!modal || !modal.classList.contains('open')) return;
     if (event.key === 'Escape') closeSalesQuantityModal();
-    if (/^[0-9]$/.test(event.key)) salesKeypadPress(event.key);
-    if (event.key === 'Backspace') salesKeypadBackspace();
-    if (event.key === 'Enter') confirmSalesQuantity();
+    else if (/^[0-9]$/.test(event.key)) salesKeypadPress(event.key);
+    else if (event.key === 'Backspace') salesKeypadBackspace();
+    else if (event.key === 'Enter') confirmSalesQuantity();
 });
