@@ -43,7 +43,7 @@
     // Diese Rechte sind bewusst unabhängig von „Bearbeiten“.
     const DELETE_PERMISSION_TABS = new Set([
         'lagerbestand', 'bestellungen', 'archiv', 'kunden',
-        'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen', 'mitglieder'
+        'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen'
     ]);
 
     const DEFAULT_TAB_PERMISSIONS = Object.fromEntries(
@@ -722,6 +722,8 @@
         const username = document.getElementById('admin-new-username').value.trim();
         const password = document.getElementById('admin-new-password').value;
         const role = document.getElementById('admin-new-role').value;
+        const memberRang = document.getElementById('admin-new-member-rang').value;
+        const memberNotiz = document.getElementById('admin-new-member-notiz').value.trim();
         const isAdmin = role === 'admin';
 
         if (!username || password.length < 4) {
@@ -753,7 +755,21 @@
 
             if (data && data[0]) {
                 appUsersList.unshift(data[0]);
-                // Auch Administratoren bekommen Einträge, diese werden bei Login aber automatisch auf Vollzugriff gesetzt.
+                // Beim Anlegen eines Login-Benutzers wird direkt ein dauerhafter
+                // Mitgliedsdatensatz mit dem Erstellungsdatum angelegt.
+                // Dadurch existiert das Beitrittsdatum sofort in der members-Tabelle
+                // und muss im Tab „Mitglieder“ nicht erst manuell gespeichert werden.
+                const createdAt = data[0].created_at;
+                const joinedAt = createdAt ? new Date(createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+                const { error: memberError } = await supabaseClient
+                    .from('members')
+                    .insert([{ name: username, rang: memberRang, joinedAt, notiz: memberNotiz }]);
+
+                if (memberError) {
+                    console.warn('Mitgliedsdatensatz konnte nicht automatisch angelegt werden:', memberError);
+                    showToast('Benutzer wurde angelegt, aber der Mitgliedsdatensatz konnte nicht automatisch erstellt werden.', 'warning');
+                }
+
                 await saveDefaultTabPermissionsForUser(data[0].id);
             }
             renderUsersTab();
@@ -964,11 +980,8 @@
             const u = appUsersList.find(x => x.id === id);
             if (u) u.approved = approve;
             renderUsersTab();
-            const username = u ? u.username : id;
             showToast(approve ? 'Der Benutzer kann sich wieder anmelden.' : 'Der Benutzer kann sich nicht mehr anmelden.', 'success', approve ? 'Benutzer freigeschaltet' : 'Benutzer gesperrt');
-            const approvalUser = appUsersList.find(x => x.id === id);
-            await logActivity('Benutzerverwaltung', `Benutzer „${approvalUser ? approvalUser.username : id}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`);
-            await logActivity('Benutzerverwaltung', `Benutzer „${username}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`);
+            await logActivity('Benutzerverwaltung', `Benutzer „${u ? u.username : id}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`);
         } else {
             showToast('Fehler: ' + error.message, 'danger');
         }
@@ -982,9 +995,20 @@
             try { await supabaseClient.from('app_user_tab_permissions').delete().eq('user_id', id); } catch (e) {}
             appUsersList = appUsersList.filter(x => x.id !== id);
             renderUsersTab();
+
+            // Mitgliederliste sofort aktualisieren, damit der gelöschte Benutzer
+            // ohne Seiten-Reload aus dem Tab „Mitglieder“ verschwindet.
+            try {
+                if (typeof loadMemberUsernames === 'function') {
+                    await loadMemberUsernames();
+                    if (typeof renderMembersTable === 'function') renderMembersTable();
+                }
+            } catch (e) {
+                console.warn('Mitgliederliste konnte nach dem Löschen nicht aktualisiert werden:', e);
+            }
+
             showToast('Der Benutzer und seine gespeicherten Tab-Rechte wurden entfernt.', 'success', 'Benutzer gelöscht');
             await logActivity('Benutzerverwaltung', `Benutzer „${deletedUser ? deletedUser.username : id}“ wurde gelöscht`);
-            await logActivity('Benutzerverwaltung', `Benutzer „${id}“ wurde gelöscht`);
         } else {
             showToast('Fehler: ' + error.message, 'danger');
         }
