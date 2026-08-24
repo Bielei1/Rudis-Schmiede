@@ -355,7 +355,7 @@
         }
 
         if (archivedOrdersList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Noch keine ausgelieferten Bestellungen im Archiv.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">Noch keine ausgelieferten Bestellungen im Archiv.</td></tr>`;
             return;
         }
 
@@ -388,6 +388,7 @@
                 <td><span class="current-cost">$${totalProdCost.toFixed(2)}</span></td>
                 <td class="time-text">${archivedOrder.createdAt || '-'}</td>
                 <td class="time-text">${archivedOrder.deliveredAt || '-'}</td>
+                <td>${escapeHtml(archivedOrder.soldBy || '-')}</td>
                 <td>
                     <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteArchivedOrder(${archivedOrder.id})">Eintrag löschen</button>
                 </td>

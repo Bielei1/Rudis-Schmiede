@@ -52,8 +52,6 @@ function renderSalesCalculatorProducts() {
             </button>`;
     }).join('');
 
-    // Die Artikelkarten werden bewusst per EventListener gebunden.
-    // Dadurch funktioniert der Klick auch nach jedem Neurendern zuverlässig.
     container.querySelectorAll('[data-sales-product-index]').forEach(card => {
         card.addEventListener('click', () => {
             const index = Number(card.dataset.salesProductIndex);
@@ -160,7 +158,7 @@ function clearSalesCalculatorCart() {
     renderSalesCalculatorCart();
 }
 
-function updateSalesCalculatorTotals() {
+function getSalesCalculatorTotals() {
     const subtotal = Object.values(salesCalculatorCart).reduce((sum, item) =>
         sum + (item.quantity * item.unitPrice), 0
     );
@@ -168,6 +166,7 @@ function updateSalesCalculatorTotals() {
         const unitCost = typeof getRecipeCostPerUnit === 'function' ? getRecipeCostPerUnit(item.name) : 0;
         return sum + (item.quantity * unitCost);
     }, 0);
+
     const discountInput = document.getElementById('sales-cart-discount');
     let discountPercent = discountInput ? parseFloat(discountInput.value) : 0;
     if (isNaN(discountPercent)) discountPercent = 0;
@@ -176,15 +175,27 @@ function updateSalesCalculatorTotals() {
 
     const discountValue = subtotal * (discountPercent / 100);
     const total = subtotal - discountValue;
+
+    return { subtotal, productionCostTotal, discountPercent, discountValue, total };
+}
+
+function updateSalesCalculatorTotals() {
+    const totals = getSalesCalculatorTotals();
     const setMoney = (id, value) => {
         const el = document.getElementById(id);
         if (el) el.textContent = `$${value.toFixed(2)}`;
     };
 
-    setMoney('sales-cart-subtotal', subtotal);
-    setMoney('sales-cart-production-cost', productionCostTotal);
-    setMoney('sales-cart-discount-value', -discountValue);
-    setMoney('sales-cart-total', total);
+    setMoney('sales-cart-subtotal', totals.subtotal);
+    setMoney('sales-cart-production-cost', totals.productionCostTotal);
+    setMoney('sales-cart-discount-value', -totals.discountValue);
+    setMoney('sales-cart-total', totals.total);
+
+    const hasItems = Object.keys(salesCalculatorCart).length > 0;
+    const saveButton = document.querySelector('.sales-cart-save-btn');
+    const soldButton = document.querySelector('.sales-cart-sold-btn');
+    if (saveButton) saveButton.disabled = !hasItems;
+    if (soldButton) soldButton.disabled = !hasItems;
 }
 
 function renderSalesCalculatorCart() {
@@ -223,7 +234,109 @@ function renderSalesCalculatorCart() {
     updateSalesCalculatorTotals();
 }
 
-// Sicherstellen, dass der Bestätigungsbutton ebenfalls unabhängig von Inline-Handlern funktioniert.
+function getSalesCartOrderItems() {
+    return Object.values(salesCalculatorCart).map(item => ({
+        name: item.name,
+        qty: item.quantity,
+        produced: false
+    }));
+}
+
+async function saveSalesCartAsOrder() {
+    const items = getSalesCartOrderItems();
+    if (!items.length) {
+        showToast('Der Warenkorb ist leer.', 'warning', 'Keine Artikel');
+        return;
+    }
+
+    const totals = getSalesCalculatorTotals();
+    const createdAt = getCurrentTimeString();
+    const payload = {
+        customerName: 'Warenkorb',
+        createdAt,
+        items,
+        discount: totals.discountPercent
+    };
+
+    const button = document.querySelector('.sales-cart-save-btn');
+    if (button) button.disabled = true;
+
+    const { data, error } = await supabaseClient.from('orders').insert([payload]).select();
+    if (error) {
+        if (button) button.disabled = false;
+        alert('Fehler beim Aufnehmen des Warenkorbs: ' + error.message);
+        return;
+    }
+
+    if (typeof ordersList !== 'undefined' && data && data[0]) {
+        ordersList.push(data[0]);
+        if (typeof updateOrderCustomerDropdown === 'function') updateOrderCustomerDropdown();
+        if (typeof renderOrders === 'function') renderOrders();
+    }
+
+    if (typeof logActivity === 'function') {
+        logActivity('Bestellung', `Warenkorb wurde von „${currentUser ? currentUser.username : 'Unbekannt'}“ als Bestellung aufgenommen (${items.length} Position(en), $${totals.total.toFixed(2)})`);
+    }
+
+    clearSalesCalculatorCart();
+    showToast('Warenkorb wurde bei den Bestellungen aufgenommen.', 'success', 'Bestellung aufgenommen');
+}
+
+async function sellSalesCart() {
+    const items = Object.values(salesCalculatorCart);
+    if (!items.length) {
+        showToast('Der Warenkorb ist leer.', 'warning', 'Keine Artikel');
+        return;
+    }
+
+    const totals = getSalesCalculatorTotals();
+    const archivedItems = items.map(item => {
+        const productionCost = (typeof getRecipeCostPerUnit === 'function' ? getRecipeCostPerUnit(item.name) : 0) * item.quantity;
+        return {
+            name: item.name,
+            qty: item.quantity,
+            price: item.unitPrice,
+            priceType: 'Standardpreis',
+            total: item.quantity * item.unitPrice,
+            productionCost
+        };
+    });
+
+    const soldBy = currentUser ? currentUser.username : 'Unbekannt';
+    const soldAt = getCurrentTimeString();
+    const payload = {
+        customerName: 'Warenkorb',
+        items: archivedItems,
+        totalSum: totals.total,
+        totalProductionCost: totals.productionCostTotal,
+        createdAt: soldAt,
+        deliveredAt: soldAt,
+        soldBy
+    };
+
+    const button = document.querySelector('.sales-cart-sold-btn');
+    if (button) button.disabled = true;
+
+    const { data, error } = await supabaseClient.from('archive').insert([payload]).select();
+    if (error) {
+        if (button) button.disabled = false;
+        alert('Fehler beim Archivieren des verkauften Warenkorbs: ' + error.message + '\n\nFalls die Spalte „soldBy“ noch nicht existiert, führe die mitgelieferte SQL-Datei einmal in Supabase aus.');
+        return;
+    }
+
+    if (typeof archivedOrdersList !== 'undefined' && data && data[0]) {
+        archivedOrdersList.unshift(data[0]);
+        if (typeof renderArchive === 'function') renderArchive();
+    }
+
+    if (typeof logActivity === 'function') {
+        logActivity('Archiv', `Warenkorb wurde von „${soldBy}“ als verkauft archiviert ($${totals.total.toFixed(2)})`);
+    }
+
+    clearSalesCalculatorCart();
+    showToast('Warenkorb wurde als verkauft im Archiv gespeichert.', 'success', 'Verkauft');
+}
+
 function initSalesCalculatorEvents() {
     const confirmButton = document.querySelector('.sales-add-cart-btn');
     if (confirmButton && !confirmButton.dataset.salesBound) {
@@ -233,6 +346,7 @@ function initSalesCalculatorEvents() {
             confirmSalesQuantity();
         });
     }
+    renderSalesCalculatorCart();
 }
 
 if (document.readyState === 'loading') {
