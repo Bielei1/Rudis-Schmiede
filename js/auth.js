@@ -753,7 +753,21 @@
 
             if (data && data[0]) {
                 appUsersList.unshift(data[0]);
-                // Auch Administratoren bekommen Einträge, diese werden bei Login aber automatisch auf Vollzugriff gesetzt.
+                // Beim Anlegen eines Login-Benutzers wird direkt ein dauerhafter
+                // Mitgliedsdatensatz mit dem Erstellungsdatum angelegt.
+                // Dadurch existiert das Beitrittsdatum sofort in der members-Tabelle
+                // und muss im Tab „Mitglieder“ nicht erst manuell gespeichert werden.
+                const createdAt = data[0].created_at;
+                const joinedAt = createdAt ? new Date(createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+                const { error: memberError } = await supabaseClient
+                    .from('members')
+                    .insert([{ name: username, rang: '', joinedAt, notiz: '' }]);
+
+                if (memberError) {
+                    console.warn('Mitgliedsdatensatz konnte nicht automatisch angelegt werden:', memberError);
+                    showToast('Benutzer wurde angelegt, aber der Mitgliedsdatensatz konnte nicht automatisch erstellt werden.', 'warning');
+                }
+
                 await saveDefaultTabPermissionsForUser(data[0].id);
             }
             renderUsersTab();
