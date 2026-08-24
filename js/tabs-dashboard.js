@@ -52,6 +52,9 @@
             updateSalesPriceSearchSelect();
             renderCalculatedPricesTable();
             renderPriceTable();
+        } else if (tabName === 'verkaufsrechner') {
+            renderSalesCalculatorProducts();
+            renderSalesCalculatorCart();
         } else if (tabName === 'notizen') {
             renderNotes();
             markAllSeen(LS_KEY_NOTES, notesList);
@@ -147,8 +150,6 @@
             const { data: mems } = await supabaseClient.from('members').select('*');
             if (mems) membersList = mems;
 
-            await loadMemberUsernames();
-
             await loadActivityLog(false);
             if (currentUser && currentUser.isAdmin) startActivityLogRefresh();
 
@@ -177,6 +178,8 @@
         updateSalesPriceSearchSelect();
         renderCalculatedPricesTable();
         renderPriceTable();
+        renderSalesCalculatorProducts();
+        renderSalesCalculatorCart();
         updateBusinessFilterOptions();
         renderCostTable();
         updateShoppingBusinessFilterOptions();
