@@ -920,11 +920,24 @@
                         <input type="password" id="admin-new-password" required minlength="4">
                     </div>
                     <div class="form-group">
-                        <label for="admin-new-role">Rolle</label>
+                        <label for="admin-new-role">Systemrolle</label>
                         <select id="admin-new-role">
                             <option value="user">Benutzer</option>
                             <option value="admin">Administrator</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-new-member-rang">Rang</label>
+                        <select id="admin-new-member-rang">
+                            <option value="Chef">Chef</option>
+                            <option value="Stellvertreter">Stellvertreter</option>
+                            <option value="Mitarbeiter" selected>Mitarbeiter</option>
+                            <option value="Lehrling">Lehrling</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="admin-new-member-notiz">Notiz</label>
+                        <textarea id="admin-new-member-notiz" rows="3" placeholder="Optionale Notiz zum Mitglied"></textarea>
                     </div>
                     <button type="submit" class="btn btn-success">Benutzer anlegen</button>
                 </form>
