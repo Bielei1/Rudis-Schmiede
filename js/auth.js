@@ -996,6 +996,18 @@
             try { await supabaseClient.from('app_user_tab_permissions').delete().eq('user_id', id); } catch (e) {}
             appUsersList = appUsersList.filter(x => x.id !== id);
             renderUsersTab();
+
+            // Mitgliederliste sofort aktualisieren, damit der gelöschte Benutzer
+            // ohne Seiten-Reload aus dem Tab „Mitglieder“ verschwindet.
+            try {
+                if (typeof loadMemberUsernames === 'function') {
+                    await loadMemberUsernames();
+                    if (typeof renderMembersTable === 'function') renderMembersTable();
+                }
+            } catch (e) {
+                console.warn('Mitgliederliste konnte nach dem Löschen nicht aktualisiert werden:', e);
+            }
+
             showToast('Der Benutzer und seine gespeicherten Tab-Rechte wurden entfernt.', 'success', 'Benutzer gelöscht');
             await logActivity('Benutzerverwaltung', `Benutzer „${deletedUser ? deletedUser.username : id}“ wurde gelöscht`);
             await logActivity('Benutzerverwaltung', `Benutzer „${id}“ wurde gelöscht`);
