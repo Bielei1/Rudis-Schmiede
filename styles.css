@@ -1846,3 +1846,34 @@
     .sales-products-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .sales-product-card { min-height:115px; padding:12px; }
 }
+
+/* Verkaufsrechner - Warenkorb-Aktionen */
+.sales-cart-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-color);
+}
+.sales-cart-actions .btn {
+    min-height: 42px;
+    font-weight: 700;
+}
+.sales-cart-save-btn {
+    background: var(--accent-blue);
+    color: #fff;
+}
+.sales-cart-save-btn:hover {
+    filter: brightness(1.08);
+}
+.sales-cart-sold-btn {
+    background: var(--accent-green);
+    color: #07130d;
+}
+.sales-cart-sold-btn:hover {
+    filter: brightness(1.08);
+}
+@media (max-width: 620px) {
+    .sales-cart-actions { grid-template-columns: 1fr; }
+}

@@ -473,6 +473,7 @@
                         <th>Herstellungskosten</th>
                         <th>Bestellt am</th>
                         <th>Ausgeliefert am</th>
+                        <th>Verkauft von</th>
                         <th>Aktion</th>
                     </tr>
                 </thead>
@@ -833,6 +834,10 @@
                     <div class="sales-discount-value"><span>Rabattbetrag</span><strong id="sales-cart-discount-value">-$0.00</strong></div>
                     <div class="sales-production-cost-row"><span>Herstellungskosten gesamt</span><strong id="sales-cart-production-cost">$0.00</strong></div>
                     <div class="sales-total-row"><span>Gesamtsumme</span><strong id="sales-cart-total">$0.00</strong></div>
+                    <div class="sales-cart-actions">
+                        <button type="button" class="btn sales-cart-save-btn" onclick="saveSalesCartAsOrder()">Warenkorb aufnehmen</button>
+                        <button type="button" class="btn btn-success sales-cart-sold-btn" onclick="sellSalesCart()">Verkauft</button>
+                    </div>
                 </div>
             </aside>
         </div>
