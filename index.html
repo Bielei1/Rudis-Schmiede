@@ -249,6 +249,10 @@
                 <span>Notizen</span>
                 <!-- <span class="nav-badge" id="notizen-badge">0</span> -->
             </button>
+            <button class="tab-btn" draggable="true" data-tab="mitglieder" onclick="switchTab('mitglieder')">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20c0-3.3 2.9-5.8 6.5-5.8s6.5 2.5 6.5 5.8"/><path d="M17 8a2.6 2.6 0 110-5"/><path d="M20 20c0-2.4-1.7-4.4-4-5.2"/></svg>
+                <span>Mitglieder</span>
+            </button>
             <button class="tab-btn" draggable="true" data-tab="log" data-admin-only onclick="switchTab('log')">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
                 <span>Änderungsprotokoll</span>
@@ -830,6 +834,55 @@
         </div>
     </div>
 
+    <!-- TAB: MITGLIEDER -->
+    <div id="tab-mitglieder" class="tab-content">
+        <details>
+            <summary id="member-form-summary">+ Neues Mitglied hinzufügen</summary>
+            <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
+                <h2 id="member-form-title">+ Neues Mitglied hinzufügen</h2>
+                <form id="member-add-form" onsubmit="handleAddMember(event)">
+                    <input type="hidden" id="member-edit-id" value="">
+                    <div class="form-group">
+                        <label for="member-add-name">Name / Benutzername (bestehender Login)</label>
+                        <input type="text" id="member-add-name" placeholder="z. B. Bielei" required />
+                    </div>
+                    <div class="form-group" style="max-width: 220px;">
+                        <label for="member-add-rang">Rang</label>
+                        <input type="text" id="member-add-rang" list="member-rang-suggestions" placeholder="z. B. Chef, Stellvertreter..." required />
+                        <datalist id="member-rang-suggestions"></datalist>
+                    </div>
+                    <div class="form-group" style="max-width: 200px;">
+                        <label for="member-add-joined">Beitrittsdatum</label>
+                        <input type="date" id="member-add-joined" />
+                    </div>
+                    <div class="form-group" style="flex: 100%;">
+                        <label for="member-add-note">Notiz (optional)</label>
+                        <textarea id="member-add-note" rows="2" placeholder="Interne Notiz zu diesem Mitglied..." style="min-height: 50px;"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-success" id="member-submit-btn">Mitglied speichern</button>
+                        <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); display: none;" id="member-cancel-btn" onclick="cancelMemberEdit()">Abbrechen</button>
+                    </div>
+                </form>
+            </div>
+        </details>
+
+        <div class="table-container-scrollable" style="margin-top: 16px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Rang</th>
+                        <th>Beitrittsdatum</th>
+                        <th>Notiz</th>
+                        <th>Aktion</th>
+                    </tr>
+                </thead>
+                <tbody id="members-body"></tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- TAB 10: ÄNDERUNGSPROTOKOLL -->
     <div id="tab-log" class="tab-content">
         <h2 style="margin-bottom: 8px;">Änderungsprotokoll</h2>
@@ -965,6 +1018,7 @@
 <script src="js/einkaufsliste.js"></script>
 <script src="js/herstellung.js"></script>
 <script src="js/notizen.js"></script>
+<script src="js/mitglieder.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

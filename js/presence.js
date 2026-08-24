@@ -55,7 +55,7 @@
     // holt eh alles auf einmal) - einfacher und robuster als jede Tabelle einzeln
     // im Speicher zu patchen. Mehrere Änderungen kurz hintereinander werden zu
     // einem einzigen Reload zusammengefasst (Debounce), damit es nicht flackert.
-    const LIVE_SYNC_TABLES = ['inventory', 'orders', 'archive', 'customer_prices', 'sales_prices', 'purchase_prices', 'recipes', 'notes'];
+    const LIVE_SYNC_TABLES = ['inventory', 'orders', 'archive', 'customer_prices', 'sales_prices', 'purchase_prices', 'recipes', 'notes', 'members'];
     let liveSyncChannel = null;
     let liveSyncDebounceTimer = null;
 

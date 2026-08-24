@@ -162,6 +162,7 @@
     let recipeTargetAmounts = {};
     let notesList = [];
     let manualIngredientPrices = {};
+    let membersList = [];
 
     function getCurrentTimeString() {
         const now = new Date();

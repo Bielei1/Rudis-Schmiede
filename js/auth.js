@@ -36,13 +36,14 @@
         { key: 'einkaufsliste', label: 'Einkaufsliste' },
         { key: 'herstellungskosten', label: 'Herstellungskosten' },
         { key: 'archiv', label: 'Bestellung Archiv' },
-        { key: 'notizen', label: 'Notizen' }
+        { key: 'notizen', label: 'Notizen' },
+        { key: 'mitglieder', label: 'Mitglieder' }
     ];
     // Tabs, in denen es tatsächlich gespeicherte Löschaktionen gibt.
     // Diese Rechte sind bewusst unabhängig von „Bearbeiten“.
     const DELETE_PERMISSION_TABS = new Set([
         'lagerbestand', 'bestellungen', 'archiv', 'kunden',
-        'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen'
+        'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen', 'mitglieder'
     ]);
 
     const DEFAULT_TAB_PERMISSIONS = Object.fromEntries(
