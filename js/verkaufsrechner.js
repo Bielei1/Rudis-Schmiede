@@ -39,18 +39,28 @@ function renderSalesCalculatorProducts() {
         return;
     }
 
-    container.innerHTML = products.map(recipe => {
+    container.innerHTML = products.map((recipe, index) => {
         const price = getSalesCalculatorPrice(recipe.outputName);
         const cost = typeof getRecipeCostPerUnit === 'function' ? getRecipeCostPerUnit(recipe.outputName) : 0;
         const hasPrice = price > 0;
         return `
-            <button type="button" class="sales-product-card" onclick="openSalesQuantityModal(${JSON.stringify(recipe.outputName)})">
+            <button type="button" class="sales-product-card" data-sales-product-index="${index}">
                 <span class="sales-product-name">${escapeSalesCalculatorHtml(recipe.outputName)}</span>
                 <span class="sales-product-meta">${recipe.outputQty || 1} Stk. je Rezept</span>
                 <span class="sales-product-price ${hasPrice ? '' : 'sales-price-missing'}">${hasPrice ? `$${price.toFixed(2)} / Stk.` : 'Kein VK hinterlegt'}</span>
                 ${cost > 0 ? `<span class="sales-product-cost">Herstellung: $${cost.toFixed(2)}</span>` : ''}
             </button>`;
     }).join('');
+
+    // Die Artikelkarten werden bewusst per EventListener gebunden.
+    // Dadurch funktioniert der Klick auch nach jedem Neurendern zuverlässig.
+    container.querySelectorAll('[data-sales-product-index]').forEach(card => {
+        card.addEventListener('click', () => {
+            const index = Number(card.dataset.salesProductIndex);
+            const product = products[index];
+            if (product) openSalesQuantityModal(product.outputName);
+        });
+    });
 }
 
 function escapeSalesCalculatorHtml(value) {
@@ -154,6 +164,10 @@ function updateSalesCalculatorTotals() {
     const subtotal = Object.values(salesCalculatorCart).reduce((sum, item) =>
         sum + (item.quantity * item.unitPrice), 0
     );
+    const productionCostTotal = Object.values(salesCalculatorCart).reduce((sum, item) => {
+        const unitCost = typeof getRecipeCostPerUnit === 'function' ? getRecipeCostPerUnit(item.name) : 0;
+        return sum + (item.quantity * unitCost);
+    }, 0);
     const discountInput = document.getElementById('sales-cart-discount');
     let discountPercent = discountInput ? parseFloat(discountInput.value) : 0;
     if (isNaN(discountPercent)) discountPercent = 0;
@@ -168,6 +182,7 @@ function updateSalesCalculatorTotals() {
     };
 
     setMoney('sales-cart-subtotal', subtotal);
+    setMoney('sales-cart-production-cost', productionCostTotal);
     setMoney('sales-cart-discount-value', -discountValue);
     setMoney('sales-cart-total', total);
 }
@@ -206,6 +221,24 @@ function renderSalesCalculatorCart() {
     }).join('');
 
     updateSalesCalculatorTotals();
+}
+
+// Sicherstellen, dass der Bestätigungsbutton ebenfalls unabhängig von Inline-Handlern funktioniert.
+function initSalesCalculatorEvents() {
+    const confirmButton = document.querySelector('.sales-add-cart-btn');
+    if (confirmButton && !confirmButton.dataset.salesBound) {
+        confirmButton.dataset.salesBound = '1';
+        confirmButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            confirmSalesQuantity();
+        });
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSalesCalculatorEvents, { once: true });
+} else {
+    initSalesCalculatorEvents();
 }
 
 document.addEventListener('keydown', (event) => {
