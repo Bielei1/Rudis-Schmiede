@@ -31,7 +31,6 @@
         { key: 'herstellung', label: 'Herstellung' },
         { key: 'bestellungen', label: 'Bestellungen' },
         { key: 'verkaufspreise', label: 'Verkaufspreise' },
-        { key: 'verkaufsrechner', label: 'Verkaufsrechner' },
         { key: 'kunden', label: 'Kunden-Preise' },
         { key: 'einkaufspreise', label: 'Einkaufspreise' },
         { key: 'einkaufsliste', label: 'Einkaufsliste' },

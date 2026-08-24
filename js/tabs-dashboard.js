@@ -52,9 +52,6 @@
             updateSalesPriceSearchSelect();
             renderCalculatedPricesTable();
             renderPriceTable();
-        } else if (tabName === 'verkaufsrechner') {
-            renderSalesCalculatorProducts();
-            renderSalesCalculatorCart();
         } else if (tabName === 'notizen') {
             renderNotes();
             markAllSeen(LS_KEY_NOTES, notesList);
@@ -178,8 +175,6 @@
         updateSalesPriceSearchSelect();
         renderCalculatedPricesTable();
         renderPriceTable();
-        renderSalesCalculatorProducts();
-        renderSalesCalculatorCart();
         updateBusinessFilterOptions();
         renderCostTable();
         updateShoppingBusinessFilterOptions();

@@ -224,10 +224,6 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5V4a1 1 0 011-1h7.5L21 12.5l-9 9L3 11.5z"/><circle cx="7.5" cy="7.5" r="1.4"/></svg>
                 <span>Verkaufspreise</span>
             </button>
-            <button class="tab-btn" draggable="true" data-tab="verkaufsrechner" onclick="switchTab('verkaufsrechner')">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2M8 19h8"/></svg>
-                <span>Verkaufsrechner</span>
-            </button>
             <button class="tab-btn" draggable="true" data-tab="kunden" onclick="switchTab('kunden')">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="3"/><circle cx="16.5" cy="8.5" r="2.4"/><path d="M2.5 20c0-3 2.7-5.2 6-5.2s6 2.2 6 5.2M14 20c0-2.1 1.6-4.6 4.2-4.9"/></svg>
                 <span>Kunden-Preise</span>
@@ -473,7 +469,6 @@
                         <th>Herstellungskosten</th>
                         <th>Bestellt am</th>
                         <th>Ausgeliefert am</th>
-                        <th>Verkauft von</th>
                         <th>Aktion</th>
                     </tr>
                 </thead>
@@ -802,66 +797,6 @@
         </div>
     </div>
 
-    <!-- TAB: VERKAUFSRECHNER -->
-    <div id="tab-verkaufsrechner" class="tab-content">
-        <div class="sales-calculator-layout">
-            <section class="sales-products-panel">
-                <div class="sales-calculator-header">
-                    <div>
-                        <h2>Verkaufsrechner</h2>
-                        <p>Wähle deine herstellbaren Artikel aus und stelle damit deinen Warenkorb zusammen.</p>
-                    </div>
-                    <div class="sales-calculator-count" id="sales-calculator-count">0 Artikel</div>
-                </div>
-                <div id="sales-calculator-products" class="sales-products-grid"></div>
-            </section>
-
-            <aside class="sales-cart-panel">
-                <div class="sales-cart-header">
-                    <div>
-                        <h3>Warenkorb</h3>
-                        <span id="sales-cart-item-count">0 Positionen</span>
-                    </div>
-                    <button type="button" class="btn btn-danger" onclick="clearSalesCalculatorCart()">Leeren</button>
-                </div>
-                <div id="sales-cart-items" class="sales-cart-items"></div>
-                <div class="sales-cart-summary">
-                    <div><span>Zwischensumme</span><strong id="sales-cart-subtotal">$0.00</strong></div>
-                    <div class="sales-discount-row">
-                        <label for="sales-cart-discount">Rabatt</label>
-                        <div class="sales-percent-input"><input type="number" id="sales-cart-discount" min="0" max="100" step="0.1" value="0" oninput="updateSalesCalculatorTotals()"><span>%</span></div>
-                    </div>
-                    <div class="sales-discount-value"><span>Rabattbetrag</span><strong id="sales-cart-discount-value">-$0.00</strong></div>
-                    <div class="sales-production-cost-row"><span>Herstellungskosten gesamt</span><strong id="sales-cart-production-cost">$0.00</strong></div>
-                    <div class="sales-total-row"><span>Gesamtsumme</span><strong id="sales-cart-total">$0.00</strong></div>
-                    <div class="sales-cart-actions">
-                        <button type="button" class="btn sales-cart-save-btn" onclick="saveSalesCartAsOrder()">Warenkorb aufnehmen</button>
-                        <button type="button" class="btn btn-success sales-cart-sold-btn" onclick="sellSalesCart()">Verkauft</button>
-                    </div>
-                </div>
-            </aside>
-        </div>
-
-        <div id="sales-quantity-modal" class="sales-modal" aria-hidden="true">
-            <div class="sales-modal-backdrop" onclick="closeSalesQuantityModal()"></div>
-            <div class="sales-modal-card" role="dialog" aria-modal="true" aria-labelledby="sales-modal-title">
-                <button type="button" class="sales-modal-close" onclick="closeSalesQuantityModal()">×</button>
-                <div class="sales-modal-title-wrap">
-                    <h3 id="sales-modal-title">Artikel</h3>
-                    <span id="sales-modal-price">$0.00 / Stk.</span>
-                </div>
-                <div class="sales-quantity-display" id="sales-quantity-display">1</div>
-                <div class="sales-keypad">
-                    <button type="button" onclick="salesKeypadPress('1')">1</button><button type="button" onclick="salesKeypadPress('2')">2</button><button type="button" onclick="salesKeypadPress('3')">3</button>
-                    <button type="button" onclick="salesKeypadPress('4')">4</button><button type="button" onclick="salesKeypadPress('5')">5</button><button type="button" onclick="salesKeypadPress('6')">6</button>
-                    <button type="button" onclick="salesKeypadPress('7')">7</button><button type="button" onclick="salesKeypadPress('8')">8</button><button type="button" onclick="salesKeypadPress('9')">9</button>
-                    <button type="button" class="sales-keypad-secondary" onclick="salesKeypadClear()">C</button><button type="button" onclick="salesKeypadPress('0')">0</button><button type="button" class="sales-keypad-secondary" onclick="salesKeypadBackspace()">⌫</button>
-                </div>
-                <button type="button" class="btn btn-success sales-add-cart-btn">In Warenkorb</button>
-            </div>
-        </div>
-    </div>
-
     <!-- TAB 9: NOTIZEN -->
     <div id="tab-notizen" class="tab-content">
         <details>
@@ -1079,7 +1014,6 @@
 <script src="js/bestellungen.js"></script>
 <script src="js/kunden.js"></script>
 <script src="js/verkaufspreise.js"></script>
-<script src="js/verkaufsrechner.js"></script>
 <script src="js/einkaufspreise.js"></script>
 <script src="js/einkaufsliste.js"></script>
 <script src="js/herstellung.js"></script>
