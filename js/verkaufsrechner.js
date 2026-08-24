@@ -4,7 +4,7 @@
 
 let salesCalculatorCart = {};
 let salesCalculatorSelectedItem = null;
-let salesCalculatorQuantityBuffer = '1';
+let salesCalculatorQuantityBuffer = '';
 
 function getSalesCalculatorPrice(itemName) {
     const priceItem = salesPricesList.find(item =>
@@ -75,7 +75,7 @@ function openSalesQuantityModal(itemName) {
     }
 
     salesCalculatorSelectedItem = itemName;
-    salesCalculatorQuantityBuffer = '1';
+    salesCalculatorQuantityBuffer = '';
     document.getElementById('sales-modal-title').textContent = itemName;
     document.getElementById('sales-modal-price').textContent = `$${price.toFixed(2)} / Stk.`;
     updateSalesQuantityDisplay();
@@ -94,35 +94,39 @@ function closeSalesQuantityModal() {
         modal.setAttribute('aria-hidden', 'true');
     }
     salesCalculatorSelectedItem = null;
-    salesCalculatorQuantityBuffer = '1';
+    salesCalculatorQuantityBuffer = '';
 }
 
 function updateSalesQuantityDisplay() {
     const display = document.getElementById('sales-quantity-display');
-    if (display) display.textContent = salesCalculatorQuantityBuffer || '0';
+    if (display) display.textContent = salesCalculatorQuantityBuffer;
 }
 
 function salesKeypadPress(value) {
     if (salesCalculatorQuantityBuffer === '0') salesCalculatorQuantityBuffer = '';
     if (salesCalculatorQuantityBuffer.length >= 4) return;
+    if (salesCalculatorQuantityBuffer === '' && value === '0') return;
     salesCalculatorQuantityBuffer += value;
     updateSalesQuantityDisplay();
 }
 
 function salesKeypadClear() {
-    salesCalculatorQuantityBuffer = '1';
+    salesCalculatorQuantityBuffer = '';
     updateSalesQuantityDisplay();
 }
 
 function salesKeypadBackspace() {
     salesCalculatorQuantityBuffer = salesCalculatorQuantityBuffer.slice(0, -1);
-    if (!salesCalculatorQuantityBuffer) salesCalculatorQuantityBuffer = '0';
     updateSalesQuantityDisplay();
 }
 
 function confirmSalesQuantity() {
     if (!salesCalculatorSelectedItem) return;
-    const quantity = Math.max(1, parseInt(salesCalculatorQuantityBuffer, 10) || 1);
+    const quantity = parseInt(salesCalculatorQuantityBuffer, 10);
+    if (!Number.isFinite(quantity) || quantity < 1) {
+        showToast('Bitte zuerst eine Menge eingeben.', 'warning', 'Menge fehlt');
+        return;
+    }
     const key = salesCalculatorSelectedItem.toLowerCase();
     const existing = salesCalculatorCart[key];
 
@@ -221,15 +225,27 @@ function renderSalesCalculatorCart() {
                     <strong>${escapeSalesCalculatorHtml(item.name)}</strong>
                     <span>$${item.unitPrice.toFixed(2)} × ${item.quantity}</span>
                 </div>
-                <div class="sales-cart-item-actions">
-                    <button type="button" onclick="changeSalesCartQuantity(${JSON.stringify(key)}, -1)">−</button>
+                <div class="sales-cart-item-actions" data-sales-cart-key="${escapeSalesCalculatorHtml(key)}">
+                    <button type="button" class="sales-cart-minus" data-action="minus" aria-label="Menge verringern">−</button>
                     <span>${item.quantity}</span>
-                    <button type="button" onclick="changeSalesCartQuantity(${JSON.stringify(key)}, 1)">+</button>
+                    <button type="button" class="sales-cart-plus" data-action="plus" aria-label="Menge erhöhen">+</button>
                     <strong>$${lineTotal.toFixed(2)}</strong>
-                    <button type="button" class="sales-remove-btn" onclick="removeSalesCartItem(${JSON.stringify(key)})">×</button>
+                    <button type="button" class="sales-remove-btn" data-action="remove" aria-label="Artikel entfernen">×</button>
                 </div>
             </div>`;
     }).join('');
+
+    container.querySelectorAll('[data-sales-cart-key]').forEach(actions => {
+        actions.addEventListener('click', (event) => {
+            const button = event.target.closest('button[data-action]');
+            if (!button) return;
+            const key = actions.dataset.salesCartKey;
+            const action = button.dataset.action;
+            if (action === 'minus') changeSalesCartQuantity(key, -1);
+            else if (action === 'plus') changeSalesCartQuantity(key, 1);
+            else if (action === 'remove') removeSalesCartItem(key);
+        });
+    });
 
     updateSalesCalculatorTotals();
 }
