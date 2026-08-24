@@ -836,38 +836,11 @@
 
     <!-- TAB: MITGLIEDER -->
     <div id="tab-mitglieder" class="tab-content">
-        <details>
-            <summary id="member-form-summary">+ Neues Mitglied hinzufügen</summary>
-            <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
-                <h2 id="member-form-title">+ Neues Mitglied hinzufügen</h2>
-                <form id="member-add-form" onsubmit="handleAddMember(event)">
-                    <input type="hidden" id="member-edit-id" value="">
-                    <div class="form-group">
-                        <label for="member-add-name">Name / Benutzername (bestehender Login)</label>
-                        <input type="text" id="member-add-name" placeholder="z. B. Bielei" required />
-                    </div>
-                    <div class="form-group" style="max-width: 220px;">
-                        <label for="member-add-rang">Rang</label>
-                        <input type="text" id="member-add-rang" list="member-rang-suggestions" placeholder="z. B. Chef, Stellvertreter..." required />
-                        <datalist id="member-rang-suggestions"></datalist>
-                    </div>
-                    <div class="form-group" style="max-width: 200px;">
-                        <label for="member-add-joined">Beitrittsdatum</label>
-                        <input type="date" id="member-add-joined" />
-                    </div>
-                    <div class="form-group" style="flex: 100%;">
-                        <label for="member-add-note">Notiz (optional)</label>
-                        <textarea id="member-add-note" rows="2" placeholder="Interne Notiz zu diesem Mitglied..." style="min-height: 50px;"></textarea>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button type="submit" class="btn btn-success" id="member-submit-btn">Mitglied speichern</button>
-                        <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); display: none;" id="member-cancel-btn" onclick="cancelMemberEdit()">Abbrechen</button>
-                    </div>
-                </form>
-            </div>
-        </details>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">Zeigt automatisch alle bestehenden Benutzer-Logins. Trage hier nur Rang, Beitrittsdatum und eine optionale Notiz nach – neue Logins legst du weiterhin im Tab „Benutzer" an.</p>
 
-        <div class="table-container-scrollable" style="margin-top: 16px;">
+        <datalist id="member-rang-suggestions"></datalist>
+
+        <div class="table-container-scrollable">
             <table>
                 <thead>
                     <tr>

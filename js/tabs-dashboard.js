@@ -147,6 +147,8 @@
             const { data: mems } = await supabaseClient.from('members').select('*');
             if (mems) membersList = mems;
 
+            await loadMemberUsernames();
+
             await loadActivityLog(false);
             if (currentUser && currentUser.isAdmin) startActivityLogRefresh();
 

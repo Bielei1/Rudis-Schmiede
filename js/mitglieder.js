@@ -1,7 +1,21 @@
     // ============ MITGLIEDER ============
-    // Eigene Tabelle "members" (Name/Benutzername, Rang, Beitrittsdatum, Notiz).
-    // Bewusst lose an bestehende Logins gekoppelt (kein hartes Foreign-Key-Constraint),
-    // damit hier keine sensiblen Login-Daten (Passwort-Hashes etc.) mit angezeigt werden.
+    // Zeigt automatisch ALLE bestehenden Login-Benutzer (aus "app_users") an -
+    // kein doppeltes Anlegen nötig. Pro Zeile lassen sich nur Rang, Beitrittsdatum
+    // und Notiz eintragen; das landet in der separaten Tabelle "members" (nur
+    // Username, Rang, Beitrittsdatum, Notiz - bewusst OHNE Passwort-Hash o.ä.),
+    // verknüpft über den Benutzernamen.
+    let memberUsernamesList = [];
+
+    async function loadMemberUsernames() {
+        // Bewusst ein schlanker Extra-Request (nur id + username), damit auch
+        // Nicht-Admins die Mitgliederliste sehen können, ohne die volle,
+        // sensiblere app_users-Liste (inkl. Passwort-Hash) zu laden.
+        const { data, error } = await supabaseClient.from('app_users').select('id, username').order('username', { ascending: true });
+        if (!error && data) {
+            memberUsernamesList = data;
+        }
+    }
+
     function updateMemberRangSuggestions() {
         const datalist = document.getElementById('member-rang-suggestions');
         if (!datalist) return;
@@ -14,123 +28,68 @@
         if (!tbody) return;
         tbody.innerHTML = '';
 
-        if (membersList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Noch keine Mitglieder angelegt.</td></tr>`;
+        if (memberUsernamesList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Benutzer vorhanden. Lege zuerst im Tab „Benutzer" einen Account an.</td></tr>`;
             updateMemberRangSuggestions();
             return;
         }
 
-        const sortedList = [...membersList].sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
+        const sortedUsers = [...memberUsernamesList].sort((a, b) => a.username.localeCompare(b.username, 'de', { sensitivity: 'base' }));
 
-        sortedList.forEach(member => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="material-name">${escapeHtml(member.name)}</td>
-                <td><span class="business-badge">${escapeHtml(member.rang)}</span></td>
-                <td class="time-text">${member.joinedAt ? escapeHtml(member.joinedAt) : '-'}</td>
-                <td style="max-width: 320px; white-space: pre-wrap; word-break: break-word; color: var(--text-muted); font-size: 0.88rem;">${member.notiz ? escapeHtml(member.notiz) : '-'}</td>
-                <td style="display: flex; gap: 8px;">
-                    <button class="btn" style="background-color: var(--secondary-btn-bg); height: 36px; font-size: 0.85rem;" onclick="editMember(${member.id})">Bearbeiten</button>
-                    <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteMember(${member.id})">Löschen</button>
-                </td>
+        tbody.innerHTML = sortedUsers.map(user => {
+            const existing = membersList.find(m => m.name.toLowerCase() === user.username.toLowerCase());
+            const rang = existing ? existing.rang || '' : '';
+            const joinedAt = existing ? existing.joinedAt || '' : '';
+            const notiz = existing ? existing.notiz || '' : '';
+
+            return `
+                <tr>
+                    <td class="material-name">${escapeHtml(user.username)}</td>
+                    <td><input type="text" id="member-rang-${user.id}" list="member-rang-suggestions" value="${escapeHtml(rang)}" placeholder="z. B. Chef" style="width: 160px;" /></td>
+                    <td><input type="date" id="member-joined-${user.id}" value="${escapeHtml(joinedAt)}" style="width: 160px;" /></td>
+                    <td><input type="text" id="member-note-${user.id}" value="${escapeHtml(notiz)}" placeholder="Notiz (optional)" style="width: 220px;" /></td>
+                    <td><button class="btn" onclick="saveMemberRow('${escapeHtml(user.username)}', ${user.id})">Speichern</button></td>
+                </tr>
             `;
-            tbody.appendChild(tr);
-        });
+        }).join('');
 
         updateMemberRangSuggestions();
     }
 
-    function editMember(id) {
-        const member = membersList.find(m => m.id === id);
-        if (!member) return;
+    async function saveMemberRow(username, userId) {
+        const rang = document.getElementById(`member-rang-${userId}`).value.trim();
+        const joinedAt = document.getElementById(`member-joined-${userId}`).value;
+        const notiz = document.getElementById(`member-note-${userId}`).value.trim();
 
-        document.getElementById('member-edit-id').value = member.id;
-        document.getElementById('member-add-name').value = member.name || '';
-        document.getElementById('member-add-rang').value = member.rang || '';
-        document.getElementById('member-add-joined').value = member.joinedAt || '';
-        document.getElementById('member-add-note').value = member.notiz || '';
+        const existing = membersList.find(m => m.name.toLowerCase() === username.toLowerCase());
 
-        document.getElementById('member-form-title').innerText = 'Mitglied bearbeiten';
-        document.getElementById('member-form-summary').innerText = '✏️ Mitglied bearbeiten';
-        document.getElementById('member-submit-btn').innerText = 'Änderungen speichern';
-        document.getElementById('member-cancel-btn').style.display = 'inline-flex';
-
-        const details = document.getElementById('member-add-form').closest('details');
-        if (details) details.open = true;
-        document.getElementById('member-add-name').focus();
-    }
-
-    function cancelMemberEdit() {
-        document.getElementById('member-edit-id').value = '';
-        document.getElementById('member-add-form').reset();
-
-        document.getElementById('member-form-title').innerText = '+ Neues Mitglied hinzufügen';
-        document.getElementById('member-form-summary').innerText = '+ Neues Mitglied hinzufügen';
-        document.getElementById('member-submit-btn').innerText = 'Mitglied speichern';
-        document.getElementById('member-cancel-btn').style.display = 'none';
-    }
-
-    async function handleAddMember(event) {
-        event.preventDefault();
-        const editId = document.getElementById('member-edit-id').value;
-        const name = capitalizeText(document.getElementById('member-add-name').value.trim());
-        const rang = document.getElementById('member-add-rang').value.trim();
-        const joinedAt = document.getElementById('member-add-joined').value;
-        const notiz = document.getElementById('member-add-note').value.trim();
-
-        if (!name || !rang) return alert("Bitte Name und Rang angeben.");
-
-        if (editId) {
+        if (existing) {
             const { error } = await supabaseClient
                 .from('members')
-                .update({ name, rang, joinedAt, notiz })
-                .eq('id', editId);
+                .update({ rang, joinedAt, notiz })
+                .eq('id', existing.id);
 
             if (!error) {
-                const existing = membersList.find(m => m.id == editId);
-                if (existing) {
-                    existing.name = name;
-                    existing.rang = rang;
-                    existing.joinedAt = joinedAt;
-                    existing.notiz = notiz;
-                }
-                cancelMemberEdit();
+                existing.rang = rang;
+                existing.joinedAt = joinedAt;
+                existing.notiz = notiz;
                 renderMembersTable();
-                logActivity('Mitglieder', `Mitglied "${name}" wurde geändert.`);
+                logActivity('Mitglieder', `Mitgliedsdaten von "${username}" aktualisiert.`);
             } else {
-                alert("Fehler beim Aktualisieren: " + error.message);
+                alert("Fehler beim Speichern: " + error.message);
             }
         } else {
             const { data, error } = await supabaseClient
                 .from('members')
-                .insert([{ name, rang, joinedAt, notiz }])
+                .insert([{ name: username, rang, joinedAt, notiz }])
                 .select();
 
             if (!error && data) {
                 membersList.push(data[0]);
-                cancelMemberEdit();
                 renderMembersTable();
-                logActivity('Mitglieder', `Neues Mitglied "${name}" (${rang}) hinzugefügt.`);
+                logActivity('Mitglieder', `Mitgliedsdaten für "${username}" angelegt (Rang: ${rang || '-'}).`);
             } else {
                 alert("Fehler beim Speichern: " + (error ? error.message : ''));
-            }
-        }
-    }
-
-    async function deleteMember(id) {
-        if (!canDeleteTab('mitglieder')) {
-            showToast('Du hast für diesen Tab keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
-            return;
-        }
-        if (await customConfirm("Mitglied wirklich löschen?")) {
-            const member = membersList.find(m => m.id === id);
-            const { error } = await supabaseClient.from('members').delete().eq('id', id);
-            if (!error) {
-                membersList = membersList.filter(m => m.id !== id);
-                renderMembersTable();
-                logActivity('Mitglieder', `Mitglied "${member ? member.name : id}" wurde entfernt.`);
-            } else {
-                alert("Fehler beim Löschen: " + error.message);
             }
         }
     }

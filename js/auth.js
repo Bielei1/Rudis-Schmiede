@@ -43,7 +43,7 @@
     // Diese Rechte sind bewusst unabhängig von „Bearbeiten“.
     const DELETE_PERMISSION_TABS = new Set([
         'lagerbestand', 'bestellungen', 'archiv', 'kunden',
-        'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen', 'mitglieder'
+        'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen'
     ]);
 
     const DEFAULT_TAB_PERMISSIONS = Object.fromEntries(
