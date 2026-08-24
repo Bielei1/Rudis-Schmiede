@@ -980,11 +980,8 @@
             const u = appUsersList.find(x => x.id === id);
             if (u) u.approved = approve;
             renderUsersTab();
-            const username = u ? u.username : id;
             showToast(approve ? 'Der Benutzer kann sich wieder anmelden.' : 'Der Benutzer kann sich nicht mehr anmelden.', 'success', approve ? 'Benutzer freigeschaltet' : 'Benutzer gesperrt');
-            const approvalUser = appUsersList.find(x => x.id === id);
-            await logActivity('Benutzerverwaltung', `Benutzer „${approvalUser ? approvalUser.username : id}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`);
-            await logActivity('Benutzerverwaltung', `Benutzer „${username}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`);
+            await logActivity('Benutzerverwaltung', `Benutzer „${u ? u.username : id}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`);
         } else {
             showToast('Fehler: ' + error.message, 'danger');
         }
@@ -1012,7 +1009,6 @@
 
             showToast('Der Benutzer und seine gespeicherten Tab-Rechte wurden entfernt.', 'success', 'Benutzer gelöscht');
             await logActivity('Benutzerverwaltung', `Benutzer „${deletedUser ? deletedUser.username : id}“ wurde gelöscht`);
-            await logActivity('Benutzerverwaltung', `Benutzer „${id}“ wurde gelöscht`);
         } else {
             showToast('Fehler: ' + error.message, 'danger');
         }
