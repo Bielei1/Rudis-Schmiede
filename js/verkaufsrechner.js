@@ -304,7 +304,28 @@ async function sellSalesCart() {
 
     const soldBy = currentUser ? currentUser.username : 'Unbekannt';
     const soldAt = getCurrentTimeString();
+
+    // Die archive-Tabelle verwendet in deinem Projekt eine Pflichtspalte `id`,
+    // die nicht automatisch von Supabase erzeugt wird. Beim direkten Verkauf
+    // aus dem Verkaufsrechner existiert deshalb noch keine Bestell-ID.
+    // Wir nehmen die nächste freie ID aus dem Archiv.
+    const { data: lastArchiveRows, error: idLookupError } = await supabaseClient
+        .from('archive')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1);
+
+    if (idLookupError) {
+        alert('Fehler beim Ermitteln der Archiv-ID: ' + idLookupError.message);
+        return;
+    }
+
+    const nextArchiveId = lastArchiveRows && lastArchiveRows.length && Number.isFinite(Number(lastArchiveRows[0].id))
+        ? Number(lastArchiveRows[0].id) + 1
+        : 1;
+
     const payload = {
+        id: nextArchiveId,
         customerName: 'Warenkorb',
         items: archivedItems,
         totalSum: totals.total,
