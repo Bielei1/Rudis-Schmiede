@@ -36,13 +36,45 @@ function formatMemberDate(dateValue) {
     return Number.isNaN(date.getTime()) ? escapeHtml(dateValue) : date.toLocaleDateString('de-DE');
 }
 
+function getMemberSalesStats(username) {
+    const normalizedUsername = String(username || '').trim().toLowerCase();
+    const stats = { orders: 0, productionCost: 0, total: 0 };
+
+    if (!normalizedUsername || !Array.isArray(archivedOrdersList)) return stats;
+
+    archivedOrdersList.forEach(order => {
+        const soldBy = String(order.soldBy || '').trim().toLowerCase();
+        if (!soldBy || soldBy !== normalizedUsername) return;
+
+        stats.orders += 1;
+        stats.total += Number(order.totalSum) || 0;
+
+        if (order.totalProductionCost !== undefined && order.totalProductionCost !== null) {
+            stats.productionCost += Number(order.totalProductionCost) || 0;
+        } else if (Array.isArray(order.items)) {
+            order.items.forEach(item => {
+                const storedCost = item.productionCost !== undefined && item.productionCost !== null
+                    ? Number(item.productionCost) || 0
+                    : (typeof getRecipeCostPerUnit === 'function' ? (Number(getRecipeCostPerUnit(item.name)) || 0) * (Number(item.qty) || 0) : 0);
+                stats.productionCost += storedCost;
+            });
+        }
+    });
+
+    return stats;
+}
+
+function formatMemberMoney(value) {
+    return `$${(Number(value) || 0).toFixed(2)}`;
+}
+
 function renderMembersTable() {
     const tbody = document.getElementById('members-body');
     if (!tbody) return;
     tbody.innerHTML = '';
 
     if (memberUsernamesList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Benutzer vorhanden. Lege zuerst im Tab „Benutzer" einen Account an.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Benutzer vorhanden. Lege zuerst im Tab „Benutzer" einen Account an.</td></tr>`;
         updateMemberRangSuggestions();
         return;
     }
@@ -58,6 +90,7 @@ function renderMembersTable() {
         const rang = existing ? existing.rang || '' : '';
         const joinedAt = getMemberJoinedDate(user, existing);
         const notiz = existing ? existing.notiz || '' : '';
+        const stats = getMemberSalesStats(user.username);
 
         return `
             <tr>
@@ -65,6 +98,9 @@ function renderMembersTable() {
                 <td><input type="text" id="member-rang-${user.id}" list="member-rang-suggestions" value="${escapeHtml(rang)}" placeholder="z. B. Chef" style="width: 160px;" /></td>
                 <td>${formatMemberDate(joinedAt)}</td>
                 <td><input type="text" id="member-note-${user.id}" value="${escapeHtml(notiz)}" placeholder="Notiz (optional)" style="width: 220px;" /></td>
+                <td><strong>${stats.orders}</strong></td>
+                <td><span class="current-cost">${formatMemberMoney(stats.productionCost)}</span></td>
+                <td><span class="current-price">${formatMemberMoney(stats.total)}</span></td>
                 <td><button class="btn" onclick="saveMemberRow('${escapeHtml(user.username)}', ${user.id})">Speichern</button></td>
             </tr>
         `;

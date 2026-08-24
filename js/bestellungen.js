@@ -205,7 +205,7 @@
             totalProductionCost: totalProductionCostSum,
             createdAt: order.createdAt,
             deliveredAt: deliveredAt,
-            soldBy: currentUser ? currentUser.username : null
+            soldBy: currentUser && currentUser.username ? currentUser.username : 'Unbekannt'
         };
 
         const { error: archiveError } = await supabaseClient.from('archive').insert([archivedPayload]);
@@ -224,7 +224,8 @@
         updateOrderCustomerDropdown();
         renderOrders();
         renderArchive();
-        logActivity('Bestellung', `Bestellung von "${order.customerName}" ausgeliefert und archiviert (Summe $${totalSum.toFixed(2)})`);
+        if (typeof renderMembersTable === 'function') renderMembersTable();
+        logActivity('Bestellung', `Bestellung von "${order.customerName}" ausgeliefert und archiviert (Verkauft von: ${archivedPayload.soldBy}, Summe $${totalSum.toFixed(2)})`);
     }
 
     function renderOrders() {
@@ -408,6 +409,7 @@
             if (!error) {
                 archivedOrdersList = archivedOrdersList.filter(o => o.id !== id);
                 renderArchive();
+                if (typeof renderMembersTable === 'function') renderMembersTable();
                 logActivity('Archiv', `Archivierter Auftrag "${id}" wurde gelöscht.`);
             }
         }
@@ -424,6 +426,7 @@
             if (!error) {
                 archivedOrdersList = [];
                 renderArchive();
+                if (typeof renderMembersTable === 'function') renderMembersTable();
                 logActivity('Archiv', 'Das komplette Archiv wurde geleert.');
             }
         }

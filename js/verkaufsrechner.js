@@ -327,7 +327,7 @@ async function sellSalesCart() {
         const nextArchiveId = lastArchiveRows?.length
             ? Number(lastArchiveRows[0].id) + 1
             : 1;
-        const soldBy = currentUser ? currentUser.username : 'Unbekannt';
+        const soldBy = currentUser && currentUser.username ? currentUser.username : 'Unbekannt';
         const soldAt = getCurrentTimeString();
 
         const payload = {
@@ -347,6 +347,7 @@ async function sellSalesCart() {
         if (data && data[0]) {
             archivedOrdersList.unshift(data[0]);
             renderArchive();
+            if (typeof renderMembersTable === 'function') renderMembersTable();
         }
 
         logActivity('Archiv', `Warenkorb wurde von „${soldBy}“ als verkauft archiviert ($${totals.total.toFixed(2)})`);
