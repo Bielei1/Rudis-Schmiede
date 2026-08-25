@@ -43,7 +43,7 @@
             return `
                 <div class="online-user-row">
                     <span class="online-dot"></span>
-                    ${userAvatarHtml(meta.username || name, 'presence-avatar')}<span class="online-user-name">${escapeHtml(meta.username || name)}${isYou ? ' (Du)' : ''}</span>
+                    <span class="online-user-name">${escapeHtml(meta.username || name)}${isYou ? ' (Du)' : ''}</span>
                 </div>
             `;
         }).join('');

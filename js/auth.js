@@ -54,88 +54,6 @@
     let currentUser = null;   // { username, isAdmin, permission, tabPermissions }
     let appUsersList = [];    // nur für Admin geladen
     let editingPermissionUser = null;
-
-    const PROFILE_STORAGE_KEY = 'rudis_schmiede_profiles_v1';
-
-    function getProfileStore() {
-        try { return JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || '{}'); } catch (e) { return {}; }
-    }
-
-    function getUserProfile(username) {
-        const store = getProfileStore();
-        return store[String(username || '').trim().toLowerCase()] || {};
-    }
-
-    function getUserInitials(username) {
-        const name = String(username || '?').trim();
-        if (!name) return '?';
-        const parts = name.split(/\s+/).filter(Boolean);
-        return (parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2)).toUpperCase();
-    }
-
-    function userAvatarHtml(username, sizeClass = '') {
-        const profile = getUserProfile(username);
-        const safeName = escapeHtml(String(username || '?'));
-        const cls = `user-avatar ${sizeClass}`.trim();
-        if (profile.avatarUrl) {
-            return `<span class="${cls}"><img src="${escapeHtml(profile.avatarUrl)}" alt="${safeName}" onerror="this.style.display='none';this.parentElement.classList.add('avatar-fallback');this.parentElement.textContent='${getUserInitials(username)}';"></span>`;
-        }
-        return `<span class="${cls} avatar-fallback">${getUserInitials(username)}</span>`;
-    }
-
-    function updateCurrentUserProfileUI() {
-        if (!currentUser) return;
-        const nameEl = document.getElementById('sidebar-username');
-        const roleEl = document.getElementById('sidebar-userrole');
-        const avatarEl = document.getElementById('sidebar-avatar');
-        if (nameEl) nameEl.innerText = currentUser.username;
-        if (roleEl) roleEl.innerText = currentUser.isAdmin ? 'Administrator' : 'Benutzer – Tab-Rechte individuell';
-        if (avatarEl) {
-            const profile = getUserProfile(currentUser.username);
-            avatarEl.innerHTML = profile.avatarUrl ? `<img src="${escapeHtml(profile.avatarUrl)}" alt="Avatar" onerror="this.style.display='none';this.parentElement.classList.add('avatar-fallback');this.parentElement.textContent='${getUserInitials(currentUser.username)}';">` : getUserInitials(currentUser.username);
-            avatarEl.classList.toggle('avatar-fallback', !profile.avatarUrl);
-        }
-    }
-
-    function openProfileModal() {
-        if (!currentUser) return;
-        const modal = document.getElementById('profile-modal');
-        const input = document.getElementById('profile-avatar-url');
-        const preview = document.getElementById('profile-preview-avatar');
-        const profile = getUserProfile(currentUser.username);
-        if (input) input.value = profile.avatarUrl || '';
-        if (preview) preview.innerHTML = profile.avatarUrl ? `<img src="${escapeHtml(profile.avatarUrl)}" alt="Avatar">` : getUserInitials(currentUser.username);
-        if (modal) modal.style.display = 'flex';
-    }
-
-    function closeProfileModal() {
-        const modal = document.getElementById('profile-modal');
-        if (modal) modal.style.display = 'none';
-    }
-
-    function saveProfileSettings() {
-        if (!currentUser) return;
-        const input = document.getElementById('profile-avatar-url');
-        const url = String(input ? input.value : '').trim();
-        const store = getProfileStore();
-        const key = String(currentUser.username).trim().toLowerCase();
-        if (url) store[key] = { avatarUrl: url }; else delete store[key];
-        localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(store));
-        updateCurrentUserProfileUI();
-        if (typeof renderPresenceUsers === 'function') renderPresenceUsers();
-        if (typeof renderArchive === 'function') renderArchive();
-        if (typeof renderMembers === 'function') renderMembers();
-        closeProfileModal();
-        if (typeof showToast === 'function') showToast('Profil wurde gespeichert.', 'success', 'Profil');
-    }
-
-    function resetProfileAvatar() {
-        const input = document.getElementById('profile-avatar-url');
-        if (input) input.value = '';
-        const preview = document.getElementById('profile-preview-avatar');
-        if (preview && currentUser) preview.innerHTML = getUserInitials(currentUser.username);
-    }
-
     let editingPermissionDraft = null;
 
     async function hashPassword(password) {
@@ -443,7 +361,12 @@
         document.body.classList.toggle('is-admin', !!currentUser.isAdmin);
         document.body.classList.toggle('view-only-mode', false);
 
-        updateCurrentUserProfileUI();
+        const nameEl = document.getElementById('sidebar-username');
+        const roleEl = document.getElementById('sidebar-userrole');
+        if (nameEl) nameEl.innerText = currentUser.username;
+        if (roleEl) roleEl.innerText = currentUser.isAdmin
+            ? 'Administrator'
+            : (currentUser.isAdmin ? 'Administrator' : 'Benutzer – Tab-Rechte individuell');
 
         // Daten laden: Fehler dürfen den Login nicht blockieren.
         try {

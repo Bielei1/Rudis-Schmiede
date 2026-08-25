@@ -390,7 +390,7 @@
                 <td><span class="current-cost">$${totalProdCost.toFixed(2)}</span></td>
                 <td class="time-text">${archivedOrder.createdAt || '-'}</td>
                 <td class="time-text">${archivedOrder.deliveredAt || '-'}</td>
-                <td class="time-text"><span style="display:inline-flex;align-items:center;gap:7px;">${archivedOrder.soldBy ? userAvatarHtml(archivedOrder.soldBy, 'user-avatar-sm') : ''}${escapeHtml(archivedOrder.soldBy || '-')}</span></td>
+                <td class="time-text">${archivedOrder.soldBy || '-'}</td>
                 <td>
                     <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteArchivedOrder(${archivedOrder.id})">Eintrag löschen</button>
                 </td>

@@ -118,7 +118,7 @@
                 <summary style="display: flex; align-items: center; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="background: ${labelColor}22; color: ${labelColor}; border: 1px solid ${labelColor}; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">${note.label}</span>
-                        <span style="font-size: 0.95rem; color: var(--text-muted); font-weight: normal; display:inline-flex; align-items:center; gap:6px;">${note.createdBy ? `${userAvatarHtml(note.createdBy, 'user-avatar-sm')} von ${escapeHtml(note.createdBy)} · ` : ''}Zuletzt geändert: ${note.updatedAt || '-'}</span>
+                        <span style="font-size: 0.95rem; color: var(--text-muted); font-weight: normal;">${note.createdBy ? `von ${escapeHtml(note.createdBy)} · ` : ''}Zuletzt geändert: ${note.updatedAt || '-'}</span>
                     </div>
                 </summary>
                 <div style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;">

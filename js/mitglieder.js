@@ -94,7 +94,7 @@ function renderMembersTable() {
 
         return `
             <tr>
-                <td class="material-name"><span style="display:inline-flex;align-items:center;gap:8px;">${userAvatarHtml(user.username, 'user-avatar-sm')} ${escapeHtml(user.username)}</span></td>
+                <td class="material-name">${escapeHtml(user.username)}</td>
                 <td><input type="text" id="member-rang-${user.id}" list="member-rang-suggestions" value="${escapeHtml(rang)}" placeholder="z. B. Chef" style="width: 160px;" /></td>
                 <td>${formatMemberDate(joinedAt)}</td>
                 <td><input type="text" id="member-note-${user.id}" value="${escapeHtml(notiz)}" placeholder="Notiz (optional)" style="width: 220px;" /></td>
