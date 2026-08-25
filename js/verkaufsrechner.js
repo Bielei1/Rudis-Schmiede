@@ -338,7 +338,9 @@ async function sellSalesCart() {
             totalProductionCost: totals.productionCostTotal,
             createdAt: soldAt,
             deliveredAt: soldAt,
-            soldBy
+            soldBy,
+            discountPercent: totals.discountPercent,
+            discount: totals.discountPercent
         };
 
         const { data, error } = await supabaseClient.from('archive').insert([payload]).select();

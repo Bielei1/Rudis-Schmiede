@@ -205,7 +205,9 @@
             totalProductionCost: totalProductionCostSum,
             createdAt: order.createdAt,
             deliveredAt: deliveredAt,
-            soldBy: currentUser && currentUser.username ? currentUser.username : 'Unbekannt'
+            soldBy: currentUser && currentUser.username ? currentUser.username : 'Unbekannt',
+            discountPercent: orderDiscount,
+            discount: orderDiscount
         };
 
         const { error: archiveError } = await supabaseClient.from('archive').insert([archivedPayload]);
@@ -436,6 +438,13 @@
         return `${group.label} · ${start.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} bis ${end.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
     }
 
+    function getArchivedDiscountLabel(order) {
+        const rawValue = order && (order.discountPercent ?? order.discount ?? 0);
+        const value = Number(rawValue) || 0;
+        if (value <= 0) return '';
+        return `<div style="margin-top: 6px; font-size: 0.78rem; color: var(--text-muted);">Rabatt: <strong style="color: var(--accent-orange);">${value.toFixed(0)}%</strong></div>`;
+    }
+
     function renderArchive() {
         const tbody = document.getElementById('archive-table-body');
         const summaryBox = document.getElementById('archive-summary-box');
@@ -533,7 +542,10 @@
 
                                         return `
                                             <tr>
-                                                <td><div class="material-name" style="color: var(--accent-blue); font-size: 1.05rem;">${archivedOrder.customerName}</div></td>
+                                                <td>
+                                                    <div class="material-name" style="color: var(--accent-blue); font-size: 1.05rem;">${archivedOrder.customerName}</div>
+                                                    ${getArchivedDiscountLabel(archivedOrder)}
+                                                </td>
                                                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${itemsHtml}</div></td>
                                                 <td><span class="current-price">$${(Number(archivedOrder.totalSum) || 0).toFixed(2)}</span></td>
                                                 <td><span class="current-cost">$${totalProdCost.toFixed(2)}</span></td>
