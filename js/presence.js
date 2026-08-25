@@ -40,10 +40,11 @@
         container.innerHTML = usernames.map(name => {
             const meta = state[name][0];
             const isYou = currentUser && name === currentUser.username;
+            const displayName = meta.username || name;
             return `
                 <div class="online-user-row">
                     <span class="online-dot"></span>
-                    <span class="online-user-name">${escapeHtml(meta.username || name)}${isYou ? ' (Du)' : ''}</span>
+                    ${renderUsernameWithAvatar(displayName, null, { size: 'small', suffix: isYou ? ' (Du)' : '' })}
                 </div>
             `;
         }).join('');

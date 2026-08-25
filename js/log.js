@@ -99,7 +99,7 @@
         tbody.innerHTML = list.map(entry => `
             <tr>
                 <td class="time-text" style="white-space: nowrap;">${entry.createdAt}</td>
-                <td>${entry.username || '–'}</td>
+                <td>${renderUsernameWithAvatar(entry.username || '–', null, { size: 'small' })}</td>
                 <td><span class="log-badge log-badge-${categorySlug(entry.category)}">${entry.category}</span></td>
                 <td>${entry.message}</td>
             </tr>

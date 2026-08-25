@@ -79,6 +79,39 @@
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
     }
+
+    function getUserByUsername(username) {
+        const normalized = String(username || '').trim().toLowerCase();
+        if (!normalized) return null;
+
+        const userLists = [];
+        if (typeof appUsersList !== 'undefined' && Array.isArray(appUsersList)) userLists.push(appUsersList);
+        if (typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList)) userLists.push(memberUsernamesList);
+
+        for (const list of userLists) {
+            const match = list.find(user => String(user && user.username || '').trim().toLowerCase() === normalized);
+            if (match) return match;
+        }
+        return null;
+    }
+
+    function renderUsernameWithAvatar(username, user = null, options = {}) {
+        const safeName = String(username ?? '').trim() || 'Unbekannt';
+        const resolvedUser = user && String(user.username || '').trim()
+            ? user
+            : getUserByUsername(safeName);
+        const avatarSource = resolvedUser && resolvedUser.avatar ? resolvedUser.avatar : null;
+        const size = options.size || 'small';
+        const suffix = options.suffix || '';
+        const className = options.className ? ` ${options.className}` : '';
+        const initials = safeName ? safeName.charAt(0).toUpperCase() : '?';
+
+        const avatarHtml = avatarSource
+            ? `<span class="user-tag-avatar user-tag-avatar--image user-tag-avatar--${size}" style="background-image:url('${String(avatarSource).replace(/'/g, "\\'") }'); background-size:cover; background-position:center; color:transparent;">${escapeHtml(initials)}</span>`
+            : `<span class="user-tag-avatar user-tag-avatar--fallback user-tag-avatar--${size}" aria-label="${escapeHtml(safeName)}">${escapeHtml(initials)}</span>`;
+
+        return `<span class="user-tag user-tag--${size}${className}">${avatarHtml}<span class="user-tag-name">${escapeHtml(safeName)}${escapeHtml(suffix)}</span></span>`;
+    }
     window.alert = function (message) {
         showToast(message);
     };

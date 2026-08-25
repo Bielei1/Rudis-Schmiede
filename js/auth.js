@@ -627,7 +627,7 @@
         const userEl = document.getElementById('permission-modal-user');
         if (!grid || !editingPermissionUser) return;
 
-        userEl.textContent = `Benutzer: ${editingPermissionUser.username}`;
+        userEl.innerHTML = `Benutzer: ${renderUsernameWithAvatar(editingPermissionUser.username, editingPermissionUser, { size: 'small' })}`;
         grid.innerHTML = '<div class="head">Tab</div><div class="head">Anschauen</div><div class="head">Bearbeiten</div><div class="head">Löschen</div>';
 
         TAB_DEFINITIONS.forEach(tab => {
@@ -849,7 +849,7 @@
                 : r.status === 'approved'
                     ? `<button class="btn" style="height:34px;font-size:.8rem;background-color:var(--card-bg-raised);color:var(--text-color);border:1px solid var(--border-color);" onclick="revokePasswordReset(${r.id})">Freigabe zurücknehmen</button>`
                     : `<span style="color:var(--text-muted);font-size:.8rem;">Abgeschlossen</span>`;
-            return `<tr><td>${r.username || '-'}</td><td><span class="time-text" style="letter-spacing:1px;">${r.request_code || '-'}</span></td><td>${statusHtml}</td><td class="time-text">${created}</td><td>${actionHtml}</td></tr>`;
+            return `<tr><td>${renderUsernameWithAvatar(r.username || '-', null, { size: 'small' })}</td><td><span class="time-text" style="letter-spacing:1px;">${r.request_code || '-'}</span></td><td>${statusHtml}</td><td class="time-text">${created}</td><td>${actionHtml}</td></tr>`;
         }).join('');
     }
 
@@ -895,7 +895,7 @@
                 : `<button class="btn" style="height:34px;font-size:.8rem;background-color:var(--primary-soft);color:var(--primary-bright);border:1px solid rgba(255,106,26,.35);" onclick="openPermissionModal(${u.id})">Tab-Rechte</button>`;
             return `
                 <tr>
-                    <td>${u.username}</td>
+                    <td>${renderUsernameWithAvatar(u.username, u, { size: 'small' })}</td>
                     <td>
                         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                             <span style="color:var(--text-muted);font-size:.78rem;">Aus Sicherheitsgründen nicht auslesbar</span>
