@@ -117,7 +117,9 @@
             // Fest hinterlegter Admin-Zugang
             if (username.toLowerCase() === ADMIN_USERNAME) {
                 if (password === ADMIN_PASSWORD) {
-                    await completeLogin({ username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions() }, password, true);
+                    let adminProfile = {};
+                    try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
+                    await completeLogin({ username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: adminProfile.avatar || null, theme: adminProfile.theme || 'dark' }, password, true);
                 } else {
                     showAuthMsg('login-error', 'Benutzername oder Passwort falsch.');
                 }
@@ -145,7 +147,7 @@
                 return;
             }
 
-            await completeLogin({ username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view' }, password, !!user.is_admin);
+            await completeLogin({ username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar || null, theme: user.theme || 'dark' }, password, !!user.is_admin);
         } finally {
             submitBtn.disabled = false;
         }
@@ -318,7 +320,9 @@
         if (stored.username.toLowerCase() === ADMIN_USERNAME) {
             const adminHash = await hashPassword(ADMIN_PASSWORD);
             if (stored.passwordHash !== adminHash) return false;
-            currentUser = { username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions() };
+            let adminProfile = {};
+            try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
+            currentUser = { username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: adminProfile.avatar || null, theme: adminProfile.theme || 'dark' };
             await enterApp();
             return true;
         }
@@ -332,7 +336,7 @@
             if (error || !data || !data[0]) return false;
             const user = data[0];
             if (user.password_hash !== stored.passwordHash || !user.approved) return false;
-            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view' };
+            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar || null, theme: user.theme || 'dark' };
             await enterApp();
             return true;
         } catch (e) {
@@ -367,6 +371,9 @@
         if (roleEl) roleEl.innerText = currentUser.isAdmin
             ? 'Administrator'
             : (currentUser.isAdmin ? 'Administrator' : 'Benutzer – Tab-Rechte individuell');
+
+        if (typeof applyTheme === 'function') applyTheme(currentUser.theme || 'dark');
+        if (typeof updateSidebarAvatar === 'function') updateSidebarAvatar();
 
         // Daten laden: Fehler dürfen den Login nicht blockieren.
         try {
