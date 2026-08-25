@@ -1877,17 +1877,32 @@
         }
 
         .member-profile-trigger {
-            background: transparent;
-            border: 1px solid transparent;
-            padding: 4px 8px 4px 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 6px 10px 6px 6px;
             border-radius: 999px;
             cursor: pointer;
-            transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+            color: var(--text-muted);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            transition: background-color 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+        }
+
+        .member-profile-trigger .user-tag {
+            color: var(--text-muted);
+        }
+
+        .member-profile-trigger .user-tag-name {
+            color: var(--text-muted);
+            font-weight: 600;
         }
 
         .member-profile-trigger:hover {
             background: rgba(255, 106, 26, 0.08);
             border-color: rgba(255, 106, 26, 0.2);
+            box-shadow: 0 8px 20px rgba(255, 106, 26, 0.12);
             transform: translateY(-1px);
         }
 
