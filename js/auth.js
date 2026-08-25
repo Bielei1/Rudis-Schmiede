@@ -42,7 +42,7 @@
         if (loginTitleEl) loginTitleEl.innerText = finalName;
         const mainTitleEl = document.getElementById('main-title');
         if (mainTitleEl) mainTitleEl.innerText = finalName;
-        document.title = finalName + " - Verwaltung";
+        document.title = finalName;
     }
 
     // Gespeicherten Namen sofort anwenden (auch vor dem Login)
