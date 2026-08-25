@@ -326,7 +326,7 @@
         if (commaIndex === -1) return value;
         const datePart = value.slice(0, commaIndex);
         const timePart = value.slice(commaIndex + 2);
-        return `${datePart}<br><span style="color: var(--text-muted); font-size: 0.85em;">${timePart}</span>`;
+        return `${datePart}<br><span>${timePart}</span>`;
     }
 
     function renderArchive() {
@@ -389,14 +389,8 @@
             }
 
             archivedOrder.items.forEach(item => {
-                itemsHtml += `
-                    <div class="archive-item-row">
-                        <div class="archive-item-main">
-                            <strong>${item.qty}x</strong> ${item.name}
-                            <span class="archive-item-sub">à $${item.price.toFixed(2)} · ${item.priceType}</span>
-                        </div>
-                        <div class="archive-item-total">$${item.total.toFixed(2)}</div>
-                    </div>`;
+                let badgeColor = item.priceType === 'Sonderpreis' ? 'var(--accent-blue)' : 'var(--accent-gray)';
+                itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${item.qty}x</strong> ${item.name} à $${item.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${item.priceType}</span> = <span style="color: var(--accent-green); font-weight: 600;">$${item.total.toFixed(2)}</span></div>`;
             });
 
             tr.innerHTML = `
