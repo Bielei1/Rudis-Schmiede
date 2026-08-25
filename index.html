@@ -4,14 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rudis Schmiede - Verwaltung</title>
-    <script>
-        // Sofort anwenden, bevor irgendetwas gerendert wird - verhindert ein
-        // kurzes Aufblitzen des falschen Themes beim Laden der Seite.
-        try {
-            var cachedTheme = localStorage.getItem('rs_last_theme');
-            if (cachedTheme === 'light') document.documentElement.setAttribute('data-theme', 'light');
-        } catch (e) {}
-    </script>
 
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -187,33 +179,6 @@
         </div>
     </div>
 
-    <!-- ============ PROFIL-MODAL ============ -->
-    <div id="profile-modal-backdrop" class="confirm-modal-backdrop" onclick="handleProfileModalBackdropClick(event)">
-        <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
-            <h2 id="profile-modal-title" style="margin:0 0 16px;">Profil bearbeiten</h2>
-
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px;">
-                <div id="profile-avatar-preview" class="profile-avatar-large" onclick="document.getElementById('profile-avatar-input').click()"></div>
-                <input type="file" id="profile-avatar-input" accept="image/*" style="display:none;" onchange="handleAvatarFileSelected(event)">
-                <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 36px; font-size: 0.85rem;" onclick="document.getElementById('profile-avatar-input').click()">Foto ändern</button>
-            </div>
-
-            <div class="permission-help" style="margin-bottom: 10px;">Anzeigename</div>
-            <div style="font-weight: 600; margin-bottom: 20px;" id="profile-modal-username"></div>
-
-            <div class="permission-help" style="margin-bottom: 10px;">Design der Seite</div>
-            <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-                <button type="button" class="btn theme-choice-btn" id="theme-choice-dark" onclick="applyThemeChoice('dark')">🌙 Dunkel</button>
-                <button type="button" class="btn theme-choice-btn" id="theme-choice-light" onclick="applyThemeChoice('light')">☀️ Hell</button>
-            </div>
-
-            <div class="confirm-modal-actions">
-                <button type="button" class="btn" style="background-color:var(--card-bg-raised);color:var(--text-color);border:1px solid var(--border-color);" onclick="closeProfileModal(true)">Abbrechen</button>
-                <button type="button" class="btn btn-success" onclick="saveProfileChanges()">Speichern</button>
-            </div>
-        </div>
-    </div>
-
     <div id="app-loading-overlay">
         <div class="app-loading-spinner"></div>
         <div class="app-loading-text">Daten werden geladen …</div>
@@ -302,17 +267,45 @@
             </button>
         </nav>
 
-        <div class="sidebar-user-box">
-            <div class="sidebar-user-clickable" onclick="openProfileModal()" title="Profil bearbeiten">
-                <div id="sidebar-avatar" class="profile-avatar-small"></div>
-                <div>
+        <div class="sidebar-user-box profile-card" id="sidebar-profile-card" onclick="openProfileModal()" title="Profil öffnen">
+            <div class="profile-card-main">
+                <div class="user-avatar user-avatar-lg" id="sidebar-avatar">?</div>
+                <div class="profile-card-text">
                     <div class="sidebar-user-name" id="sidebar-username">–</div>
                     <div class="sidebar-user-role" id="sidebar-userrole">–</div>
                 </div>
+                <div class="profile-edit-hint">✎</div>
             </div>
-            <button class="btn" onclick="logoutUser()">Abmelden</button>
+            <div class="profile-card-actions">
+                <button type="button" class="btn profile-edit-btn" onclick="event.stopPropagation(); openProfileModal()">Profil bearbeiten</button>
+                <button type="button" class="btn profile-logout-btn" onclick="event.stopPropagation(); logoutUser()">Abmelden</button>
+            </div>
         </div>
     </aside>
+
+    <div id="profile-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content profile-modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3>Mein Profil</h3>
+                    <p class="modal-subtitle">Passe dein Profilbild an. Der Benutzername bleibt unverändert.</p>
+                </div>
+                <button type="button" class="modal-close" onclick="closeProfileModal()">&times;</button>
+            </div>
+            <div class="profile-modal-body">
+                <div class="profile-preview" id="profile-preview-avatar">?</div>
+                <div class="profile-form-fields">
+                    <label class="form-label" for="profile-avatar-url">Avatar-Bild URL</label>
+                    <input id="profile-avatar-url" class="form-input" type="url" placeholder="https://..." autocomplete="off">
+                    <div class="profile-help">Leer lassen = automatisch ein Avatar mit deinen Initialen.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="resetProfileAvatar()">Avatar zurücksetzen</button>
+                <button type="button" class="btn btn-primary" onclick="saveProfileSettings()">Speichern</button>
+            </div>
+        </div>
+    </div>
 
     <main class="content-area">
     <div class="container">
@@ -1108,7 +1101,6 @@
 <script src="js/herstellung.js"></script>
 <script src="js/notizen.js"></script>
 <script src="js/mitglieder.js"></script>
-<script src="js/profile.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

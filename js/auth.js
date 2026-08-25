@@ -54,6 +54,88 @@
     let currentUser = null;   // { username, isAdmin, permission, tabPermissions }
     let appUsersList = [];    // nur für Admin geladen
     let editingPermissionUser = null;
+
+    const PROFILE_STORAGE_KEY = 'rudis_schmiede_profiles_v1';
+
+    function getProfileStore() {
+        try { return JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || '{}'); } catch (e) { return {}; }
+    }
+
+    function getUserProfile(username) {
+        const store = getProfileStore();
+        return store[String(username || '').trim().toLowerCase()] || {};
+    }
+
+    function getUserInitials(username) {
+        const name = String(username || '?').trim();
+        if (!name) return '?';
+        const parts = name.split(/\s+/).filter(Boolean);
+        return (parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2)).toUpperCase();
+    }
+
+    function userAvatarHtml(username, sizeClass = '') {
+        const profile = getUserProfile(username);
+        const safeName = escapeHtml(String(username || '?'));
+        const cls = `user-avatar ${sizeClass}`.trim();
+        if (profile.avatarUrl) {
+            return `<span class="${cls}"><img src="${escapeHtml(profile.avatarUrl)}" alt="${safeName}" onerror="this.style.display='none';this.parentElement.classList.add('avatar-fallback');this.parentElement.textContent='${getUserInitials(username)}';"></span>`;
+        }
+        return `<span class="${cls} avatar-fallback">${getUserInitials(username)}</span>`;
+    }
+
+    function updateCurrentUserProfileUI() {
+        if (!currentUser) return;
+        const nameEl = document.getElementById('sidebar-username');
+        const roleEl = document.getElementById('sidebar-userrole');
+        const avatarEl = document.getElementById('sidebar-avatar');
+        if (nameEl) nameEl.innerText = currentUser.username;
+        if (roleEl) roleEl.innerText = currentUser.isAdmin ? 'Administrator' : 'Benutzer – Tab-Rechte individuell';
+        if (avatarEl) {
+            const profile = getUserProfile(currentUser.username);
+            avatarEl.innerHTML = profile.avatarUrl ? `<img src="${escapeHtml(profile.avatarUrl)}" alt="Avatar" onerror="this.style.display='none';this.parentElement.classList.add('avatar-fallback');this.parentElement.textContent='${getUserInitials(currentUser.username)}';">` : getUserInitials(currentUser.username);
+            avatarEl.classList.toggle('avatar-fallback', !profile.avatarUrl);
+        }
+    }
+
+    function openProfileModal() {
+        if (!currentUser) return;
+        const modal = document.getElementById('profile-modal');
+        const input = document.getElementById('profile-avatar-url');
+        const preview = document.getElementById('profile-preview-avatar');
+        const profile = getUserProfile(currentUser.username);
+        if (input) input.value = profile.avatarUrl || '';
+        if (preview) preview.innerHTML = profile.avatarUrl ? `<img src="${escapeHtml(profile.avatarUrl)}" alt="Avatar">` : getUserInitials(currentUser.username);
+        if (modal) modal.style.display = 'flex';
+    }
+
+    function closeProfileModal() {
+        const modal = document.getElementById('profile-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function saveProfileSettings() {
+        if (!currentUser) return;
+        const input = document.getElementById('profile-avatar-url');
+        const url = String(input ? input.value : '').trim();
+        const store = getProfileStore();
+        const key = String(currentUser.username).trim().toLowerCase();
+        if (url) store[key] = { avatarUrl: url }; else delete store[key];
+        localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(store));
+        updateCurrentUserProfileUI();
+        if (typeof renderPresenceUsers === 'function') renderPresenceUsers();
+        if (typeof renderArchive === 'function') renderArchive();
+        if (typeof renderMembers === 'function') renderMembers();
+        closeProfileModal();
+        if (typeof showToast === 'function') showToast('Profil wurde gespeichert.', 'success', 'Profil');
+    }
+
+    function resetProfileAvatar() {
+        const input = document.getElementById('profile-avatar-url');
+        if (input) input.value = '';
+        const preview = document.getElementById('profile-preview-avatar');
+        if (preview && currentUser) preview.innerHTML = getUserInitials(currentUser.username);
+    }
+
     let editingPermissionDraft = null;
 
     async function hashPassword(password) {
@@ -117,9 +199,7 @@
             // Fest hinterlegter Admin-Zugang
             if (username.toLowerCase() === ADMIN_USERNAME) {
                 if (password === ADMIN_PASSWORD) {
-                    let adminProfile = {};
-                    try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
-                    await completeLogin({ username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: adminProfile.avatar || null, theme: adminProfile.theme || 'dark' }, password, true);
+                    await completeLogin({ username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions() }, password, true);
                 } else {
                     showAuthMsg('login-error', 'Benutzername oder Passwort falsch.');
                 }
@@ -147,7 +227,7 @@
                 return;
             }
 
-            await completeLogin({ username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar || null, theme: user.theme || 'dark' }, password, !!user.is_admin);
+            await completeLogin({ username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view' }, password, !!user.is_admin);
         } finally {
             submitBtn.disabled = false;
         }
@@ -320,9 +400,7 @@
         if (stored.username.toLowerCase() === ADMIN_USERNAME) {
             const adminHash = await hashPassword(ADMIN_PASSWORD);
             if (stored.passwordHash !== adminHash) return false;
-            let adminProfile = {};
-            try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
-            currentUser = { username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: adminProfile.avatar || null, theme: adminProfile.theme || 'dark' };
+            currentUser = { username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions() };
             await enterApp();
             return true;
         }
@@ -336,7 +414,7 @@
             if (error || !data || !data[0]) return false;
             const user = data[0];
             if (user.password_hash !== stored.passwordHash || !user.approved) return false;
-            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar || null, theme: user.theme || 'dark' };
+            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view' };
             await enterApp();
             return true;
         } catch (e) {
@@ -365,15 +443,7 @@
         document.body.classList.toggle('is-admin', !!currentUser.isAdmin);
         document.body.classList.toggle('view-only-mode', false);
 
-        const nameEl = document.getElementById('sidebar-username');
-        const roleEl = document.getElementById('sidebar-userrole');
-        if (nameEl) nameEl.innerText = currentUser.username;
-        if (roleEl) roleEl.innerText = currentUser.isAdmin
-            ? 'Administrator'
-            : (currentUser.isAdmin ? 'Administrator' : 'Benutzer – Tab-Rechte individuell');
-
-        if (typeof applyTheme === 'function') applyTheme(currentUser.theme || 'dark');
-        if (typeof updateSidebarAvatar === 'function') updateSidebarAvatar();
+        updateCurrentUserProfileUI();
 
         // Daten laden: Fehler dürfen den Login nicht blockieren.
         try {

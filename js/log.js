@@ -99,7 +99,7 @@
         tbody.innerHTML = list.map(entry => `
             <tr>
                 <td class="time-text" style="white-space: nowrap;">${entry.createdAt}</td>
-                <td>${entry.username || '–'}</td>
+                <td><span style="display:inline-flex;align-items:center;gap:7px;">${userAvatarHtml(entry.username || '–', 'user-avatar-sm')} ${escapeHtml(entry.username || '–')}</span></td>
                 <td><span class="log-badge log-badge-${categorySlug(entry.category)}">${entry.category}</span></td>
                 <td>${entry.message}</td>
             </tr>

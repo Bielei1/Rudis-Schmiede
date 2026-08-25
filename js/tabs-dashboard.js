@@ -351,7 +351,7 @@
             <div class="pinboard-row">
                 <div class="pinboard-body">
                     <span class="pinboard-text">${escapeHtml(note.content)}</span>
-                    <span class="pinboard-meta">${note.createdBy ? `von <span class="pinboard-author">${escapeHtml(note.createdBy)}</span> · ` : ''}${note.updatedAt || ''}</span>
+                    <span class="pinboard-meta">${note.createdBy ? `von ${userAvatarHtml(note.createdBy, 'user-avatar-sm')} <span class="pinboard-author">${escapeHtml(note.createdBy)}</span> · ` : ''}${note.updatedAt || ''}</span>
                 </div>
                 <button type="button" class="pinboard-delete-btn" title="Entfernen" onclick="deletePinboardNote(${note.id})">✕</button>
             </div>

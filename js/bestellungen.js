@@ -319,16 +319,6 @@
         });
     }
 
-    function splitDateTimeDisplay(value) {
-        // Format aus getCurrentTimeString(): "1. August 2026, 17:42 Uhr"
-        if (!value) return '-';
-        const commaIndex = value.lastIndexOf(', ');
-        if (commaIndex === -1) return value;
-        const datePart = value.slice(0, commaIndex);
-        const timePart = value.slice(commaIndex + 2);
-        return `${datePart}<br><span>${timePart}</span>`;
-    }
-
     function renderArchive() {
         const tbody = document.getElementById('archive-table-body');
         const summaryBox = document.getElementById('archive-summary-box');
@@ -398,9 +388,9 @@
                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${itemsHtml}</div></td>
                 <td><span class="current-price">$${archivedOrder.totalSum.toFixed(2)}</span></td>
                 <td><span class="current-cost">$${totalProdCost.toFixed(2)}</span></td>
-                <td class="time-text">${splitDateTimeDisplay(archivedOrder.createdAt)}</td>
-                <td class="time-text">${splitDateTimeDisplay(archivedOrder.deliveredAt)}</td>
-                <td class="time-text">${archivedOrder.soldBy || '-'}</td>
+                <td class="time-text">${archivedOrder.createdAt || '-'}</td>
+                <td class="time-text">${archivedOrder.deliveredAt || '-'}</td>
+                <td class="time-text"><span style="display:inline-flex;align-items:center;gap:7px;">${archivedOrder.soldBy ? userAvatarHtml(archivedOrder.soldBy, 'user-avatar-sm') : ''}${escapeHtml(archivedOrder.soldBy || '-')}</span></td>
                 <td>
                     <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteArchivedOrder(${archivedOrder.id})">Eintrag löschen</button>
                 </td>
