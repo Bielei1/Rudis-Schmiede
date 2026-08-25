@@ -378,94 +378,10 @@
                 });
             }
 
-            archivedOrder.items.forEach((item, index) => {
-                const badgeColor =
-        item.priceType === 'Sonderpreis'
-            ? 'var(--accent-blue)'
-            : 'var(--accent-gray)';
-
-    const isLast = index === archivedOrder.items.length - 1;
-
-    itemsHtml += `
-        <div style="
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:14px;
-            padding:8px 10px;
-            ${!isLast ? 'border-bottom:1px solid var(--border-color);' : ''}
-        ">
-
-            <div style="
-                display:flex;
-                align-items:center;
-                gap:9px;
-                min-width:0;
-                flex:1;
-            ">
-
-                <span style="
-                    min-width:42px;
-                    padding:3px 7px;
-                    border-radius:6px;
-                    background:rgba(255,255,255,0.06);
-                    color:var(--text-primary);
-                    font-size:0.78rem;
-                    font-weight:700;
-                    text-align:center;
-                ">
-                    ${item.qty}x
-                </span>
-
-                <div style="
-                    display:flex;
-                    flex-direction:column;
-                    gap:2px;
-                    min-width:0;
-                ">
-                    <span style="
-                        color:var(--text-primary);
-                        font-weight:600;
-                        white-space:nowrap;
-                        overflow:hidden;
-                        text-overflow:ellipsis;
-                    ">
-                        ${item.name}
-                    </span>
-
-                    <span style="
-                        color:var(--text-muted);
-                        font-size:0.75rem;
-                    ">
-                        Einzelpreis: $${item.price.toFixed(2)}
-
-                        <span style="
-                            margin-left:6px;
-                            padding:1px 5px;
-                            border-radius:4px;
-                            background:${badgeColor}22;
-                            color:${badgeColor};
-                            border:1px solid ${badgeColor};
-                        ">
-                            ${item.priceType}
-                        </span>
-                    </span>
-                </div>
-            </div>
-
-            <div style="
-                min-width:95px;
-                text-align:right;
-                color:var(--accent-green);
-                font-weight:700;
-                white-space:nowrap;
-            ">
-                $${item.total.toFixed(2)}
-            </div>
-
-        </div>
-    `;
-});
+            archivedOrder.items.forEach(item => {
+                let badgeColor = item.priceType === 'Sonderpreis' ? 'var(--accent-blue)' : 'var(--accent-gray)';
+                itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${item.qty}x</strong> ${item.name} à $${item.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${item.priceType}</span> = <span style="color: var(--accent-green); font-weight: 600;">$${item.total.toFixed(2)}</span></div>`;
+            });
 
             tr.innerHTML = `
                 <td><div class="material-name" style="color: var(--accent-blue); font-size: 1.05rem;">${archivedOrder.customerName}</div></td>
