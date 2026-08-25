@@ -4,7 +4,6 @@
 let salesCalculatorCart = {};
 let salesCalculatorSelectedItem = null;
 let salesCalculatorQuantityBuffer = '';
-let salesCalculatorSearchQuery = ''; // Variable für die Suchanfrage
 
 function escapeSalesCalculatorHtml(value) {
     return String(value ?? '').replace(/[&<>'"]/g, char => ({
@@ -32,30 +31,16 @@ function getSalesCalculatorProducts() {
         .sort((a, b) => a.outputName.localeCompare(b.outputName, 'de'));
 }
 
-// Filter-Funktion für die Produktsuche
-function getFilteredSalesCalculatorProducts() {
-    const products = getSalesCalculatorProducts();
-    if (!salesCalculatorSearchQuery.trim()) return products;
-
-    const query = salesCalculatorSearchQuery.toLowerCase().trim();
-    return products.filter(recipe => 
-        recipe.outputName.toLowerCase().includes(query)
-    );
-}
-
 function renderSalesCalculatorProducts() {
     const container = document.getElementById('sales-calculator-products');
     const countEl = document.getElementById('sales-calculator-count');
     if (!container) return;
 
-    const products = getFilteredSalesCalculatorProducts(); // Nutzt gefilterte Liste
+    const products = getSalesCalculatorProducts();
     if (countEl) countEl.textContent = `${products.length} Artikel`;
 
     if (!products.length) {
-        const emptyMsg = salesCalculatorSearchQuery.trim() 
-            ? 'Keine Artikel für deine Suche gefunden.' 
-            : 'Keine herstellbaren Artikel vorhanden. Lege zuerst ein Rezept im Tab „Herstellung“ an.';
-        container.innerHTML = `<div class="sales-calculator-empty">${emptyMsg}</div>`;
+        container.innerHTML = '<div class="sales-calculator-empty">Keine herstellbaren Artikel vorhanden. Lege zuerst ein Rezept im Tab „Herstellung“ an.</div>';
         return;
     }
 
@@ -88,6 +73,7 @@ function openSalesQuantityModal(itemName) {
     }
 
     salesCalculatorSelectedItem = itemName;
+    // Wichtig: bewusst leer starten, nicht mit 1.
     salesCalculatorQuantityBuffer = '';
 
     const title = document.getElementById('sales-modal-title');
@@ -252,6 +238,7 @@ function renderSalesCalculatorCart() {
             </div>`;
     }).join('');
 
+    // Event-Delegation auf dem Warenkorb: funktioniert auch nach jedem Neurendern.
     container.querySelectorAll('[data-sales-cart-key]').forEach(actions => {
         actions.addEventListener('click', event => {
             const button = event.target.closest('button[data-action]');
@@ -328,6 +315,8 @@ async function sellSalesCart() {
             };
         });
 
+        // Die bestehende archive-Tabelle hat eine Pflicht-ID. Daher die nächste
+        // freie ID bestimmen, statt null zu senden.
         const { data: lastArchiveRows, error: idLookupError } = await supabaseClient
             .from('archive')
             .select('id')
@@ -370,18 +359,8 @@ async function sellSalesCart() {
     }
 }
 
-// Event-Listener für das Suchfeld einbinden
 function initSalesCalculatorEvents() {
     renderSalesCalculatorCart();
-    
-    // Bindet die Produktsuche an ein Input-Feld mit der ID "sales-calculator-search"
-    const searchInput = document.getElementById('sales-calculator-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            salesCalculatorSearchQuery = e.target.value;
-            renderSalesCalculatorProducts();
-        });
-    }
 }
 
 if (document.readyState === 'loading') {
