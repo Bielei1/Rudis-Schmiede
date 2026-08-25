@@ -488,9 +488,10 @@
             }, 0);
 
             const row = document.createElement('tr');
+            const isCurrentWeek = group.key === getWeekRange(new Date()).key;
             row.innerHTML = `
                 <td colspan="8">
-                    <details class="archive-week-folder" open>
+                    <details class="archive-week-folder" ${isCurrentWeek ? 'open' : ''}>
                         <summary>
                             <span class="archive-week-title">${formatWeekRangeLabel(group)}</span>
                             <span class="archive-week-meta">${group.orders.length} Bestellung${group.orders.length === 1 ? '' : 'en'} · Gesamt $${groupTotal.toFixed(2)} · Kosten $${groupCost.toFixed(2)}</span>
