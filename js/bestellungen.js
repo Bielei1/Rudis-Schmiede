@@ -457,7 +457,16 @@
             grouped.get(key).orders.push(order);
         });
 
-        return [...grouped.values()].sort((a, b) => b.start.getTime() - a.start.getTime());
+        const groups = [...grouped.values()].sort((a, b) => b.start.getTime() - a.start.getTime());
+        groups.forEach(group => {
+            group.orders.sort((a, b) => {
+                const aTime = getArchiveOrderDate(a)?.getTime?.() ?? new Date(a.deliveredAt || a.createdAt || 0).getTime?.() ?? 0;
+                const bTime = getArchiveOrderDate(b)?.getTime?.() ?? new Date(b.deliveredAt || b.createdAt || 0).getTime?.() ?? 0;
+                return bTime - aTime;
+            });
+        });
+
+        return groups;
     }
 
     function formatWeekRangeLabel(group) {
