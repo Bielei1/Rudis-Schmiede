@@ -7,7 +7,7 @@ let memberUsernamesList = [];
 async function loadMemberUsernames() {
     const { data, error } = await supabaseClient
         .from('app_users')
-        .select('id, username, created_at')
+        .select('id, username, created_at, avatar')
         .order('username', { ascending: true });
     if (!error && data) {
         memberUsernamesList = data;
@@ -94,7 +94,7 @@ function renderMembersTable() {
 
         return `
             <tr>
-                <td class="material-name">${escapeHtml(user.username)}</td>
+                <td class="material-name">${typeof userIdentityHtml === 'function' ? userIdentityHtml(user.username, { size: 32 }) : escapeHtml(user.username)}</td>
                 <td><input type="text" id="member-rang-${user.id}" list="member-rang-suggestions" value="${escapeHtml(rang)}" placeholder="z. B. Chef" style="width: 160px;" /></td>
                 <td>${formatMemberDate(joinedAt)}</td>
                 <td><input type="text" id="member-note-${user.id}" value="${escapeHtml(notiz)}" placeholder="Notiz (optional)" style="width: 220px;" /></td>

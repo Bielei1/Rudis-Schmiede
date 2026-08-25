@@ -26,6 +26,66 @@
         }
     }
 
+
+    // Cache aller Benutzer-Avatare, damit auch bei anderen Benutzern neben dem Namen
+    // das gespeicherte Profilbild angezeigt werden kann.
+    let userAvatarCache = {};
+    let userAvatarLoadPromise = null;
+
+    async function loadUserAvatars() {
+        if (!supabaseClient) return;
+        if (userAvatarLoadPromise) return userAvatarLoadPromise;
+        userAvatarLoadPromise = (async () => {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('app_users')
+                    .select('username, avatar');
+                if (!error && Array.isArray(data)) {
+                    userAvatarCache = {};
+                    data.forEach(u => {
+                        if (u.username) userAvatarCache[String(u.username).toLowerCase()] = u.avatar || null;
+                    });
+                }
+            } catch (e) {
+                console.warn('Avatare konnten nicht geladen werden:', e);
+            } finally {
+                userAvatarLoadPromise = null;
+            }
+        })();
+        return userAvatarLoadPromise;
+    }
+
+    function getUserAvatar(username) {
+        const key = String(username || '').trim().toLowerCase();
+        if (currentUser && key === String(currentUser.username || '').trim().toLowerCase()) {
+            return currentUser.avatar || null;
+        }
+        return Object.prototype.hasOwnProperty.call(userAvatarCache, key) ? userAvatarCache[key] : null;
+    }
+
+    function userIdentityHtml(username, options = {}) {
+        const name = String(username || '–');
+        const avatar = getUserAvatar(name);
+        const size = Number(options.size) || 28;
+        const label = options.label ? ` ${options.label}` : '';
+        const initial = escapeHtml(name.trim().charAt(0).toUpperCase() || '?');
+        const avatarStyle = avatar
+            ? `background-image:url(${avatar});`
+            : '';
+        return `<span class="user-identity" title="${escapeHtml(name)}" style="display:inline-flex;align-items:center;gap:8px;min-width:0;vertical-align:middle;">
+            <span class="profile-avatar-inline" style="width:${size}px;height:${size}px;${avatarStyle}">${avatar ? '' : initial}</span>
+            <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(name)}${label}</span>
+        </span>`;
+    }
+
+    async function refreshUserAvatarDisplays() {
+        await loadUserAvatars();
+        if (typeof renderArchive === 'function') renderArchive();
+        if (typeof renderActivityLog === 'function') renderActivityLog();
+        if (typeof renderOnlineUsers === 'function') renderOnlineUsers();
+        if (typeof renderMembersTable === 'function') renderMembersTable();
+    }
+
     function updateSidebarAvatar() {
         renderAvatarInto(document.getElementById('sidebar-avatar'), currentUser ? currentUser.avatar : null, currentUser ? currentUser.username : '');
     }
