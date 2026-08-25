@@ -428,7 +428,7 @@
                 </select>
             </div>
             <div>
-                <button type="button" class="btn" style="background-color: #334155; height: 42px; font-size: 0.85rem;" onclick="clearProductionCostSearch()">Auswahl zurücksetzen</button>
+                <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 42px; font-size: 0.85rem;" onclick="clearProductionCostSearch()">Auswahl zurücksetzen</button>
             </div>
         </div>
 
@@ -470,11 +470,11 @@
                     <div style="margin-bottom: 12px;">
                         <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Bestellte Artikel</label>
                         <div id="order-items-container"></div>
-                        <button type="button" class="btn" style="background-color: #334155; height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addOrderPositionInput()">+ Artikel hinzufügen</button>
+                        <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addOrderPositionInput()">+ Artikel hinzufügen</button>
                     </div>
 
                     <!-- NEU: Rabatt und Gesamtbetrag Vorschau -->
-                    <div style="background: #162032; border: 1px solid var(--border-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                    <div style="background: var(--panel-bg-blue); border: 1px solid var(--border-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <label for="order-discount-input" style="font-size: 0.9rem; font-weight: 600; color: var(--text-color);">Rabatt (%):</label>
                             <input type="number" id="order-discount-input" value="0" min="0" max="100" step="0.5" style="width: 100px; height: 38px;" oninput="updateOrderTotalsPreview()" onchange="updateOrderTotalsPreview()" />
@@ -526,7 +526,7 @@
         </div>
 
         <!-- NEU: Zusammenfassungs-Box für mehrere ausgelieferte Bestellungen -->
-        <div id="archive-summary-box" style="display: none; margin-bottom: 16px; background: #162032; border: 1px solid var(--border-color); padding: 16px; border-radius: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div id="archive-summary-box" style="display: none; margin-bottom: 16px; background: var(--panel-bg-blue); border: 1px solid var(--border-color); padding: 16px; border-radius: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
             <div style="font-size: 1.05rem; font-weight: 600; color: var(--text-color);">
                 📊 Gesamtübersicht aller ausgelieferten Bestellungen im Archiv:
             </div>
@@ -636,7 +636,7 @@
                     <div style="width: 100%; margin-bottom: 12px;">
                         <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Artikel & Sonderpreise</label>
                         <div id="customer-price-items-container"></div>
-                        <button type="button" class="btn" style="background-color: #334155; height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addCustomerPricePositionInput()">+ Artikel hinzufügen</button>
+                        <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addCustomerPricePositionInput()">+ Artikel hinzufügen</button>
                     </div>
 
                     <button type="submit" class="btn btn-success">Kundenpreise speichern</button>
@@ -682,9 +682,9 @@
     <div id="tab-verkaufspreise" class="tab-content">
         
         <!-- NEU: Rabattanzeige Box -->
-        <div class="filter-card" style="background: #162032; border: 1px solid var(--primary-color); margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+        <div class="filter-card" style="background: var(--panel-bg-blue); border: 1px solid var(--primary-color); margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
             <div>
-                <h3 style="font-size: 1rem; color: #38bdf8; margin-bottom: 4px;">🏷️ Rabatt-Aktion auf Standardverkaufspreise</h3>
+                <h3 style="font-size: 1rem; color: var(--label-blue); margin-bottom: 4px;">🏷️ Rabatt-Aktion auf Standardverkaufspreise</h3>
                 <div style="font-size: 0.85rem; color: var(--text-muted);">Trage einen Rabatt in Prozent ein, um alle aktuellen Verkaufspreise sofort zu reduzieren.</div>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -755,7 +755,7 @@
                 </select>
             </div>
             <div>
-                <button type="button" class="btn" style="background-color: #334155; height: 42px; font-size: 0.85rem;" onclick="clearSalesPriceSearch()">Auswahl zurücksetzen</button>
+                <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 42px; font-size: 0.85rem;" onclick="clearSalesPriceSearch()">Auswahl zurücksetzen</button>
             </div>
         </div>
 
@@ -884,12 +884,12 @@
                     <div style="margin-bottom: 12px;">
                         <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Benötigte Zutaten</label>
                         <div id="recipe-ingredients-container"></div>
-                        <button type="button" class="btn" style="background-color: #334155; height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addRecipeIngredientInput()">+ Zutat hinzufügen</button>
+                        <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addRecipeIngredientInput()">+ Zutat hinzufügen</button>
                     </div>
 
                     <div style="display: flex; gap: 8px;">
                         <button type="submit" class="btn btn-success" id="recipe-submit-btn">Rezept speichern</button>
-                        <button type="button" class="btn" style="background-color: #334155; display: none;" id="recipe-cancel-btn" onclick="cancelRecipeEdit()">Abbrechen</button>
+                        <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); display: none;" id="recipe-cancel-btn" onclick="cancelRecipeEdit()">Abbrechen</button>
                     </div>
                 </form>
             </div>
@@ -911,12 +911,12 @@
 
             <div style="display: flex; gap: 8px;">
                 <button type="button" class="btn btn-success" style="height: 42px; font-size: 0.85rem;" onclick="triggerCraftingView()">Anzeigen</button>
-                <button type="button" class="btn" style="background-color: #334155; height: 42px; font-size: 0.85rem;" onclick="clearRecipeSearch()">Auswahl zurücksetzen</button>
+                <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 42px; font-size: 0.85rem;" onclick="clearRecipeSearch()">Auswahl zurücksetzen</button>
             </div>
         </div>
 
-        <div id="crafting-action-box" style="display: none; background: #162032; border: 2px solid var(--primary-color); border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.4);">
-            <h3 style="font-size: 1.25rem; color: #38bdf8; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">🛠️ Herstellungs-Infopanel (Schritt-für-Schritt & Rohmaterialien)</h3>
+        <div id="crafting-action-box" style="display: none; background: var(--panel-bg-blue); border: 2px solid var(--primary-color); border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.4);">
+            <h3 style="font-size: 1.25rem; color: var(--label-blue); margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">🛠️ Herstellungs-Infopanel (Schritt-für-Schritt & Rohmaterialien)</h3>
             <div id="crafting-action-content" style="font-size: 0.95rem; line-height: 1.5;"></div>
         </div>
 
@@ -958,7 +958,7 @@
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <button type="submit" class="btn btn-success" id="note-submit-btn">Notiz speichern</button>
-                        <button type="button" class="btn" style="background-color: #334155; display: none;" id="note-cancel-btn" onclick="cancelNoteEdit()">Abbrechen</button>
+                        <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); display: none;" id="note-cancel-btn" onclick="cancelNoteEdit()">Abbrechen</button>
                     </div>
                 </form>
             </div>
