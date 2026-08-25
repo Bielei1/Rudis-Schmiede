@@ -960,6 +960,40 @@
             border-color: rgba(224, 93, 82, 0.35);
         }
 
+        /* ============ ARCHIV: ARTIKEL-POSITIONEN ============ */
+        .archive-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 5px 0;
+            border-bottom: 1px dashed var(--border-color-soft);
+        }
+
+        .archive-item-row:last-child {
+            border-bottom: none;
+        }
+
+        .archive-item-main {
+            font-size: 0.88rem;
+            color: var(--text-color);
+        }
+
+        .archive-item-sub {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .archive-item-total {
+            font-weight: 600;
+            color: var(--accent-green);
+            white-space: nowrap;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
         /* ============ ONLINE-BOX (rechts, unter der Live-Uhr) ============ */
         .online-sidebar {
             position: fixed;
