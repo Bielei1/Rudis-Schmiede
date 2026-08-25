@@ -374,7 +374,6 @@
 
         if (typeof applyTheme === 'function') applyTheme(currentUser.theme || 'dark');
         if (typeof updateSidebarAvatar === 'function') updateSidebarAvatar();
-        if (typeof refreshUserAvatarDisplays === 'function') refreshUserAvatarDisplays();
 
         // Daten laden: Fehler dürfen den Login nicht blockieren.
         try {

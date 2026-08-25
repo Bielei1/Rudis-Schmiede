@@ -400,7 +400,7 @@
                 <td><span class="current-cost">$${totalProdCost.toFixed(2)}</span></td>
                 <td class="time-text">${splitDateTimeDisplay(archivedOrder.createdAt)}</td>
                 <td class="time-text">${splitDateTimeDisplay(archivedOrder.deliveredAt)}</td>
-                <td class="time-text">${typeof userIdentityHtml === 'function' ? userIdentityHtml(archivedOrder.soldBy || '-', { size: 30 }) : (archivedOrder.soldBy || '-')}</td>
+                <td class="time-text">${archivedOrder.soldBy || '-'}</td>
                 <td>
                     <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteArchivedOrder(${archivedOrder.id})">Eintrag löschen</button>
                 </td>

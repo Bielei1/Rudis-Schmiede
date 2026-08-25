@@ -19,7 +19,6 @@
                 if (status === 'SUBSCRIBED') {
                     await presenceChannel.track({
                         username: currentUser.username,
-                        avatar: currentUser.avatar || null,
                         isAdmin: !!currentUser.isAdmin
                     });
                 }
@@ -44,7 +43,7 @@
             return `
                 <div class="online-user-row">
                     <span class="online-dot"></span>
-                    ${typeof userIdentityHtml === 'function' ? userIdentityHtml(meta.username || name, { size: 30, label: isYou ? ' (Du)' : '' }) : `<span class="online-user-name">${escapeHtml(meta.username || name)}${isYou ? ' (Du)' : ''}</span>`}
+                    <span class="online-user-name">${escapeHtml(meta.username || name)}${isYou ? ' (Du)' : ''}</span>
                 </div>
             `;
         }).join('');
