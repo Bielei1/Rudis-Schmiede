@@ -193,13 +193,19 @@
             <h2 id="profile-modal-title" style="margin:0 0 16px;">Profil bearbeiten</h2>
 
             <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px;">
-                <div id="profile-avatar-preview" class="profile-avatar-large" onclick="document.getElementById('profile-avatar-input').click()"></div>
+                <div id="profile-avatar-preview" class="profile-avatar-large" onclick="document.getElementById('profile-avatar-input').click()" title="Avatar ändern"></div>
                 <input type="file" id="profile-avatar-input" accept="image/*" style="display:none;" onchange="handleAvatarFileSelected(event)">
-                <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 36px; font-size: 0.85rem;" onclick="document.getElementById('profile-avatar-input').click()">Foto ändern</button>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+                    <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 36px; font-size: 0.85rem;" onclick="document.getElementById('profile-avatar-input').click()">Foto ändern</button>
+                    <button type="button" class="btn" style="background-color: var(--card-bg-raised); color: var(--text-color); border:1px solid var(--border-color); height: 36px; font-size: 0.85rem;" onclick="resetProfileAvatar()">Zurücksetzen</button>
+                </div>
             </div>
 
             <div class="permission-help" style="margin-bottom: 10px;">Anzeigename</div>
             <div style="font-weight: 600; margin-bottom: 20px;" id="profile-modal-username"></div>
+
+            <div class="permission-help" style="margin-bottom: 10px;">Profil-Biografie</div>
+            <textarea id="profile-bio-input" rows="4" maxlength="300" placeholder="Schreib etwas über dich oder deinen Bereich…" style="width:100%; margin-bottom: 20px; resize: vertical;"></textarea>
 
             <div class="permission-help" style="margin-bottom: 10px;">Design der Seite</div>
             <div style="display: flex; gap: 8px; margin-bottom: 20px;">
@@ -308,6 +314,7 @@
                 <div>
                     <div class="sidebar-user-name" id="sidebar-username">–</div>
                     <div class="sidebar-user-role" id="sidebar-userrole">–</div>
+                    <div class="sidebar-user-bio" id="sidebar-user-bio"></div>
                 </div>
             </div>
             <button class="btn" onclick="logoutUser()">Abmelden</button>

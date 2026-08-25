@@ -1834,6 +1834,17 @@
             color: var(--text-muted);
         }
 
+        .sidebar-user-bio {
+            margin-top: 4px;
+            font-size: 0.7rem;
+            line-height: 1.4;
+            color: var(--text-muted);
+            max-height: 56px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: none;
+        }
+
         /* ============ AVATARE & PROFIL ============ */
         .profile-avatar-small, .profile-avatar-large {
             border-radius: 50%;
@@ -1862,6 +1873,26 @@
             font-size: 2rem;
             cursor: pointer;
             border: 2px solid var(--border-color);
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 12px 28px rgba(0,0,0,0.16);
+        }
+
+        .profile-avatar-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .profile-bio-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .profile-bio-field textarea {
+            min-height: 100px;
+            width: 100%;
         }
 
         .theme-choice-btn {

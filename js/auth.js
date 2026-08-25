@@ -5,6 +5,29 @@
     const APP_NAME_STORAGE_KEY = 'rs_app_name';
     const DEFAULT_APP_NAME = 'Rudis Schmiede';
 
+    function getUserProfileStorageKey(username) {
+        const key = String(username || '').trim();
+        return key ? `rs_user_profile_${key}` : 'rs_user_profile_default';
+    }
+
+    function readStoredUserProfile(username, fallback = {}) {
+        try {
+            const key = getUserProfileStorageKey(username);
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? { ...fallback, ...parsed } : fallback;
+        } catch (e) {
+            return fallback;
+        }
+    }
+
+    function saveStoredUserProfile(username, profile) {
+        try {
+            localStorage.setItem(getUserProfileStorageKey(username), JSON.stringify(profile || {}));
+        } catch (e) {}
+    }
+
     function getStoredAppName() {
         try {
             return localStorage.getItem(APP_NAME_STORAGE_KEY) || DEFAULT_APP_NAME;
@@ -119,7 +142,8 @@
                 if (password === ADMIN_PASSWORD) {
                     let adminProfile = {};
                     try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
-                    await completeLogin({ username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: adminProfile.avatar || null, theme: adminProfile.theme || 'dark' }, password, true);
+                    const localAdminProfile = readStoredUserProfile(ADMIN_USERNAME, adminProfile);
+                    await completeLogin({ username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar || adminProfile.avatar || null, theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '' }, password, true);
                 } else {
                     showAuthMsg('login-error', 'Benutzername oder Passwort falsch.');
                 }
@@ -147,7 +171,8 @@
                 return;
             }
 
-            await completeLogin({ username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar || null, theme: user.theme || 'dark' }, password, !!user.is_admin);
+            const localProfile = readStoredUserProfile(user.username, {});
+            await completeLogin({ username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar || localProfile.avatar || null, theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '' }, password, !!user.is_admin);
         } finally {
             submitBtn.disabled = false;
         }
@@ -322,7 +347,8 @@
             if (stored.passwordHash !== adminHash) return false;
             let adminProfile = {};
             try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
-            currentUser = { username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: adminProfile.avatar || null, theme: adminProfile.theme || 'dark' };
+            const localAdminProfile = readStoredUserProfile(ADMIN_USERNAME, adminProfile);
+            currentUser = { username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar || adminProfile.avatar || null, theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '' };
             await enterApp();
             return true;
         }
@@ -336,7 +362,8 @@
             if (error || !data || !data[0]) return false;
             const user = data[0];
             if (user.password_hash !== stored.passwordHash || !user.approved) return false;
-            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar || null, theme: user.theme || 'dark' };
+            const localProfile = readStoredUserProfile(user.username, {});
+            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar || localProfile.avatar || null, theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '' };
             await enterApp();
             return true;
         } catch (e) {
@@ -374,6 +401,7 @@
 
         if (typeof applyTheme === 'function') applyTheme(currentUser.theme || 'dark');
         if (typeof updateSidebarAvatar === 'function') updateSidebarAvatar();
+        if (typeof updateSidebarProfileInfo === 'function') updateSidebarProfileInfo();
 
         // Daten laden: Fehler dürfen den Login nicht blockieren.
         try {
