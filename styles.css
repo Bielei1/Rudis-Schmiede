@@ -1298,9 +1298,9 @@
         }
 
         .log-badge-lagerbestand {
-            background: rgba(127, 168, 224, 0.15);
-            color: #9dbde8;
-            border: 1px solid rgba(127, 168, 224, 0.4);
+            background: rgba(224, 164, 92, 0.12);
+            color: #e0a45c;
+            border: 1px solid rgba(224, 164, 92, 0.4);
         }
 
         .log-badge-bestellung {
@@ -1340,9 +1340,9 @@
         }
 
         .log-badge-notizen {
-            background: rgba(59, 130, 246, 0.15);
-            color: #7fa8e0;
-            border: 1px solid rgba(59, 130, 246, 0.4);
+            background: rgba(201, 122, 74, 0.14);
+            color: #dca271;
+            border: 1px solid rgba(201, 122, 74, 0.4);
         }
 
         .log-badge-pinnwand {
