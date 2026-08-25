@@ -81,8 +81,9 @@
     }
 
     function getUserByUsername(username) {
-        const normalized = String(username || '').trim().toLowerCase();
-        if (!normalized) return null;
+        const raw = String(username ?? '').trim();
+        if (!raw || raw === '-' || raw === '–') return null;
+        const normalized = raw.toLowerCase();
 
         const userLists = [];
         if (typeof appUsersList !== 'undefined' && Array.isArray(appUsersList)) userLists.push(appUsersList);
@@ -96,7 +97,8 @@
     }
 
     function renderUsernameWithAvatar(username, user = null, options = {}) {
-        const safeName = String(username ?? '').trim() || 'Unbekannt';
+        const raw = String(username ?? '').trim();
+        const safeName = (!raw || raw === '-' || raw === '–') ? 'Unbekannt' : raw;
         const resolvedUser = user && String(user.username || '').trim()
             ? user
             : getUserByUsername(safeName);
