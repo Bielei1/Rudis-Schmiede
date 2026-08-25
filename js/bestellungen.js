@@ -380,7 +380,7 @@
 
             archivedOrder.items.forEach(item => {
                 let badgeColor = item.priceType === 'Sonderpreis' ? 'var(--accent-blue)' : 'var(--accent-gray)';
-                itemsHtml += `<div style="margin-bottom: 3,5px;">• <strong>${item.qty}x</strong> ${item.name} à $${item.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${item.priceType}</span> = <span style="color: var(--accent-green); font-weight: 600;">$${item.total.toFixed(2)}</span></div>`;
+                itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${item.qty}x</strong> ${item.name} à $${item.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${item.priceType}</span> = <span style="color: var(--accent-green); font-weight: 600;">$${item.total.toFixed(2)}</span></div>`;
             });
 
             tr.innerHTML = `
