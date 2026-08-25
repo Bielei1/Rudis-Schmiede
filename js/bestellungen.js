@@ -165,6 +165,30 @@
         }
     }
 
+    async function archiveInsertWithDiscountFallback(payload) {
+        const preferredPayload = {
+            ...payload,
+            discount_percent: payload.discount_percent ?? payload.discountPercent ?? payload.discount ?? 0
+        };
+        delete preferredPayload.discountPercent;
+        delete preferredPayload.discount;
+
+        const { data, error } = await supabaseClient.from('archive').insert([preferredPayload]).select();
+        if (!error) return { data, error: null };
+
+        const missingDiscountColumn = /discount/i.test(error.message || '') || /column .*discount/i.test(error.message || '');
+        if (!missingDiscountColumn) throw error;
+
+        const fallbackPayload = { ...payload };
+        delete fallbackPayload.discount_percent;
+        delete fallbackPayload.discountPercent;
+        delete fallbackPayload.discount;
+
+        const { data: fallbackData, error: fallbackError } = await supabaseClient.from('archive').insert([fallbackPayload]).select();
+        if (fallbackError) throw fallbackError;
+        return { data: fallbackData, error: null };
+    }
+
     async function fulfillOrder(orderId) {
         const orderIndex = ordersList.findIndex(o => o.id === orderId);
         if (orderIndex === -1) return;
@@ -206,12 +230,16 @@
             createdAt: order.createdAt,
             deliveredAt: deliveredAt,
             soldBy: currentUser && currentUser.username ? currentUser.username : 'Unbekannt',
-            discountPercent: orderDiscount,
+            discount_percent: orderDiscount,
             discount: orderDiscount
         };
 
-        const { error: archiveError } = await supabaseClient.from('archive').insert([archivedPayload]);
-        if (archiveError) {
+        try {
+            const { error: archiveError } = await archiveInsertWithDiscountFallback(archivedPayload);
+            if (archiveError) {
+                return alert("Fehler beim Archivieren: " + archiveError.message);
+            }
+        } catch (archiveError) {
             return alert("Fehler beim Archivieren: " + archiveError.message);
         }
 
@@ -439,7 +467,7 @@
     }
 
     function getArchivedDiscountLabel(order) {
-        const rawValue = order && (order.discountPercent ?? order.discount ?? 0);
+        const rawValue = order && (order.discount_percent ?? order.discountPercent ?? order.discount ?? 0);
         const value = Number(rawValue) || 0;
         if (value <= 0) return '';
         return `<div style="margin-top: 6px; font-size: 0.78rem; color: var(--text-muted);">Rabatt: <strong style="color: var(--accent-orange);">${value.toFixed(0)}%</strong></div>`;

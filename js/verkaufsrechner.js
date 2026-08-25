@@ -294,71 +294,95 @@ async function saveSalesCartAsOrder() {
     }
 }
 
+async function archiveInsertWithDiscountFallback(payload) {
+    const preferredPayload = {
+        ...payload,
+        discount_percent: payload.discount_percent ?? payload.discountPercent ?? payload.discount ?? 0
+    };
+    delete preferredPayload.discountPercent;
+    delete preferredPayload.discount;
+
+    const { data, error } = await supabaseClient.from('archive').insert([preferredPayload]).select();
+    if (!error) return { data, error: null };
+
+    const missingDiscountColumn = /discount/i.test(error.message || '') || /column .*discount/i.test(error.message || '');
+    if (!missingDiscountColumn) throw error;
+
+    const fallbackPayload = { ...payload };
+    delete fallbackPayload.discount_percent;
+    delete fallbackPayload.discountPercent;
+    delete fallbackPayload.discount;
+
+    const { data: fallbackData, error: fallbackError } = await supabaseClient.from('archive').insert([fallbackPayload]).select();
+    if (fallbackError) throw fallbackError;
+    return { data: fallbackData, error: null };
+}
+
 async function sellSalesCart() {
-    const items = Object.values(salesCalculatorCart);
-    if (!items.length) return showToast('Der Warenkorb ist leer.', 'warning', 'Keine Artikel');
+const items = Object.values(salesCalculatorCart);
+if (!items.length) return showToast('Der Warenkorb ist leer.', 'warning', 'Keine Artikel');
 
-    const totals = getSalesCalculatorTotals();
-    const button = document.querySelector('.sales-cart-sold-btn');
-    if (button) button.disabled = true;
+const totals = getSalesCalculatorTotals();
+const button = document.querySelector('.sales-cart-sold-btn');
+if (button) button.disabled = true;
 
-    try {
-        const archivedItems = items.map(item => {
-            const unitCost = typeof getRecipeCostPerUnit === 'function' ? Number(getRecipeCostPerUnit(item.name)) || 0 : 0;
-            return {
-                name: item.name,
-                qty: item.quantity,
-                price: item.unitPrice,
-                priceType: 'Standardpreis',
-                total: item.quantity * item.unitPrice,
-                productionCost: item.quantity * unitCost
-            };
-        });
-
-        // Die bestehende archive-Tabelle hat eine Pflicht-ID. Daher die nächste
-        // freie ID bestimmen, statt null zu senden.
-        const { data: lastArchiveRows, error: idLookupError } = await supabaseClient
-            .from('archive')
-            .select('id')
-            .order('id', { ascending: false })
-            .limit(1);
-        if (idLookupError) throw idLookupError;
-
-        const nextArchiveId = lastArchiveRows?.length
-            ? Number(lastArchiveRows[0].id) + 1
-            : 1;
-        const soldBy = currentUser && currentUser.username ? currentUser.username : 'Unbekannt';
-        const soldAt = getCurrentTimeString();
-
-        const payload = {
-            id: nextArchiveId,
-            customerName: 'Warenkorb',
-            items: archivedItems,
-            totalSum: totals.total,
-            totalProductionCost: totals.productionCostTotal,
-            createdAt: soldAt,
-            deliveredAt: soldAt,
-            soldBy,
-            discountPercent: totals.discountPercent,
-            discount: totals.discountPercent
+try {
+    const archivedItems = items.map(item => {
+        const unitCost = typeof getRecipeCostPerUnit === 'function' ? Number(getRecipeCostPerUnit(item.name)) || 0 : 0;
+        return {
+            name: item.name,
+            qty: item.quantity,
+            price: item.unitPrice,
+            priceType: 'Standardpreis',
+            total: item.quantity * item.unitPrice,
+            productionCost: item.quantity * unitCost
         };
+    });
 
-        const { data, error } = await supabaseClient.from('archive').insert([payload]).select();
-        if (error) throw error;
+    // Die bestehende archive-Tabelle hat eine Pflicht-ID. Daher die nächste
+    // freie ID bestimmen, statt null zu senden.
+    const { data: lastArchiveRows, error: idLookupError } = await supabaseClient
+        .from('archive')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1);
+    if (idLookupError) throw idLookupError;
 
-        if (data && data[0]) {
-            archivedOrdersList.unshift(data[0]);
-            renderArchive();
-            if (typeof renderMembersTable === 'function') renderMembersTable();
-        }
+    const nextArchiveId = lastArchiveRows?.length
+        ? Number(lastArchiveRows[0].id) + 1
+        : 1;
+    const soldBy = currentUser && currentUser.username ? currentUser.username : 'Unbekannt';
+    const soldAt = getCurrentTimeString();
 
-        logActivity('Archiv', `Warenkorb wurde von „${soldBy}“ als verkauft archiviert ($${totals.total.toFixed(2)})`);
-        clearSalesCalculatorCart();
-        showToast('Warenkorb wurde als verkauft im Archiv gespeichert.', 'success', 'Verkauft');
-    } catch (error) {
-        showToast('Fehler beim Archivieren des verkauften Warenkorbs: ' + error.message, 'danger', 'Änderung nicht durchgeführt');
-        if (button) button.disabled = false;
+    const payload = {
+        id: nextArchiveId,
+        customerName: 'Warenkorb',
+        items: archivedItems,
+        totalSum: totals.total,
+        totalProductionCost: totals.productionCostTotal,
+        createdAt: soldAt,
+        deliveredAt: soldAt,
+        soldBy,
+        discount_percent: totals.discountPercent,
+        discount: totals.discountPercent
+    };
+
+    const { data, error } = await archiveInsertWithDiscountFallback(payload);
+    if (error) throw error;
+
+    if (data && data[0]) {
+        archivedOrdersList.unshift(data[0]);
+        renderArchive();
+        if (typeof renderMembersTable === 'function') renderMembersTable();
     }
+
+    logActivity('Archiv', `Warenkorb wurde von „${soldBy}“ als verkauft archiviert ($${totals.total.toFixed(2)})`);
+    clearSalesCalculatorCart();
+    showToast('Warenkorb wurde als verkauft im Archiv gespeichert.', 'success', 'Verkauft');
+} catch (error) {
+    showToast('Fehler beim Archivieren des verkauften Warenkorbs: ' + error.message, 'danger', 'Änderung nicht durchgeführt');
+    if (button) button.disabled = false;
+}
 }
 
 function initSalesCalculatorEvents() {
