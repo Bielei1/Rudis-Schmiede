@@ -196,7 +196,7 @@
                 <div id="profile-avatar-preview" class="profile-avatar-large" onclick="document.getElementById('profile-avatar-input').click()" title="Avatar ändern"></div>
                 <input type="file" id="profile-avatar-input" accept="image/*" style="display:none;" onchange="handleAvatarFileSelected(event)">
                 <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
-                    <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 36px; font-size: 0.85rem;" onclick="document.getElementById('profile-avatar-input').click()">Foto ändern</button>
+                    <button type="button" class="btn btn-secondary" style="height: 36px; font-size: 0.85rem;" onclick="document.getElementById('profile-avatar-input').click()">Foto ändern</button>
                     <button type="button" class="btn" style="background-color: var(--card-bg-raised); color: var(--text-color); border:1px solid var(--border-color); height: 36px; font-size: 0.85rem;" onclick="resetProfileAvatar()">Zurücksetzen</button>
                 </div>
             </div>
@@ -428,7 +428,7 @@
                 </select>
             </div>
             <div>
-                <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 42px; font-size: 0.85rem;" onclick="clearProductionCostSearch()">Auswahl zurücksetzen</button>
+                <button type="button" class="btn btn-secondary" style="height: 42px; font-size: 0.85rem;" onclick="clearProductionCostSearch()">Auswahl zurücksetzen</button>
             </div>
         </div>
 
@@ -470,7 +470,7 @@
                     <div style="margin-bottom: 12px;">
                         <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Bestellte Artikel</label>
                         <div id="order-items-container"></div>
-                        <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addOrderPositionInput()">+ Artikel hinzufügen</button>
+                        <button type="button" class="btn btn-secondary" style="height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addOrderPositionInput()">+ Artikel hinzufügen</button>
                     </div>
 
                     <!-- NEU: Rabatt und Gesamtbetrag Vorschau -->
@@ -636,7 +636,7 @@
                     <div style="width: 100%; margin-bottom: 12px;">
                         <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Artikel & Sonderpreise</label>
                         <div id="customer-price-items-container"></div>
-                        <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addCustomerPricePositionInput()">+ Artikel hinzufügen</button>
+                        <button type="button" class="btn btn-secondary" style="height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addCustomerPricePositionInput()">+ Artikel hinzufügen</button>
                     </div>
 
                     <button type="submit" class="btn btn-success">Kundenpreise speichern</button>
@@ -755,7 +755,7 @@
                 </select>
             </div>
             <div>
-                <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 42px; font-size: 0.85rem;" onclick="clearSalesPriceSearch()">Auswahl zurücksetzen</button>
+                <button type="button" class="btn btn-secondary" style="height: 42px; font-size: 0.85rem;" onclick="clearSalesPriceSearch()">Auswahl zurücksetzen</button>
             </div>
         </div>
 
@@ -884,12 +884,12 @@
                     <div style="margin-bottom: 12px;">
                         <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Benötigte Zutaten</label>
                         <div id="recipe-ingredients-container"></div>
-                        <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addRecipeIngredientInput()">+ Zutat hinzufügen</button>
+                        <button type="button" class="btn btn-secondary" style="height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addRecipeIngredientInput()">+ Zutat hinzufügen</button>
                     </div>
 
                     <div style="display: flex; gap: 8px;">
                         <button type="submit" class="btn btn-success" id="recipe-submit-btn">Rezept speichern</button>
-                        <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); display: none;" id="recipe-cancel-btn" onclick="cancelRecipeEdit()">Abbrechen</button>
+                        <button type="button" class="btn btn-secondary" style="display: none;" id="recipe-cancel-btn" onclick="cancelRecipeEdit()">Abbrechen</button>
                     </div>
                 </form>
             </div>
@@ -911,7 +911,7 @@
 
             <div style="display: flex; gap: 8px;">
                 <button type="button" class="btn btn-success" style="height: 42px; font-size: 0.85rem;" onclick="triggerCraftingView()">Anzeigen</button>
-                <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); height: 42px; font-size: 0.85rem;" onclick="clearRecipeSearch()">Auswahl zurücksetzen</button>
+                <button type="button" class="btn btn-secondary" style="height: 42px; font-size: 0.85rem;" onclick="clearRecipeSearch()">Auswahl zurücksetzen</button>
             </div>
         </div>
 
@@ -958,7 +958,7 @@
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <button type="submit" class="btn btn-success" id="note-submit-btn">Notiz speichern</button>
-                        <button type="button" class="btn" style="background-color: var(--secondary-btn-bg); display: none;" id="note-cancel-btn" onclick="cancelNoteEdit()">Abbrechen</button>
+                        <button type="button" class="btn btn-secondary" style="display: none;" id="note-cancel-btn" onclick="cancelNoteEdit()">Abbrechen</button>
                     </div>
                 </form>
             </div>

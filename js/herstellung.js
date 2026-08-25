@@ -361,7 +361,7 @@
                 <td>${statusHtml}</td>
                 <td>
                     <div style="display: flex; gap: 8px;">
-                        <button class="btn" style="background-color: var(--secondary-btn-bg); height: 38px; font-size: 0.85rem;" onclick="editRecipe(${recipe.id})">Bearbeiten</button>
+                        <button class="btn btn-secondary" style="height: 38px; font-size: 0.85rem;" onclick="editRecipe(${recipe.id})">Bearbeiten</button>
                         <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteRecipe(${recipe.id})">Löschen</button>
                     </div>
                 </td>
