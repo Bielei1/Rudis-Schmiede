@@ -251,7 +251,7 @@
 
             intermediateSteps.forEach(step => {
                 let stock = getStockAmount(step.itemName);
-                html += `<div style="background: #101726; border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; flex: 1; min-width: 240px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">`;
+                html += `<div style="background: var(--card-bg-raised); border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; flex: 1; min-width: 240px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">`;
                 html += `<div style="font-weight: 700; color: var(--accent-blue); font-size: 0.95rem; margin-bottom: 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Schritt ${stepCounter}: <strong>${step.actualProduced}x ${step.itemName}</strong></div>`;
                 html += `<div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Benötigte Materialien:</div>`;
                 
@@ -267,7 +267,7 @@
             html += `</div>`;
         }
 
-        html += `<div style="background: #162238; border: 2px solid var(--accent-green); padding: 16px; border-radius: 8px; margin-top: 12px;">`;
+        html += `<div style="background: var(--card-bg-raised); border: 2px solid var(--accent-green); padding: 16px; border-radius: 8px; margin-top: 12px;">`;
         html += `<div style="font-size: 1.1rem; font-weight: 700; color: var(--accent-green); margin-bottom: 10px;">📦 Benötigte Rohmaterialien für ${targetAmount}x ${recipe.outputName}:</div>`;
 
         let rawMaterialMap = {};

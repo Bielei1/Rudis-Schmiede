@@ -26,15 +26,15 @@
             --radius: 10px;
             --radius-lg: 14px;
             /* Akzentfarben, die bisher als Hex-Werte direkt im JS verstreut waren */
-            --accent-blue: #38bdf8;
+            --accent-blue: #d19a67;
             --accent-green: #34d399;
             --accent-red: #f87171;
             --accent-gray: #94a3b8;
             --accent-amber: #e0a45c;
-            --secondary-btn-bg: #334155;
-            --panel-bg-blue: #162032;
-            --label-blue: #3b82f6;
-            --label-cyan: #0ea5e9;
+            --secondary-btn-bg: #2f2822;
+            --panel-bg-blue: #1c1a16;
+            --label-blue: #d19a67;
+            --label-cyan: #c98d4b;
             --label-green: #10b981;
             --floating-panel-bg: rgba(30, 24, 17, 0.92);
             --font-display: 'Fraunces', Georgia, serif;
@@ -70,15 +70,15 @@
             --table-header-bg: #efe2c8;
             --input-bg: #fffbf4;
             --tab-active-bg: #fff5e6;
-            --accent-blue: #1d6fa5;
+            --accent-blue: #9c6335;
             --accent-green: #1f8a5f;
             --accent-red: #b23a30;
             --accent-gray: #6b5c48;
             --accent-amber: #a8650f;
-            --secondary-btn-bg: #d9cbaf;
-            --panel-bg-blue: #e6eef4;
-            --label-blue: #1d6fa5;
-            --label-cyan: #0a7ea0;
+            --secondary-btn-bg: #e4d8c1;
+            --panel-bg-blue: #f1ece3;
+            --label-blue: #9c6335;
+            --label-cyan: #9f5b21;
             --label-green: #1f8a5f;
             --floating-panel-bg: rgba(255, 251, 244, 0.92);
         }
