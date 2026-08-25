@@ -7,7 +7,7 @@ let memberUsernamesList = [];
 async function loadMemberUsernames() {
     const { data, error } = await supabaseClient
         .from('app_users')
-        .select('id, username, created_at')
+    .select('id, username, created_at, avatar')
         .order('username', { ascending: true });
     if (!error && data) {
         memberUsernamesList = data;
