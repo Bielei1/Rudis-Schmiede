@@ -906,7 +906,7 @@
         if (!tbody) return;
 
         if (appUsersList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;">Noch keine Benutzer registriert.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-state-cell">Noch keine Benutzer registriert.</td></tr>`;
             return;
         }
 

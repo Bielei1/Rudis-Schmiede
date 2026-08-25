@@ -109,7 +109,7 @@ function renderMembersTable() {
     tbody.innerHTML = '';
 
     if (memberUsernamesList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine Benutzer vorhanden. Lege zuerst im Tab „Benutzer" einen Account an.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="empty-state-cell">Keine Benutzer vorhanden. Lege zuerst im Tab „Benutzer" einen Account an.</td></tr>`;
         updateMemberRangSuggestions();
         return;
     }

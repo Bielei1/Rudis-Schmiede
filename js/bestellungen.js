@@ -262,7 +262,7 @@
         const tbody = document.getElementById('orders-table-body');
         tbody.innerHTML = '';
         if (ordersList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Keine aktiven Bestellungen.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-state-cell">Keine aktiven Bestellungen.</td></tr>`;
             return;
         }
 
@@ -520,7 +520,7 @@
         }
 
         if (archivedOrdersList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">Noch keine ausgelieferten Bestellungen im Archiv.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="empty-state-cell">Noch keine ausgelieferten Bestellungen im Archiv.</td></tr>`;
             return;
         }
 
