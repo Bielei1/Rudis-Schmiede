@@ -220,6 +220,38 @@
         </div>
     </div>
 
+    <div id="member-profile-modal-backdrop" class="confirm-modal-backdrop" onclick="closeMemberProfileModalOnBackdrop(event)">
+        <div class="confirm-modal member-profile-modal" role="dialog" aria-modal="true" aria-labelledby="member-profile-modal-title">
+            <div class="member-profile-modal-header">
+                <div id="member-profile-avatar" class="profile-avatar-large"></div>
+                <div>
+                    <div id="member-profile-title" class="member-profile-title">Profil</div>
+                    <div id="member-profile-username" class="member-profile-username"></div>
+                </div>
+            </div>
+
+            <div class="member-profile-meta">
+                <div class="member-profile-meta-item">
+                    <span class="member-profile-meta-label">Rang</span>
+                    <span id="member-profile-rang">–</span>
+                </div>
+                <div class="member-profile-meta-item">
+                    <span class="member-profile-meta-label">Beitritt</span>
+                    <span id="member-profile-joined">–</span>
+                </div>
+            </div>
+
+            <div class="member-profile-bio-block">
+                <div class="member-profile-bio-label">Biografie</div>
+                <div id="member-profile-bio" class="member-profile-bio">Keine Biografie hinterlegt.</div>
+            </div>
+
+            <div class="confirm-modal-actions">
+                <button type="button" class="btn" style="background-color:var(--card-bg-raised);color:var(--text-color);border:1px solid var(--border-color);" onclick="closeMemberProfileModal()">Schließen</button>
+            </div>
+        </div>
+    </div>
+
     <div id="app-loading-overlay">
         <div class="app-loading-spinner"></div>
         <div class="app-loading-text">Daten werden geladen …</div>

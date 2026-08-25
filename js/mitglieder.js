@@ -4,10 +4,45 @@
 // Beitrittsdatum und eine optionale Notiz angezeigt.
 let memberUsernamesList = [];
 
+function closeMemberProfileModalOnBackdrop(event) {
+    if (event.target && event.target.id === 'member-profile-modal-backdrop') closeMemberProfileModal();
+}
+
+function closeMemberProfileModal() {
+    const modal = document.getElementById('member-profile-modal-backdrop');
+    if (modal) modal.classList.remove('open');
+}
+
+function openMemberProfile(userId) {
+    const user = memberUsernamesList.find(u => Number(u.id) === Number(userId));
+    if (!user) return;
+
+    const modal = document.getElementById('member-profile-modal-backdrop');
+    const avatarEl = document.getElementById('member-profile-avatar');
+    const usernameEl = document.getElementById('member-profile-username');
+    const rangEl = document.getElementById('member-profile-rang');
+    const joinedEl = document.getElementById('member-profile-joined');
+    const bioEl = document.getElementById('member-profile-bio');
+    if (!modal || !avatarEl || !usernameEl || !rangEl || !joinedEl || !bioEl) return;
+
+    const member = membersList.find(m => m.name && m.name.toLowerCase() === String(user.username || '').toLowerCase());
+    const joinedAt = getMemberJoinedDate(user, member);
+    const rang = member && member.rang ? member.rang : '—';
+    const bio = user.bio ? String(user.bio).trim() : 'Keine Biografie hinterlegt.';
+
+    renderAvatarInto(avatarEl, user.avatar || null, user.username || '');
+    usernameEl.textContent = user.username || 'Unbekannt';
+    rangEl.textContent = rang;
+    joinedEl.textContent = formatMemberDate(joinedAt);
+    bioEl.textContent = bio;
+
+    modal.classList.add('open');
+}
+
 async function loadMemberUsernames() {
     const { data, error } = await supabaseClient
         .from('app_users')
-    .select('id, username, created_at, avatar')
+    .select('id, username, created_at, avatar, bio')
         .order('username', { ascending: true });
     if (!error && data) {
         memberUsernamesList = data;
@@ -94,7 +129,11 @@ function renderMembersTable() {
 
         return `
             <tr>
-                <td class="material-name">${renderUsernameWithAvatar(user.username, user, { size: 'small' })}</td>
+                <td class="material-name">
+                    <button type="button" class="member-profile-trigger" onclick="openMemberProfile(${user.id})">
+                        ${renderUsernameWithAvatar(user.username, user, { size: 'small' })}
+                    </button>
+                </td>
                 <td><input type="text" id="member-rang-${user.id}" list="member-rang-suggestions" value="${escapeHtml(rang)}" placeholder="z. B. Chef" style="width: 160px;" /></td>
                 <td>${formatMemberDate(joinedAt)}</td>
                 <td><input type="text" id="member-note-${user.id}" value="${escapeHtml(notiz)}" placeholder="Notiz (optional)" style="width: 220px;" /></td>
