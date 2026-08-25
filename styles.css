@@ -524,6 +524,65 @@
             border: 1px solid rgba(224, 93, 82, 0.35);
         }
 
+        .archive-week-folder {
+            display: block;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .archive-week-folder summary {
+            list-style: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 14px 16px;
+            background: rgba(255, 106, 26, 0.05);
+            border-bottom: 1px solid var(--border-color-soft);
+            color: var(--text-color);
+            font-weight: 700;
+        }
+
+        .archive-week-folder summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .archive-week-title {
+            color: var(--text-color);
+        }
+
+        .archive-week-meta {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .archive-week-body {
+            padding: 10px 10px 12px;
+        }
+
+        .archive-week-orders-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: transparent;
+        }
+
+        .archive-week-orders-table th,
+        .archive-week-orders-table td {
+            border-bottom: 1px solid var(--border-color-soft);
+            padding: 12px 10px;
+            vertical-align: top;
+        }
+
+        .archive-week-orders-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
         .table-container {
             overflow-x: visible;
             overflow-y: visible;

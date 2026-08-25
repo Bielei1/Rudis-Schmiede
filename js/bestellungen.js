@@ -329,6 +329,113 @@
         return `${datePart}<br><span>${timePart}</span>`;
     }
 
+    function getArchiveOrderDate(order) {
+        const rawValue = order && (order.deliveredAt || order.createdAt);
+        if (!rawValue) return null;
+
+        if (rawValue instanceof Date && !Number.isNaN(rawValue.getTime())) return rawValue;
+
+        const value = String(rawValue).trim();
+        if (!value) return null;
+
+        if (!Number.isNaN(Date.parse(value))) {
+            const parsed = new Date(value);
+            if (!Number.isNaN(parsed.getTime())) return parsed;
+        }
+
+        const germanMatch = value.match(/^(\d{1,2})\.\s*([A-Za-zäöüÄÖÜ]+)\s+(\d{4}),\s*(\d{2}):(\d{2})(?:\s*Uhr)?$/);
+        if (germanMatch) {
+            const monthMap = {
+                Januar: 0,
+                Februar: 1,
+                März: 2,
+                April: 3,
+                Mai: 4,
+                Juni: 5,
+                Juli: 6,
+                August: 7,
+                September: 8,
+                Oktober: 9,
+                November: 10,
+                Dezember: 11,
+                Jan: 0,
+                Feb: 1,
+                Mar: 2,
+                Apr: 3,
+                Jun: 5,
+                Jul: 6,
+                Aug: 7,
+                Sep: 8,
+                Okt: 9,
+                Nov: 10,
+                Dez: 11
+            };
+            const month = monthMap[germanMatch[2]];
+            if (month !== undefined) {
+                const dateObj = new Date(Number(germanMatch[3]), month, Number(germanMatch[1]), Number(germanMatch[4]), Number(germanMatch[5]));
+                if (!Number.isNaN(dateObj.getTime())) return dateObj;
+            }
+        }
+
+        return null;
+    }
+
+    function getWeekNumber(date) {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const day = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - day);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return week;
+    }
+
+    function getWeekRange(date) {
+        const target = new Date(date);
+        target.setHours(0, 0, 0, 0);
+        const day = (target.getDay() + 6) % 7;
+        const start = new Date(target);
+        start.setDate(target.getDate() - day);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+        return {
+            key: `${start.getFullYear()}-W${String(getWeekNumber(start)).padStart(2, '0')}`,
+            start,
+            end,
+            label: `KW ${getWeekNumber(start)}`
+        };
+    }
+
+    function groupArchivedOrdersByWeek(orders) {
+        const grouped = new Map();
+
+        orders.forEach(order => {
+            const orderDate = getArchiveOrderDate(order) || new Date();
+            const week = getWeekRange(orderDate);
+            const key = week.key;
+
+            if (!grouped.has(key)) {
+                grouped.set(key, {
+                    key,
+                    start: week.start,
+                    end: week.end,
+                    label: week.label,
+                    orders: []
+                });
+            }
+
+            grouped.get(key).orders.push(order);
+        });
+
+        return [...grouped.values()].sort((a, b) => b.start.getTime() - a.start.getTime());
+    }
+
+    function formatWeekRangeLabel(group) {
+        const start = group.start;
+        const end = group.end;
+        return `${group.label} · ${start.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} bis ${end.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+    }
+
     function renderArchive() {
         const tbody = document.getElementById('archive-table-body');
         const summaryBox = document.getElementById('archive-summary-box');
@@ -337,7 +444,7 @@
         
         tbody.innerHTML = '';
 
-        if (archivedOrdersList.length > 1) {
+        if (archivedOrdersList.length > 0) {
             let combinedSum = 0;
             let combinedCost = 0;
 
@@ -371,41 +478,80 @@
             return;
         }
 
-        archivedOrdersList.forEach(archivedOrder => {
-            const tr = document.createElement('tr');
-            let itemsHtml = '';
+        const groupedOrders = groupArchivedOrdersByWeek(archivedOrdersList);
 
-            let totalProdCost = 0;
-            if (archivedOrder.totalProductionCost !== undefined && archivedOrder.totalProductionCost !== null) {
-                totalProdCost = archivedOrder.totalProductionCost;
-            } else {
-                archivedOrder.items.forEach(item => {
-                    if (item.productionCost !== undefined && item.productionCost !== null) {
-                        totalProdCost += item.productionCost;
-                    } else {
-                        totalProdCost += getRecipeCostPerUnit(item.name) * item.qty;
-                    }
-                });
-            }
+        groupedOrders.forEach(group => {
+            const groupTotal = group.orders.reduce((sum, order) => sum + (Number(order.totalSum) || 0), 0);
+            const groupCost = group.orders.reduce((sum, order) => {
+                if (order.totalProductionCost !== undefined && order.totalProductionCost !== null) return sum + (Number(order.totalProductionCost) || 0);
+                return sum + order.items.reduce((itemSum, item) => itemSum + ((item.productionCost !== undefined && item.productionCost !== null) ? Number(item.productionCost) || 0 : (Number(getRecipeCostPerUnit(item.name)) || 0) * (Number(item.qty) || 0)), 0);
+            }, 0);
 
-            archivedOrder.items.forEach(item => {
-                let badgeColor = item.priceType === 'Sonderpreis' ? 'var(--accent-blue)' : 'var(--accent-gray)';
-                itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${item.qty}x</strong> ${item.name} à $${item.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${item.priceType}</span> = <span style="color: var(--accent-green); font-weight: 600;">$${item.total.toFixed(2)}</span></div>`;
-            });
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td colspan="8">
+                    <details class="archive-week-folder" open>
+                        <summary>
+                            <span class="archive-week-title">${formatWeekRangeLabel(group)}</span>
+                            <span class="archive-week-meta">${group.orders.length} Bestellung${group.orders.length === 1 ? '' : 'en'} · Gesamt $${groupTotal.toFixed(2)} · Kosten $${groupCost.toFixed(2)}</span>
+                        </summary>
+                        <div class="archive-week-body">
+                            <table class="archive-week-orders-table">
+                                <thead>
+                                    <tr>
+                                        <th>Kunde</th>
+                                        <th>Positionen</th>
+                                        <th>Gesamt</th>
+                                        <th>Herstellungskosten</th>
+                                        <th>Erstellt</th>
+                                        <th>Ausgeliefert</th>
+                                        <th>Verkauft von</th>
+                                        <th>Aktion</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${group.orders.map(archivedOrder => {
+                                        let itemsHtml = '';
+                                        let totalProdCost = 0;
+                                        if (archivedOrder.totalProductionCost !== undefined && archivedOrder.totalProductionCost !== null) {
+                                            totalProdCost = archivedOrder.totalProductionCost;
+                                        } else {
+                                            archivedOrder.items.forEach(item => {
+                                                if (item.productionCost !== undefined && item.productionCost !== null) {
+                                                    totalProdCost += item.productionCost;
+                                                } else {
+                                                    totalProdCost += getRecipeCostPerUnit(item.name) * item.qty;
+                                                }
+                                            });
+                                        }
 
-            tr.innerHTML = `
-                <td><div class="material-name" style="color: var(--accent-blue); font-size: 1.05rem;">${archivedOrder.customerName}</div></td>
-                <td><div style="font-size: 0.9rem; line-height: 1.4;">${itemsHtml}</div></td>
-                <td><span class="current-price">$${archivedOrder.totalSum.toFixed(2)}</span></td>
-                <td><span class="current-cost">$${totalProdCost.toFixed(2)}</span></td>
-                <td class="time-text">${splitDateTimeDisplay(archivedOrder.createdAt)}</td>
-                <td class="time-text">${splitDateTimeDisplay(archivedOrder.deliveredAt)}</td>
-                <td class="time-text">${renderUsernameWithAvatar(archivedOrder.soldBy || '-', null, { size: 'small' })}</td>
-                <td>
-                    <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteArchivedOrder(${archivedOrder.id})">Eintrag löschen</button>
+                                        archivedOrder.items.forEach(item => {
+                                            let badgeColor = item.priceType === 'Sonderpreis' ? 'var(--accent-blue)' : 'var(--accent-gray)';
+                                            itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${item.qty}x</strong> ${item.name} à $${item.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${item.priceType}</span> = <span style="color: var(--accent-green); font-weight: 600;">$${item.total.toFixed(2)}</span></div>`;
+                                        });
+
+                                        return `
+                                            <tr>
+                                                <td><div class="material-name" style="color: var(--accent-blue); font-size: 1.05rem;">${archivedOrder.customerName}</div></td>
+                                                <td><div style="font-size: 0.9rem; line-height: 1.4;">${itemsHtml}</div></td>
+                                                <td><span class="current-price">$${(Number(archivedOrder.totalSum) || 0).toFixed(2)}</span></td>
+                                                <td><span class="current-cost">$${totalProdCost.toFixed(2)}</span></td>
+                                                <td class="time-text">${splitDateTimeDisplay(archivedOrder.createdAt)}</td>
+                                                <td class="time-text">${splitDateTimeDisplay(archivedOrder.deliveredAt)}</td>
+                                                <td class="time-text">${renderUsernameWithAvatar(archivedOrder.soldBy || '-', null, { size: 'small' })}</td>
+                                                <td>
+                                                    <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteArchivedOrder(${archivedOrder.id})">Eintrag löschen</button>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
                 </td>
             `;
-            tbody.appendChild(tr);
+            tbody.appendChild(row);
         });
     }
 
