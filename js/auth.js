@@ -165,7 +165,7 @@
                     let adminProfile = {};
                     try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
                     const localAdminProfile = readStoredUserProfile(ADMIN_USERNAME, adminProfile);
-                    await completeLogin({ username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar !== undefined ? localAdminProfile.avatar : (adminProfile.avatar || null), avatarHistory: localAdminProfile.avatarHistory || [], theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '', specialPermissions: normalizeSpecialPermissions(null, true) }, password, true);
+                    await completeLogin({ username: ADMIN_USERNAME, isAdmin: true, isSystemAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar !== undefined ? localAdminProfile.avatar : (adminProfile.avatar || null), avatarHistory: localAdminProfile.avatarHistory || [], theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '', specialPermissions: normalizeSpecialPermissions(null, true) }, password, true);
                 } else {
                     showAuthMsg('login-error', 'Benutzername oder Passwort falsch.');
                 }
@@ -194,7 +194,7 @@
             }
 
             const localProfile = readStoredUserProfile(user.username, {});
-            await completeLogin({ username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar !== undefined ? user.avatar : (localProfile.avatar || null), avatarHistory: Array.isArray(user.avatar_history) ? user.avatar_history : (localProfile.avatarHistory || []), theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '', specialPermissions: normalizeSpecialPermissions(user.special_permissions, !!user.is_admin) }, password, !!user.is_admin);
+            await completeLogin({ username: user.username, id: user.id, isAdmin: !!user.is_admin, isSystemAdmin: false, permission: user.permission || 'view', avatar: user.avatar !== undefined ? user.avatar : (localProfile.avatar || null), avatarHistory: Array.isArray(user.avatar_history) ? user.avatar_history : (localProfile.avatarHistory || []), theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '', specialPermissions: normalizeSpecialPermissions(user.special_permissions, !!user.is_admin) }, password, !!user.is_admin);
         } finally {
             submitBtn.disabled = false;
         }
@@ -370,7 +370,7 @@
             let adminProfile = {};
             try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
             const localAdminProfile = readStoredUserProfile(ADMIN_USERNAME, adminProfile);
-            currentUser = { username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar !== undefined ? localAdminProfile.avatar : (adminProfile.avatar || null), avatarHistory: localAdminProfile.avatarHistory || [], theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '', specialPermissions: normalizeSpecialPermissions(null, true) };
+            currentUser = { username: ADMIN_USERNAME, isAdmin: true, isSystemAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar !== undefined ? localAdminProfile.avatar : (adminProfile.avatar || null), avatarHistory: localAdminProfile.avatarHistory || [], theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '', specialPermissions: normalizeSpecialPermissions(null, true) };
             await enterApp();
             return true;
         }
@@ -385,7 +385,7 @@
             const user = data[0];
             if (user.password_hash !== stored.passwordHash || !user.approved) return false;
             const localProfile = readStoredUserProfile(user.username, {});
-            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar !== undefined ? user.avatar : (localProfile.avatar || null), avatarHistory: Array.isArray(user.avatar_history) ? user.avatar_history : (localProfile.avatarHistory || []), theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '', specialPermissions: normalizeSpecialPermissions(user.special_permissions, !!user.is_admin) };
+            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, isSystemAdmin: false, permission: user.permission || 'view', avatar: user.avatar !== undefined ? user.avatar : (localProfile.avatar || null), avatarHistory: Array.isArray(user.avatar_history) ? user.avatar_history : (localProfile.avatarHistory || []), theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '', specialPermissions: normalizeSpecialPermissions(user.special_permissions, !!user.is_admin) };
             await enterApp();
             return true;
         } catch (e) {
@@ -404,8 +404,8 @@
             return;
         }
 
-        // Admin hat immer Vollzugriff und benötigt keine Supabase-Rechteabfrage.
-        if (currentUser.isAdmin) {
+        // Nur der fest eingebaute Hauptadministrator benötigt keine Rechteabfrage.
+        if (currentUser.isSystemAdmin) {
             currentUser.tabPermissions = getAdminTabPermissions();
         } else {
             await loadUserTabPermissions();
@@ -477,19 +477,19 @@
 
     function canViewTab(tabName) {
         if (!currentUser) return false;
-        if (currentUser.isAdmin) return true;
+        if (currentUser.isSystemAdmin || canSpecialAction('administrator_rechte')) return true;
         if (tabName === 'benutzer') {
             return canSpecialAction('benutzer_sperren') || canSpecialAction('benutzer_loeschen');
         }
         if (tabName === 'log') return canSpecialAction('log_leeren');
-        if (tabName === 'avatarlogs') return false;
+        if (tabName === 'avatarlogs') return canSpecialAction('administrator_rechte');
         const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
         return !!(p && p.view);
     }
 
     function canEditTab(tabName) {
         if (!currentUser) return false;
-        if (currentUser.isAdmin) return true;
+        if (currentUser.isSystemAdmin || canSpecialAction('administrator_rechte')) return true;
         if (ADMIN_ONLY_TABS.has(tabName)) return false;
         const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
         return !!(p && p.edit);
@@ -497,7 +497,7 @@
 
     function canDeleteTab(tabName) {
         if (!currentUser) return false;
-        if (currentUser.isAdmin) return true;
+        if (currentUser.isSystemAdmin || canSpecialAction('administrator_rechte')) return true;
         if (ADMIN_ONLY_TABS.has(tabName)) return false;
         const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
         return !!(p && p.del);
@@ -505,7 +505,7 @@
 
     function canSpecialAction(actionKey) {
         if (!currentUser) return false;
-        if (currentUser.isAdmin) return true;
+        if (currentUser.isSystemAdmin || !!(currentUser.specialPermissions && currentUser.specialPermissions.administrator_rechte)) return true;
         return !!(currentUser.specialPermissions && currentUser.specialPermissions[actionKey]);
     }
 
@@ -666,7 +666,9 @@
         editingPermissionDraft = normalizeTabPermissions(null);
 
         loadPermissionsForAdminUser(user.id).then(perms => {
-            const normalized = normalizeTabPermissions(perms);
+            const normalized = Object.keys(perms).length
+                ? normalizeTabPermissions(perms)
+                : (user.is_admin ? getAdminTabPermissions() : normalizeTabPermissions(perms));
             normalized.special = normalizeSpecialPermissions(editingPermissionUser.special_permissions, !!editingPermissionUser.is_admin);
             editingPermissionUser.tabPermissions = normalized;
             editingPermissionDraft = normalized;
@@ -733,7 +735,7 @@
         const current = editingPermissionDraft.special || normalizeSpecialPermissions(editingPermissionUser.special_permissions, !!editingPermissionUser.is_admin);
         grid.innerHTML = SPECIAL_PERMISSION_DEFINITIONS.map(item => `
             <label class="special-permission-item">
-                <input type="checkbox" id="special-perm-${item.key}" ${current[item.key] ? 'checked' : ''} ${editingPermissionUser.is_admin ? 'disabled' : ''}>
+                <input type="checkbox" id="special-perm-${item.key}" ${current[item.key] ? 'checked' : ''} ${item.key === 'administrator_rechte' && editingPermissionUser.username === ADMIN_USERNAME ? 'disabled' : ''}>
                 <span>${item.label}</span>
             </label>`).join('');
     }
@@ -1043,9 +1045,7 @@
             const roleHtml = u.is_admin
                 ? `<span class="status-pill approved">Administrator</span>`
                 : `<span class="status-pill">Benutzer</span>`;
-            const permissionButton = u.is_admin
-                ? `<span style="color:var(--text-muted);font-size:.82rem;padding:8px 4px;">Vollzugriff</span>`
-                : `<button class="btn" style="height:34px;font-size:.8rem;background-color:var(--primary-soft);color:var(--primary-bright);border:1px solid rgba(255,106,26,.35);" onclick="openPermissionModal(${u.id})">Tab-Rechte</button>`;
+            const permissionButton = `<button class="btn" style="height:34px;font-size:.8rem;background-color:var(--primary-soft);color:var(--primary-bright);border:1px solid rgba(255,106,26,.35);" onclick="openPermissionModal(${u.id})">Tab-Rechte</button>`;
             return `
                 <tr>
                     <td>${renderUsernameWithAvatar(u.username, u, { size: 'small' })}</td>
