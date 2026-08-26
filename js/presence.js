@@ -170,7 +170,6 @@
             .update({ last_seen: lastSeen })
             .eq('id', currentUser.id);
         if (!error) {
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
             const lists = [];
             if (typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList)) lists.push(memberUsernamesList);
             if (typeof appUsersList !== 'undefined' && Array.isArray(appUsersList)) lists.push(appUsersList);
@@ -319,7 +318,7 @@
                     renderMembersTable();
                     if (currentUser && currentUser.isAdmin) {
                         renderUsersTab();
-                        if (typeof renderAvatarLogs === 'function') renderAvatarLogs();
+                        if (typeof loadAvatarLogs === 'function') await loadAvatarLogs();
                     }
                 }
                 if (table === 'app_user_tab_permissions' && currentUser) {

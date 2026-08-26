@@ -153,7 +153,12 @@
         };
 
         if (currentUser.id) {
-            const dbPayload = { avatar: pendingAvatarBase64, theme: chosenTheme, bio: bioValue };
+            const dbPayload = {
+                avatar: pendingAvatarBase64,
+                theme: chosenTheme,
+                bio: bioValue,
+                avatar_history: localProfile.avatarHistory
+            };
             try {
                 const { error } = await supabaseClient
                     .from('app_users')
@@ -163,13 +168,6 @@
                 if (error) {
                     showToast('Profil konnte nicht in Supabase gespeichert werden: ' + error.message + '. Prüfe, ob in app_users die Spalte "bio" existiert.', 'danger');
                     return;
-                }
-                const { error: historyError } = await supabaseClient
-                    .from('app_users')
-                    .update({ avatar_history: localProfile.avatarHistory })
-                    .eq('id', currentUser.id);
-                if (historyError) {
-                    console.warn('Avatar-Historie konnte nicht gespeichert werden:', historyError.message);
                 }
                 if (typeof broadcastDataChange === 'function') {
                     await broadcastDataChange('app_users');
