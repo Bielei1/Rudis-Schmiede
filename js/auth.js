@@ -178,7 +178,9 @@
                 .maybeSingle();
             if (userError || !user) {
                 await supabaseClient.auth.signOut();
-                showAuthMsg('login-error', 'Benutzerprofil konnte nicht geladen werden.');
+                showAuthMsg('login-error', userError
+                    ? `Benutzerprofil konnte nicht geladen werden: ${userError.message}`
+                    : 'Benutzerprofil wurde für diesen Auth-Benutzer nicht gefunden.');
                 return;
             }
             if (!user.approved) {
