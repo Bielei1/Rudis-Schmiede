@@ -374,7 +374,7 @@
             notesList.unshift(data[0]);
             input.value = '';
             renderPinboard();
-            logActivity('Pinnwand', `Neuer Pinnwand-Eintrag: "${content}"`);
+            logActivity('Pinnwand', `Neuer Pinnwand-Eintrag: "${content}"`, `Inhalt:\n${content}`);
         } else {
             showToast("Fehler beim Speichern: " + (error ? error.message : ''), 'danger');
         }
@@ -386,11 +386,12 @@
             return;
         }
         if (await customConfirm("Eintrag von der Pinnwand entfernen?")) {
+            const note = notesList.find(n => n.id === id);
             const { error } = await supabaseClient.from('notes').delete().eq('id', id);
             if (!error) {
                 notesList = notesList.filter(n => n.id !== id);
                 renderPinboard();
-                logActivity('Pinnwand', `Pinnwand-Eintrag entfernt.`);
+                logActivity('Pinnwand', `Pinnwand-Eintrag entfernt.`, `Eintrag: ${id}\nInhalt:\n${note ? (note.content || '-') : '-'}`);
             } else {
                 showToast("Fehler beim Löschen: " + error.message, 'danger');
             }

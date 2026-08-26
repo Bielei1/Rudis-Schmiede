@@ -285,7 +285,7 @@ async function saveSalesCartAsOrder() {
             renderOrders();
         }
 
-        logActivity('Bestellung', `Warenkorb wurde von „${currentUser ? currentUser.username : 'Unbekannt'}“ als Bestellung aufgenommen ($${totals.total.toFixed(2)})`);
+        logActivity('Bestellung', `Warenkorb wurde von „${currentUser ? currentUser.username : 'Unbekannt'}“ als Bestellung aufgenommen ($${totals.total.toFixed(2)})`, `Kunde: Warenkorb\nPositionen: ${items.length}\nGesamt: $${totals.total.toFixed(2)}\nRabatt: ${totals.discountPercent}%`);
         clearSalesCalculatorCart();
         showToast('Warenkorb wurde bei den Bestellungen aufgenommen.', 'success', 'Bestellung aufgenommen');
     } catch (error) {
@@ -376,7 +376,7 @@ try {
         if (typeof renderMembersTable === 'function') renderMembersTable();
     }
 
-    logActivity('Archiv', `Warenkorb wurde von „${soldBy}“ als verkauft archiviert ($${totals.total.toFixed(2)})`);
+    logActivity('Archiv', `Warenkorb wurde von „${soldBy}“ als verkauft archiviert ($${totals.total.toFixed(2)})`, `Verkauft von: ${soldBy}\nPositionen: ${archivedItems.length}\nGesamt: $${totals.total.toFixed(2)}\nRabatt: ${totals.discountPercent}%`);
     clearSalesCalculatorCart();
     showToast('Warenkorb wurde als verkauft im Archiv gespeichert.', 'success', 'Verkauft');
 } catch (error) {

@@ -77,7 +77,7 @@
                 existing.price = priceVal;
                 existing.priceUpdated = priceUpdated;
                 updateSalesPriceSearchSelect();
-                logActivity('Verkaufspreis', `Verkaufspreis für "${itemName}" auf $${priceVal.toFixed(2)} aktualisiert`);
+                logActivity('Verkaufspreis', `Verkaufspreis für "${itemName}" auf $${priceVal.toFixed(2)} aktualisiert`, `Artikel: ${itemName}\nPreis: $${priceVal.toFixed(2)}`);
                 renderPriceTable();
                 renderOrders();
             }
@@ -90,7 +90,7 @@
             if (!error && data) {
                 salesPricesList.push(data[0]);
                 updateSalesPriceSearchSelect();
-                logActivity('Verkaufspreis', `Verkaufspreis für "${itemName}" mit $${priceVal.toFixed(2)} neu angelegt`);
+                logActivity('Verkaufspreis', `Verkaufspreis für "${itemName}" mit $${priceVal.toFixed(2)} neu angelegt`, `Artikel: ${itemName}\nPreis: $${priceVal.toFixed(2)}`);
                 renderPriceTable();
                 renderOrders();
             }
@@ -186,7 +186,7 @@
                 inputEl.value = '';
                 renderPriceTable();
                 renderOrders();
-                logActivity('Verkaufspreis', `Verkaufspreis von "${item.name}" geändert: $${Number(oldPrice).toFixed(2)} → $${value.toFixed(2)}`);
+                logActivity('Verkaufspreis', `Verkaufspreis von "${item.name}" geändert: $${Number(oldPrice).toFixed(2)} → $${value.toFixed(2)}`, `Artikel: ${item.name}\nPreis: $${Number(oldPrice).toFixed(2)} → $${value.toFixed(2)}`);
             }
         }
     }
@@ -204,7 +204,7 @@
                 updateSalesPriceSearchSelect();
                 renderPriceTable();
                 renderOrders();
-                logActivity('Verkaufspreis', `Verkaufspreis für "${item ? item.name : id}" gelöscht`);
+                logActivity('Verkaufspreis', `Verkaufspreis für "${item ? item.name : id}" gelöscht`, `Artikel: ${item ? item.name : id}\nPreis: $${item ? Number(item.price || 0).toFixed(2) : '0.00'}`);
             }
         }
     }
@@ -230,7 +230,7 @@
             if (!error) {
                 existing.price = price;
                 existing.priceUpdated = priceUpdated;
-                logActivity('Verkaufspreis', `Verkaufspreis von "${name}" geändert: $${Number(oldPrice).toFixed(2)} → $${price.toFixed(2)}`);
+                logActivity('Verkaufspreis', `Verkaufspreis von "${name}" geändert: $${Number(oldPrice).toFixed(2)} → $${price.toFixed(2)}`, `Artikel: ${name}\nPreis: $${Number(oldPrice).toFixed(2)} → $${price.toFixed(2)}`);
             }
         } else {
             const { data, error } = await supabaseClient
@@ -240,7 +240,7 @@
 
             if (!error && data) {
                 salesPricesList.push(data[0]);
-                logActivity('Verkaufspreis', `Neuer Verkaufspreis für "${name}" angelegt: $${price.toFixed(2)}`);
+                logActivity('Verkaufspreis', `Neuer Verkaufspreis für "${name}" angelegt: $${price.toFixed(2)}`, `Artikel: ${name}\nPreis: $${price.toFixed(2)}`);
             }
         }
         inputEl.value = '';

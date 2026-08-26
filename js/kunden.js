@@ -131,7 +131,7 @@
                     inputEl.value = '';
                     renderCustomerPricesTable();
                     renderOrders();
-                    logActivity('Kundenpreis', `Preis für "${item.name}" bei Kunde "${item.customerName}" geändert: $${Number(oldPrice).toFixed(2)} → $${val.toFixed(2)}`);
+                    logActivity('Kundenpreis', `Preis für "${item.name}" bei Kunde "${item.customerName}" geändert: $${Number(oldPrice).toFixed(2)} → $${val.toFixed(2)}`, `Kunde: ${item.customerName}\nArtikel: ${item.name}\nPreis: $${Number(oldPrice).toFixed(2)} → $${val.toFixed(2)}`);
                 } else {
                     alert("Fehler beim Aktualisieren: " + error.message);
                 }
@@ -155,7 +155,7 @@
                 updateOrderCustomerDropdown();
                 renderCustomerPricesTable();
                 renderOrders();
-                logActivity('Kundenpreis', `Kundenpreis für "${item ? item.name : id}" bei "${item ? item.customerName : '?'}" gelöscht`);
+                logActivity('Kundenpreis', `Kundenpreis für "${item ? item.name : id}" bei "${item ? item.customerName : '?'}" gelöscht`, `Kunde: ${item ? item.customerName : '?'}\nArtikel: ${item ? item.name : id}\nPreis: $${item ? Number(item.price || 0).toFixed(2) : '0.00'}`);
             }
         }
     }
@@ -221,7 +221,7 @@
             updateOrderCustomerDropdown();
             renderCustomerPricesTable();
             renderOrders();
-            logActivity('Kundenpreis', `Kundenspezifische Preise für "${customerName}" gespeichert (${successCount} Artikel)`);
+            logActivity('Kundenpreis', `Kundenspezifische Preise für "${customerName}" gespeichert (${successCount} Artikel)`, `Kunde: ${customerName}\nGeschäft: ${business || '-'}\nArtikel: ${successCount}`);
         } else {
             alert("Fehler beim Speichern der Kundenpreise.");
         }

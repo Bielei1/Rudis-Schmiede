@@ -121,7 +121,7 @@
             updateOrderCustomerDropdown();
             renderOrders();
             updateOrderTotalsPreview();
-            logActivity('Bestellung', `Neue Bestellung von "${customerName}" mit ${items.length} Position(en) erfasst`);
+            logActivity('Bestellung', `Neue Bestellung von "${customerName}" mit ${items.length} Position(en) erfasst`, `Kunde: ${customerName}\nPositionen: ${items.length}\nRabatt: ${discount}%`);
         } else {
             alert("Fehler beim Speichern der Bestellung: " + (error ? error.message : ''));
         }
@@ -144,7 +144,7 @@
             order.items[itemIndex].produced = checkboxEl.checked;
         } else {
             renderOrders();
-            logActivity('Bestellung', `Produktionsstatus einer Bestellung geändert: ${checkboxEl.checked ? 'produziert' : 'nicht produziert'}`);
+            logActivity('Bestellung', `Produktionsstatus einer Bestellung geändert: ${checkboxEl.checked ? 'produziert' : 'nicht produziert'}`, `Kunde: ${order.customerName}\nArtikel: ${order.items[itemIndex].name}\nStatus: ${checkboxEl.checked ? 'produziert' : 'nicht produziert'}`);
         }
     }
 
@@ -160,7 +160,7 @@
                 ordersList = ordersList.filter(o => o.id !== id);
                 updateOrderCustomerDropdown();
                 renderOrders();
-                logActivity('Bestellung', `Bestellung von "${order ? order.customerName : id}" gelöscht`);
+                logActivity('Bestellung', `Bestellung von "${order ? order.customerName : id}" gelöscht`, `Kunde: ${order ? order.customerName : id}\nPositionen: ${order ? order.items.length : 0}`);
             }
         }
     }
@@ -255,7 +255,7 @@
         renderOrders();
         renderArchive();
         if (typeof renderMembersTable === 'function') renderMembersTable();
-        logActivity('Bestellung', `Bestellung von "${order.customerName}" ausgeliefert und archiviert (Verkauft von: ${archivedPayload.soldBy}, Summe $${totalSum.toFixed(2)})`);
+        logActivity('Bestellung', `Bestellung von "${order.customerName}" ausgeliefert und archiviert (Verkauft von: ${archivedPayload.soldBy}, Summe $${totalSum.toFixed(2)})`, `Kunde: ${order.customerName}\nVerkauft von: ${archivedPayload.soldBy}\nGesamt: $${totalSum.toFixed(2)}\nRabatt: ${order.discount !== undefined ? order.discount : 0}%`);
     }
 
     function renderOrders() {
@@ -611,12 +611,13 @@
             return;
         }
         if (await customConfirm("Archivierte Bestellung löschen?")) {
+            const removedOrder = archivedOrdersList.find(o => o.id === id);
             const { error } = await supabaseClient.from('archive').delete().eq('id', id);
             if (!error) {
                 archivedOrdersList = archivedOrdersList.filter(o => o.id !== id);
                 renderArchive();
                 if (typeof renderMembersTable === 'function') renderMembersTable();
-                logActivity('Archiv', `Archivierter Auftrag "${id}" wurde gelöscht.`);
+                logActivity('Archiv', `Archivierter Auftrag "${id}" wurde gelöscht.`, `Auftrag: ${id}\nKunde: ${removedOrder ? removedOrder.customerName : '-'}\nGesamt: $${removedOrder ? Number(removedOrder.totalSum || 0).toFixed(2) : '0.00'}`);
             }
         }
     }
@@ -628,12 +629,13 @@
         }
         if (archivedOrdersList.length === 0) return alert("Das Archiv ist bereits leer.");
         if (await customConfirm("Möchtest du wirklich das gesamte Archiv leeren?")) {
+            const archiveCount = archivedOrdersList.length;
             const { error } = await supabaseClient.from('archive').delete().neq('id', 0);
             if (!error) {
                 archivedOrdersList = [];
                 renderArchive();
                 if (typeof renderMembersTable === 'function') renderMembersTable();
-                logActivity('Archiv', 'Das komplette Archiv wurde geleert.');
+                logActivity('Archiv', 'Das komplette Archiv wurde geleert.', `Einträge gelöscht: ${archiveCount}`);
             }
         }
     }

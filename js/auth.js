@@ -852,7 +852,7 @@
             renderUsersTab();
             event.target.reset();
             showToast(`${isAdmin ? 'Administrator' : 'Benutzer'} „${username}“ wurde angelegt und freigeschaltet.`, 'success', 'Benutzer angelegt');
-            await logActivity('Benutzerverwaltung', `${isAdmin ? 'Administrator' : 'Benutzer'} „${username}“ wurde angelegt und freigeschaltet`);
+            await logActivity('Benutzerverwaltung', `${isAdmin ? 'Administrator' : 'Benutzer'} „${username}“ wurde angelegt und freigeschaltet`, `Benutzer: ${username}\nRolle: ${isAdmin ? 'Administrator' : 'Benutzer'}\nStatus: freigeschaltet`);
         } finally {
             submitBtn.disabled = false;
         }
@@ -1044,7 +1044,7 @@
             }
             const targetUser = appUsersList.find(u => u.id === resetPasswordTargetUserId);
             showToast('Das Passwort wurde geändert und sicher gespeichert.', 'success', 'Passwort geändert');
-            await logActivity('Benutzerverwaltung', `Passwort für Benutzer „${targetUser ? targetUser.username : resetPasswordTargetUserId}“ wurde geändert`);
+            await logActivity('Benutzerverwaltung', `Passwort für Benutzer „${targetUser ? targetUser.username : resetPasswordTargetUserId}“ wurde geändert`, `Benutzer: ${targetUser ? targetUser.username : resetPasswordTargetUserId}\nAktion: Passwort aktualisiert`);
             closeResetPasswordModal();
         } finally {
             submitBtn.disabled = false;
@@ -1058,7 +1058,7 @@
             if (u) u.approved = approve;
             renderUsersTab();
             showToast(approve ? 'Der Benutzer kann sich wieder anmelden.' : 'Der Benutzer kann sich nicht mehr anmelden.', 'success', approve ? 'Benutzer freigeschaltet' : 'Benutzer gesperrt');
-            await logActivity('Benutzerverwaltung', `Benutzer „${u ? u.username : id}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`);
+            await logActivity('Benutzerverwaltung', `Benutzer „${u ? u.username : id}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`, `Benutzer: ${u ? u.username : id}\nStatus: ${approve ? 'freigeschaltet' : 'gesperrt'}`);
         } else {
             showToast('Fehler: ' + error.message, 'danger');
         }
@@ -1089,7 +1089,7 @@
             if (typeof renderMembersTable === 'function') renderMembersTable();
 
             showToast('Der Benutzer und seine gespeicherten Tab-Rechte wurden entfernt.', 'success', 'Benutzer gelöscht');
-            await logActivity('Benutzerverwaltung', `Benutzer „${deletedUser ? deletedUser.username : id}“ wurde gelöscht`);
+            await logActivity('Benutzerverwaltung', `Benutzer „${deletedUser ? deletedUser.username : id}“ wurde gelöscht`, `Benutzer: ${deletedUser ? deletedUser.username : id}\nAktion: gelöscht\nTab-Rechte: entfernt`);
         } else {
             showToast('Fehler: ' + error.message, 'danger');
         }
