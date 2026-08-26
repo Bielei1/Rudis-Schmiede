@@ -211,7 +211,7 @@
             .join('\n')
             .trim();
 
-        if (userEl) userEl.innerText = user;
+        if (userEl) userEl.innerHTML = renderUsernameWithAvatar(user, null, { size: 'small' });
         if (categoryEl) categoryEl.innerText = category;
         if (actionEl) actionEl.innerText = action;
         if (messageEl) {
