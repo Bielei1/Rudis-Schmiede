@@ -14,7 +14,10 @@
         });
 
         presenceChannel
-            .on('presence', { event: 'sync' }, renderOnlineUsers)
+            .on('presence', { event: 'sync' }, () => {
+                syncPresenceAvatars();
+                renderOnlineUsers();
+            })
             .subscribe(async (status) => {
                 if (status === 'SUBSCRIBED') {
                     await presenceChannel.track({
@@ -50,6 +53,24 @@
                 </div>
             `;
         }).join('');
+    }
+
+    function syncPresenceAvatars() {
+        if (!presenceChannel) return;
+        const state = presenceChannel.presenceState();
+        Object.keys(state).forEach(name => {
+            const meta = state[name] && state[name][0];
+            if (!meta || !meta.username) return;
+            const lists = [];
+            if (typeof appUsersList !== 'undefined' && Array.isArray(appUsersList)) lists.push(appUsersList);
+            if (typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList)) lists.push(memberUsernamesList);
+            lists.forEach(list => {
+                const user = list.find(item => String(item.username || '').toLowerCase() === String(meta.username).toLowerCase());
+                if (user && Object.prototype.hasOwnProperty.call(meta, 'avatar')) user.avatar = meta.avatar || null;
+            });
+        });
+        if (typeof renderMembersTable === 'function') renderMembersTable();
+        if (typeof renderPinboard === 'function') renderPinboard();
     }
 
     // ============ LIVE-SYNC (Daten anderer User automatisch übernehmen) ============

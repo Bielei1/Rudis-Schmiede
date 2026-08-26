@@ -200,6 +200,7 @@
                 isAdmin: !!currentUser.isAdmin,
                 avatar: currentUser.avatar || null
             });
+            if (typeof syncPresenceAvatars === 'function') syncPresenceAvatars();
             renderOnlineUsers();
         }
         closeProfileModal(false);
