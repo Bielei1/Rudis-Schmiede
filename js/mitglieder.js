@@ -168,7 +168,7 @@ async function saveMemberRow(username, userId) {
             existing.notiz = notiz;
             // joinedAt bleibt unverändert und wird nicht mehr vom Benutzer bearbeitet.
             renderMembersTable();
-            logActivity('Mitglieder', `Mitgliedsdaten von "${username}" aktualisiert.`);
+            logActivity('Mitglieder', `Mitgliedsdaten von "${username}" aktualisiert.`, `Rang: ${rang || '-'}\nNotiz: ${notiz || '-'}`);
         } else {
             alert("Fehler beim Speichern: " + error.message);
         }
@@ -181,7 +181,7 @@ async function saveMemberRow(username, userId) {
         if (!error && data) {
             membersList.push(data[0]);
             renderMembersTable();
-            logActivity('Mitglieder', `Mitgliedsdaten für "${username}" angelegt (Rang: ${rang || '-'}).`);
+            logActivity('Mitglieder', `Mitgliedsdaten für "${username}" angelegt (Rang: ${rang || '-'}).`, `Rang: ${rang || '-'}\nNotiz: ${notiz || '-'}`);
         } else {
             alert("Fehler beim Speichern: " + (error ? error.message : ''));
         }

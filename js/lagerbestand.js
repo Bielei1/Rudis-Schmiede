@@ -52,7 +52,7 @@
                 renderStockTable();
                 renderRecipes();
                 renderOrders();
-                logActivity('Lagerbestand', `Bestand von "${item.name}" geändert: ${oldQty} → ${value} Stk.`);
+                logActivity('Lagerbestand', `Bestand von "${item.name}" geändert: ${oldQty} → ${value} Stk.`, `Artikel: ${item.name}\nBestand: ${oldQty} → ${value} Stk.`);
             }
         } else {
             alert("Fehler beim Aktualisieren: " + error.message);
@@ -72,7 +72,7 @@
                 renderStockTable();
                 renderRecipes();
                 renderOrders();
-                logActivity('Lagerbestand', `Artikel "${item ? item.name : id}" aus dem Lager gelöscht`);
+                logActivity('Lagerbestand', `Artikel "${item ? item.name : id}" aus dem Lager gelöscht`, `Artikel: ${item ? item.name : id}\nBestand: ${item ? item.qty : '-'} Stk.`);
             } else {
                 alert("Fehler beim Löschen: " + error.message);
             }
@@ -100,7 +100,7 @@
             if (!error) {
                 existing.quantity = qty;
                 existing.stockupdated = updatedTime;
-                logActivity('Lagerbestand', `Bestand von "${name}" geändert: ${oldQty} → ${qty} Stk.`);
+                logActivity('Lagerbestand', `Bestand von "${name}" geändert: ${oldQty} → ${qty} Stk.`, `Artikel: ${name}\nBestand: ${oldQty} → ${qty} Stk.`);
             }
         } else {
             const { data, error } = await supabaseClient
@@ -110,7 +110,7 @@
 
             if (!error && data) {
                 inventoryList.push(data[0]);
-                logActivity('Lagerbestand', `Neuer Artikel "${name}" mit Bestand ${qty} Stk. angelegt`);
+                logActivity('Lagerbestand', `Neuer Artikel "${name}" mit Bestand ${qty} Stk. angelegt`, `Artikel: ${name}\nAnfangsbestand: ${qty} Stk.`);
             }
         }
         nameInput.value = '';

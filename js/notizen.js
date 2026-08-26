@@ -57,7 +57,7 @@
                 cancelNoteEdit();
                 renderNotes();
                 renderPinboard();
-                logActivity('Notizen', `Notiz "${label}" wurde geändert.`);
+                logActivity('Notizen', `Notiz "${label}" wurde geändert.`, `Titel: ${label}\nInhalt:\n${content}`);
             } else {
                 alert("Fehler beim Aktualisieren: " + error.message);
             }
@@ -72,7 +72,7 @@
                 cancelNoteEdit();
                 renderNotes();
                 renderPinboard();
-                logActivity('Notizen', `Neue Notiz "${label}" wurde gespeichert.`);
+                logActivity('Notizen', `Neue Notiz "${label}" wurde gespeichert.`, `Titel: ${label}\nInhalt:\n${content}`);
             } else {
                 alert("Fehler beim Speichern: " + (error ? error.message : ''));
             }
@@ -85,12 +85,13 @@
             return;
         }
         if (await customConfirm("Notiz löschen?")) {
+            const note = notesList.find(n => n.id === id);
             const { error } = await supabaseClient.from('notes').delete().eq('id', id);
             if (!error) {
                 notesList = notesList.filter(n => n.id !== id);
                 renderNotes();
                 renderPinboard();
-                logActivity('Notizen', `Notiz "${id}" wurde gelöscht.`);
+                logActivity('Notizen', `Notiz "${note ? (note.label || id) : id}" wurde gelöscht.`, `Titel: ${note ? (note.label || '-') : '-'}\nInhalt:\n${note ? (note.content || '-') : '-'}`);
             }
         }
     }

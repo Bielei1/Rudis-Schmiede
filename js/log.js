@@ -40,13 +40,24 @@
         }, 5000);
     }
 
-    async function logActivity(category, message) {
+    function buildDetailedLogMessage(summary, details) {
+        const finalSummary = String(summary || '').trim();
+        if (!details) return finalSummary || 'Änderung protokolliert';
+        const finalDetails = String(details || '').trim();
+        if (!finalDetails) return finalSummary || 'Änderung protokolliert';
+        return `${finalSummary}\n\nDetails:\n${finalDetails}`;
+    }
+
+    async function logActivity(category, message, details = null) {
+        const summary = String(message || '').trim() || 'Änderung protokolliert';
+        const fullMessage = buildDetailedLogMessage(summary, details);
+
         // Sofortige Anzeige unten rechts.
-        showToast(message, 'success', category + ' geändert');
+        showToast(summary, 'success', category + ' geändert');
 
         const entry = {
             category,
-            message,
+            message: fullMessage,
             createdAt: getCurrentTimeString(),
             username: (currentUser && currentUser.username) || 'Unbekannt'
         };
