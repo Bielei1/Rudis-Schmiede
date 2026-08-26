@@ -131,6 +131,7 @@
                     inputEl.value = '';
                     renderCustomerPricesTable();
                     renderOrders();
+                    if (typeof broadcastDataChange === 'function') await broadcastDataChange('customer_prices');
                     logActivity('Kundenpreis', `Preis für "${item.name}" bei Kunde "${item.customerName}" geändert: $${Number(oldPrice).toFixed(2)} → $${val.toFixed(2)}`, `Kunde: ${item.customerName}\nArtikel: ${item.name}\nPreis: $${Number(oldPrice).toFixed(2)} → $${val.toFixed(2)}`);
                 } else {
                     alert("Fehler beim Aktualisieren: " + error.message);
@@ -155,6 +156,7 @@
                 updateOrderCustomerDropdown();
                 renderCustomerPricesTable();
                 renderOrders();
+                if (typeof broadcastDataChange === 'function') await broadcastDataChange('customer_prices');
                 logActivity('Kundenpreis', `Kundenpreis für "${item ? item.name : id}" bei "${item ? item.customerName : '?'}" gelöscht`, `Kunde: ${item ? item.customerName : '?'}\nArtikel: ${item ? item.name : id}\nPreis: $${item ? Number(item.price || 0).toFixed(2) : '0.00'}`);
             }
         }
@@ -198,6 +200,7 @@
                     existing.price = price;
                     existing.business = business;
                     existing.priceUpdated = priceUpdated;
+                    if (typeof broadcastDataChange === 'function') await broadcastDataChange('customer_prices');
                     successCount++;
                 }
             } else {
@@ -208,6 +211,7 @@
 
                 if (!error && data) {
                     customerPricesList.push(data[0]);
+                    if (typeof broadcastDataChange === 'function') await broadcastDataChange('customer_prices');
                     successCount++;
                 }
             }
@@ -272,4 +276,3 @@
             }
         }
     }
-
