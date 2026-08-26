@@ -712,6 +712,20 @@
             border: 2px solid var(--border-color);
         }
 
+        .avatar-log-status {
+            font-size: 0.72rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .avatar-log-status.is-current {
+            color: var(--success-color);
+        }
+
+        .avatar-log-status.is-archived {
+            color: var(--text-muted);
+        }
+
         .avatar-log-item .btn {
             font-size: 0.75rem;
             padding: 6px 9px;

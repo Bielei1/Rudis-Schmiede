@@ -280,12 +280,16 @@
                 const image = document.createElement('div');
                 image.className = 'avatar-log-image';
                 image.style.backgroundImage = `url(${avatar})`;
+                const status = document.createElement('span');
+                const isCurrent = user.avatar === avatar;
+                status.className = `avatar-log-status ${isCurrent ? 'is-current' : 'is-archived'}`;
+                status.textContent = isCurrent ? 'Aktuell gesetzt' : 'Nicht aktuell';
                 const button = document.createElement('button');
                 button.className = 'btn btn-danger';
                 button.textContent = 'Avatar löschen';
                 button.type = 'button';
                 button.addEventListener('click', () => deleteAvatarLog(user, avatar));
-                item.append(image, button);
+                item.append(image, status, button);
                 list.appendChild(item);
             });
             card.appendChild(list);
