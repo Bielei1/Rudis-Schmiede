@@ -56,7 +56,11 @@
     // holt eh alles auf einmal) - einfacher und robuster als jede Tabelle einzeln
     // im Speicher zu patchen. Mehrere Änderungen kurz hintereinander werden zu
     // einem einzigen Reload zusammengefasst (Debounce), damit es nicht flackert.
-    const LIVE_SYNC_TABLES = ['inventory', 'orders', 'archive', 'customer_prices', 'sales_prices', 'purchase_prices', 'recipes', 'notes', 'members'];
+    const LIVE_SYNC_TABLES = [
+        'inventory', 'orders', 'archive', 'customer_prices', 'sales_prices',
+        'purchase_prices', 'recipes', 'notes', 'members', 'app_users',
+        'app_user_tab_permissions', 'password_reset_requests'
+    ];
     let liveSyncChannel = null;
     let liveSyncDebounceTimer = null;
 
@@ -66,19 +70,34 @@
 
         liveSyncChannel = supabaseClient.channel('live-data-sync');
         LIVE_SYNC_TABLES.forEach(table => {
-            liveSyncChannel.on('postgres_changes', { event: '*', schema: 'public', table }, handleRemoteDataChange);
+            liveSyncChannel.on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table },
+                () => handleRemoteDataChange(table)
+            );
         });
         liveSyncChannel.subscribe();
     }
 
-    function handleRemoteDataChange() {
+    function handleRemoteDataChange(table) {
         clearTimeout(liveSyncDebounceTimer);
         liveSyncDebounceTimer = setTimeout(async () => {
             try {
                 await loadDataFromSupabase();
+                if (table === 'app_users' && currentUser && currentUser.isAdmin) {
+                    await loadAppUsers();
+                }
+                if (table === 'app_user_tab_permissions' && currentUser && !currentUser.isAdmin) {
+                    await loadUserTabPermissions();
+                    updateTabVisibility();
+                    applyPermissionUI();
+                    ensureAllowedTabSelected();
+                }
+                if (table === 'password_reset_requests' && currentUser && currentUser.isAdmin) {
+                    await loadPasswordResetRequests();
+                }
             } catch (e) {
                 console.warn('Live-Sync: Daten konnten nicht aktualisiert werden:', e);
             }
         }, 400);
     }
-
