@@ -742,11 +742,20 @@
             if (insertError) throw insertError;
 
             const savedUsername = editingPermissionUser.username;
+            const changedTabSummary = TAB_DEFINITIONS.map(tab => {
+                const p = permissions[tab.key] || { view: false, edit: false, del: false };
+                const granted = [];
+                if (p.view) granted.push('ansehen');
+                if (p.edit) granted.push('bearbeiten');
+                if (p.del) granted.push('löschen');
+                return `${tab.label}: ${granted.length ? granted.join(', ') : 'kein Zugriff'}`;
+            }).join('\n');
+
             editingPermissionUser.tabPermissions = permissions;
             closePermissionModal();
             renderUsersTab();
             showToast(`Die Tab-Rechte für „${savedUsername}“ wurden gespeichert.`, 'success', 'Tab-Rechte geändert');
-            await logActivity('Benutzerverwaltung', `Tab-Rechte für Benutzer „${savedUsername}“ geändert`);
+            await logActivity('Benutzerverwaltung', `Tab-Rechte für Benutzer „${savedUsername}“ geändert\n\nDetails:\n${changedTabSummary}`);
         } catch (e) {
             showToast('Tab-Rechte konnten nicht gespeichert werden: ' + e.message, 'danger');
         }

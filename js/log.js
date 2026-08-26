@@ -139,12 +139,30 @@
         return 'Änderung';
     }
 
+    function splitLogMessage(message) {
+        const raw = String(message || '').trim();
+        if (!raw) return { summary: 'Keine weiteren Details verfügbar.', details: 'Keine weiteren Details verfügbar.' };
+        const marker = '\n\nDetails:\n';
+        const index = raw.indexOf(marker);
+        if (index >= 0) {
+            const summary = raw.slice(0, index).trim();
+            const details = raw.slice(index + marker.length).trim();
+            return { summary: summary || 'Änderung', details: details || summary || 'Änderung' };
+        }
+        return { summary: raw, details: raw };
+    }
+
+    function getLogDisplaySummary(message) {
+        return splitLogMessage(message).summary;
+    }
+
     function openLogDetailModal(entry) {
         const detail = entry || {};
         const user = detail.username || 'Unbekannt';
         const category = detail.category || 'Allgemein';
-        const message = detail.message || 'Keine weiteren Details verfügbar.';
-        const action = getActivityActionLabel(message);
+        const rawMessage = detail.message || 'Keine weiteren Details verfügbar.';
+        const { summary, details } = splitLogMessage(rawMessage);
+        const action = getActivityActionLabel(summary);
 
         const userEl = document.getElementById('log-detail-user');
         const categoryEl = document.getElementById('log-detail-category');
@@ -155,7 +173,10 @@
         if (userEl) userEl.innerText = user;
         if (categoryEl) categoryEl.innerText = category;
         if (actionEl) actionEl.innerText = action;
-        if (messageEl) messageEl.innerText = message;
+        if (messageEl) {
+            const detailText = details !== summary ? `${summary}\n\n${details}` : summary;
+            messageEl.innerText = detailText;
+        }
         if (backdrop) backdrop.classList.add('open');
     }
 
@@ -199,12 +220,13 @@
 
         tbody.innerHTML = list.map(entry => {
             const encodedEntry = encodeURIComponent(JSON.stringify(entry));
+            const summaryText = getLogDisplaySummary(entry.message);
             return `
                 <tr>
                     <td class="time-text" style="white-space: nowrap;">${entry.createdAt}</td>
                     <td>${renderUsernameWithAvatar(entry.username || '–', null, { size: 'small' })}</td>
                     <td><span class="log-badge log-badge-${categorySlug(entry.category)}">${entry.category}</span></td>
-                    <td>${entry.message}</td>
+                    <td>${summaryText}</td>
                     <td style="text-align: center;">
                         <button type="button" class="btn log-detail-btn" data-log-entry="${encodedEntry}" aria-label="Änderungsdetails anzeigen">Änderung anzeigen</button>
                     </td>
