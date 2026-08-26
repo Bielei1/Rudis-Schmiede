@@ -105,17 +105,45 @@
         const resolvedUser = user && String(user.username || '').trim()
             ? user
             : getUserByUsername(safeName);
-        const avatarSource = resolvedUser && resolvedUser.avatar ? resolvedUser.avatar : null;
+        const avatarSource = resolvedUser && typeof resolvedUser.avatar === 'string'
+            ? resolvedUser.avatar.trim()
+            : '';
         const size = options.size || 'small';
         const suffix = options.suffix || '';
         const className = options.className ? ` ${options.className}` : '';
         const initials = safeName ? safeName.charAt(0).toUpperCase() : '?';
 
         const avatarHtml = avatarSource
-            ? `<span class="user-tag-avatar user-tag-avatar--image user-tag-avatar--${size}" style="background-image:url('${String(avatarSource).replace(/'/g, "\\'") }'); background-size:cover; background-position:center; color:transparent;">${escapeHtml(initials)}</span>`
-            : `<span class="user-tag-avatar user-tag-avatar--fallback user-tag-avatar--${size}" aria-label="${escapeHtml(safeName)}">${escapeHtml(initials)}</span>`;
+            ? `<span class="user-tag-avatar user-tag-avatar--image user-tag-avatar--${escapeHtml(size)}">`
+                + `<img src="${escapeHtml(avatarSource)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.parentElement.classList.add('user-tag-avatar--fallback'); this.parentElement.textContent='${escapeHtml(initials)}';">`
+              + `</span>`
+            : `<span class="user-tag-avatar user-tag-avatar--fallback user-tag-avatar--${escapeHtml(size)}" aria-label="${escapeHtml(safeName)}">${escapeHtml(initials)}</span>`;
 
-        return `<span class="user-tag user-tag--${size}${className}">${avatarHtml}<span class="user-tag-name">${escapeHtml(safeName)}${escapeHtml(suffix)}</span></span>`;
+        return `<span class="user-tag user-tag--${escapeHtml(size)}${className}">${avatarHtml}<span class="user-tag-name">${escapeHtml(safeName)}${escapeHtml(suffix)}</span></span>`;
+    }
+
+    async function archiveInsertWithDiscountFallback(payload) {
+        const preferredPayload = {
+            ...payload,
+            discount_percent: payload.discount_percent ?? payload.discountPercent ?? payload.discount ?? 0
+        };
+        delete preferredPayload.discountPercent;
+        delete preferredPayload.discount;
+
+        const { data, error } = await supabaseClient.from('archive').insert([preferredPayload]).select();
+        if (!error) return { data, error: null };
+
+        const missingDiscountColumn = /discount/i.test(error.message || '') || /column .*discount/i.test(error.message || '');
+        if (!missingDiscountColumn) throw error;
+
+        const fallbackPayload = { ...payload };
+        delete fallbackPayload.discount_percent;
+        delete fallbackPayload.discountPercent;
+        delete fallbackPayload.discount;
+
+        const { data: fallbackData, error: fallbackError } = await supabaseClient.from('archive').insert([fallbackPayload]).select();
+        if (fallbackError) throw fallbackError;
+        return { data: fallbackData, error: null };
     }
     window.alert = function (message) {
         showToast(message);

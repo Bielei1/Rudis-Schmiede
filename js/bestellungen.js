@@ -165,29 +165,6 @@
         }
     }
 
-    async function archiveInsertWithDiscountFallback(payload) {
-        const preferredPayload = {
-            ...payload,
-            discount_percent: payload.discount_percent ?? payload.discountPercent ?? payload.discount ?? 0
-        };
-        delete preferredPayload.discountPercent;
-        delete preferredPayload.discount;
-
-        const { data, error } = await supabaseClient.from('archive').insert([preferredPayload]).select();
-        if (!error) return { data, error: null };
-
-        const missingDiscountColumn = /discount/i.test(error.message || '') || /column .*discount/i.test(error.message || '');
-        if (!missingDiscountColumn) throw error;
-
-        const fallbackPayload = { ...payload };
-        delete fallbackPayload.discount_percent;
-        delete fallbackPayload.discountPercent;
-        delete fallbackPayload.discount;
-
-        const { data: fallbackData, error: fallbackError } = await supabaseClient.from('archive').insert([fallbackPayload]).select();
-        if (fallbackError) throw fallbackError;
-        return { data: fallbackData, error: null };
-    }
 
     async function fulfillOrder(orderId) {
         const orderIndex = ordersList.findIndex(o => o.id === orderId);
