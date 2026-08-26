@@ -70,6 +70,22 @@
         'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen'
     ]);
 
+    const SPECIAL_PERMISSION_DEFINITIONS = [
+        { key: 'bestellungen_ausliefern', label: 'Bestellungen ausliefern' },
+        { key: 'verkaufsrechner_verkaufen', label: 'Warenkorb als verkauft archivieren' },
+        { key: 'verkaufsrechner_aufnehmen', label: 'Warenkorb in Bestellungen aufnehmen' },
+        { key: 'benutzer_sperren', label: 'Benutzer sperren / freischalten' },
+        { key: 'benutzer_loeschen', label: 'Benutzer löschen' },
+        { key: 'archiv_loeschen', label: 'Archiv-Einträge löschen' },
+        { key: 'log_leeren', label: 'Änderungsprotokoll leeren' }
+    ];
+    const DEFAULT_SPECIAL_PERMISSIONS = { bestellungen_ausliefern: true, verkaufsrechner_verkaufen: true, verkaufsrechner_aufnehmen: true, benutzer_sperren: false, benutzer_loeschen: false, archiv_loeschen: true, log_leeren: false };
+    function normalizeSpecialPermissions(raw, isAdmin = false) {
+        const result = { ...DEFAULT_SPECIAL_PERMISSIONS };
+        SPECIAL_PERMISSION_DEFINITIONS.forEach(item => result[item.key] = isAdmin ? true : !!(raw && raw[item.key]));
+        return result;
+    }
+
     const DEFAULT_TAB_PERMISSIONS = Object.fromEntries(
         TAB_DEFINITIONS.map(t => [t.key, { view: true, edit: false, del: false }])
     );
@@ -143,7 +159,7 @@
                     let adminProfile = {};
                     try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
                     const localAdminProfile = readStoredUserProfile(ADMIN_USERNAME, adminProfile);
-                    await completeLogin({ username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar !== undefined ? localAdminProfile.avatar : (adminProfile.avatar || null), avatarHistory: localAdminProfile.avatarHistory || [], theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '' }, password, true);
+                    await completeLogin({ username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar !== undefined ? localAdminProfile.avatar : (adminProfile.avatar || null), avatarHistory: localAdminProfile.avatarHistory || [], theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '', specialPermissions: normalizeSpecialPermissions(null, true) }, password, true);
                 } else {
                     showAuthMsg('login-error', 'Benutzername oder Passwort falsch.');
                 }
@@ -172,7 +188,7 @@
             }
 
             const localProfile = readStoredUserProfile(user.username, {});
-            await completeLogin({ username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar !== undefined ? user.avatar : (localProfile.avatar || null), avatarHistory: Array.isArray(user.avatar_history) ? user.avatar_history : (localProfile.avatarHistory || []), theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '' }, password, !!user.is_admin);
+            await completeLogin({ username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar !== undefined ? user.avatar : (localProfile.avatar || null), avatarHistory: Array.isArray(user.avatar_history) ? user.avatar_history : (localProfile.avatarHistory || []), theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '', specialPermissions: normalizeSpecialPermissions(user.special_permissions, !!user.is_admin) }, password, !!user.is_admin);
         } finally {
             submitBtn.disabled = false;
         }
@@ -348,7 +364,7 @@
             let adminProfile = {};
             try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
             const localAdminProfile = readStoredUserProfile(ADMIN_USERNAME, adminProfile);
-            currentUser = { username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar !== undefined ? localAdminProfile.avatar : (adminProfile.avatar || null), avatarHistory: localAdminProfile.avatarHistory || [], theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '' };
+            currentUser = { username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar !== undefined ? localAdminProfile.avatar : (adminProfile.avatar || null), avatarHistory: localAdminProfile.avatarHistory || [], theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '', specialPermissions: normalizeSpecialPermissions(null, true) };
             await enterApp();
             return true;
         }
@@ -363,7 +379,7 @@
             const user = data[0];
             if (user.password_hash !== stored.passwordHash || !user.approved) return false;
             const localProfile = readStoredUserProfile(user.username, {});
-            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar !== undefined ? user.avatar : (localProfile.avatar || null), avatarHistory: Array.isArray(user.avatar_history) ? user.avatar_history : (localProfile.avatarHistory || []), theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '' };
+            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar !== undefined ? user.avatar : (localProfile.avatar || null), avatarHistory: Array.isArray(user.avatar_history) ? user.avatar_history : (localProfile.avatarHistory || []), theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '', specialPermissions: normalizeSpecialPermissions(user.special_permissions, !!user.is_admin) };
             await enterApp();
             return true;
         } catch (e) {
@@ -470,6 +486,12 @@
         if (currentUser.isAdmin) return true;
         const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
         return !!(p && p.del);
+    }
+
+    function canSpecialAction(actionKey) {
+        if (!currentUser) return false;
+        if (currentUser.isAdmin) return true;
+        return !!(currentUser.specialPermissions && currentUser.specialPermissions[actionKey]);
     }
 
     function canEdit() {
@@ -623,6 +645,7 @@
 
         loadPermissionsForAdminUser(user.id).then(perms => {
             const normalized = normalizeTabPermissions(perms);
+            normalized.special = normalizeSpecialPermissions(editingPermissionUser.special_permissions, !!editingPermissionUser.is_admin);
             editingPermissionUser.tabPermissions = normalized;
             editingPermissionDraft = normalized;
             renderPermissionModal();
@@ -659,6 +682,7 @@
 
         userEl.innerHTML = `Benutzer: ${renderUsernameWithAvatar(editingPermissionUser.username, editingPermissionUser, { size: 'small' })}`;
         grid.innerHTML = '<div class="head">Tab</div><div class="head">Anschauen</div><div class="head">Bearbeiten</div><div class="head">Löschen</div>';
+        renderSpecialPermissionModal();
 
         TAB_DEFINITIONS.forEach(tab => {
             const p = editingPermissionDraft[tab.key] || { view: false, edit: false, del: false };
@@ -679,6 +703,26 @@
                 </div>
             `);
         });
+    }
+
+    function renderSpecialPermissionModal() {
+        const grid = document.getElementById('special-permission-grid');
+        if (!grid || !editingPermissionUser) return;
+        const current = editingPermissionDraft.special || normalizeSpecialPermissions(editingPermissionUser.special_permissions, !!editingPermissionUser.is_admin);
+        grid.innerHTML = SPECIAL_PERMISSION_DEFINITIONS.map(item => `
+            <label class="special-permission-item">
+                <input type="checkbox" id="special-perm-${item.key}" ${current[item.key] ? 'checked' : ''} ${editingPermissionUser.is_admin ? 'disabled' : ''}>
+                <span>${item.label}</span>
+            </label>`).join('');
+    }
+
+    function collectSpecialPermissions() {
+        const result = {};
+        SPECIAL_PERMISSION_DEFINITIONS.forEach(item => {
+            const el = document.getElementById(`special-perm-${item.key}`);
+            result[item.key] = !!(el && el.checked);
+        });
+        return result;
     }
 
     function syncPermissionCheckboxes(tabKey) {
@@ -759,6 +803,8 @@
             if (permissions[tab.key].edit || permissions[tab.key].del) permissions[tab.key].view = true;
         });
 
+        permissions.special = collectSpecialPermissions();
+
         const rows = TAB_DEFINITIONS.map(tab => ({
             user_id: editingPermissionUser.id,
             tab_key: tab.key,
@@ -779,11 +825,22 @@
                 .insert(rows);
             if (insertError) throw insertError;
 
+            const { error: specialError } = await supabaseClient.from('app_users').update({ special_permissions: permissions.special }).eq('id', editingPermissionUser.id);
+            if (specialError) console.warn('Sonderrechte konnten nicht gespeichert werden:', specialError.message);
+
             const savedUsername = editingPermissionUser.username;
             const changedTabSummary = summarizePermissionChanges(previousPermissions, permissions);
+            const specialChanges = SPECIAL_PERMISSION_DEFINITIONS.map(item => {
+                const oldValue = !!(previousPermissions.special && previousPermissions.special[item.key]);
+                const newValue = !!(permissions.special && permissions.special[item.key]);
+                return oldValue === newValue ? null : `${item.label}: ${newValue ? 'hinzugefügt' : 'entfernt'}`;
+            }).filter(Boolean);
+            changedTabSummary.push(...specialChanges);
             const detailText = changedTabSummary.length ? `Tab-Rechte für Benutzer „${savedUsername}“ geändert\n\nDetails:\n${changedTabSummary.join('\n')}` : `Tab-Rechte für Benutzer „${savedUsername}“ geändert`;
 
             editingPermissionUser.tabPermissions = permissions;
+            editingPermissionUser.special_permissions = permissions.special;
+            editingPermissionUser.specialPermissions = permissions.special;
             closePermissionModal();
             renderUsersTab();
             showToast(`Die Tab-Rechte für „${savedUsername}“ wurden gespeichert.`, 'success', 'Tab-Rechte geändert');
@@ -947,7 +1004,7 @@
         if (!tbody) return;
 
         if (appUsersList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="empty-state-cell">Noch keine Benutzer registriert.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="empty-state-cell">Noch keine Benutzer registriert.</td></tr>`;
             return;
         }
 
@@ -1052,6 +1109,7 @@
     }
 
     async function toggleUserApproval(id, approve) {
+        if (typeof canSpecialAction === 'function' && !canSpecialAction('benutzer_sperren')) { showToast('Du hast kein Sonderrecht zum Sperren/Freischalten von Benutzern.', 'danger', 'Aktion nicht erlaubt'); return; }
         const { error } = await supabaseClient.from('app_users').update({ approved: approve }).eq('id', id);
         if (!error) {
             const u = appUsersList.find(x => x.id === id);
@@ -1065,6 +1123,7 @@
     }
 
     async function deleteAppUser(id) {
+        if (typeof canSpecialAction === 'function' && !canSpecialAction('benutzer_loeschen')) { showToast('Du hast kein Sonderrecht zum Löschen von Benutzern.', 'danger', 'Löschen nicht erlaubt'); return; }
         if (!(await customConfirm('Diesen Benutzer wirklich löschen?'))) return;
         const deletedUser = appUsersList.find(x => x.id === id);
         const { error } = await supabaseClient.from('app_users').delete().eq('id', id);

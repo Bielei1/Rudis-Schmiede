@@ -100,6 +100,7 @@
     }
 
     async function clearActivityLog() {
+        if (typeof canSpecialAction === 'function' && !canSpecialAction('log_leeren')) { showToast('Du hast kein Sonderrecht zum Leeren des Änderungsprotokolls.', 'danger', 'Löschen nicht erlaubt'); return; }
         if (!currentUser || !currentUser.isAdmin) {
             showToast('Nur Administratoren können das Änderungsprotokoll leeren.', 'danger');
             return;
@@ -263,6 +264,8 @@
         if (event.target.id === 'log-detail-backdrop') closeLogDetailModal();
     }
 
+    window.getActivityLogSnapshot = () => Array.isArray(activityLogList) ? [...activityLogList] : [];
+
     function renderActivityLog() {
         updateLogAdminControls();
 
@@ -288,7 +291,7 @@
         }
 
         if (list.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Noch keine Änderungen protokolliert.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Noch keine Änderungen protokolliert.</td></tr>`;
             return;
         }
 
@@ -300,6 +303,7 @@
                     <td class="time-text" style="white-space: nowrap;">${entry.createdAt}</td>
                     <td>${renderUsernameWithAvatar(entry.username || '–', null, { size: 'small' })}</td>
                     <td><span class="log-badge log-badge-${categorySlug(entry.category)}">${entry.category}</span></td>
+                    <td><span class="log-action-pill log-action-${categorySlug(getActivityActionLabel(entry.message))}">${getActivityActionLabel(entry.message)}</span></td>
                     <td>${summaryText}</td>
                     <td style="text-align: center;">
                         <button type="button" class="btn log-detail-btn" data-log-entry="${encodedEntry}" aria-label="Änderungsdetails anzeigen">Änderung anzeigen</button>

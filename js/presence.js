@@ -23,12 +23,21 @@
                     await presenceChannel.track({
                         username: currentUser.username,
                         isAdmin: !!currentUser.isAdmin,
-                        avatar: currentUser.avatar || null
+                        avatar: currentUser.avatar || null, lastSeen: new Date().toISOString()
                     });
                     renderOnlineUsers();
                 }
             });
     }
+
+    window.getOnlineUsersSnapshot = function() {
+        if (!presenceChannel) return [];
+        const state = presenceChannel.presenceState();
+        return Object.keys(state).map(name => {
+            const meta = state[name] && state[name][0] ? state[name][0] : {};
+            return { username: meta.username || name, avatar: meta.avatar || null, isAdmin: !!meta.isAdmin, lastSeen: meta.lastSeen || null };
+        }).sort((a,b) => a.username.localeCompare(b.username));
+    };
 
     function renderOnlineUsers() {
         const container = document.getElementById('online-users-list');

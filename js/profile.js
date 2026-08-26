@@ -26,33 +26,13 @@
 
     function renderAvatarInto(el, avatarBase64, username) {
         if (!el) return;
-
-        el.innerHTML = '';
-        el.style.backgroundImage = 'none';
-        el.textContent = '';
-
-        const source = typeof avatarBase64 === 'string' ? avatarBase64.trim() : '';
-        if (!source) {
-            el.textContent = getInitial(username);
-            return;
+        if (avatarBase64) {
+            el.style.backgroundImage = `url(${avatarBase64})`;
+            el.innerText = '';
+        } else {
+            el.style.backgroundImage = 'none';
+            el.innerText = getInitial(username);
         }
-
-        const img = document.createElement('img');
-        img.src = source;
-        img.alt = `Avatar von ${username || 'Benutzer'}`;
-        img.loading = 'lazy';
-        img.referrerPolicy = 'no-referrer';
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.display = 'block';
-        img.style.objectFit = 'cover';
-        img.style.objectPosition = 'center';
-        img.style.borderRadius = '50%';
-        img.onerror = () => {
-            el.innerHTML = '';
-            el.textContent = getInitial(username);
-        };
-        el.appendChild(img);
     }
 
     function updateSidebarAvatar() {

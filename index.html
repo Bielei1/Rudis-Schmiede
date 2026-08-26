@@ -146,10 +146,29 @@
                 <b>Anschauen</b> = Tab sichtbar und lesbar. &nbsp; <b>Bearbeiten</b> = Änderungen und neue Einträge. &nbsp; <b>Löschen</b> = eigene Löschaktionen in diesem Tab.
                 „Bearbeiten“ aktiviert automatisch „Anschauen“. Löschrechte sind unabhängig von Bearbeitungsrechten.
             </div>
+            <div class="permission-special-box">
+                <div class="permission-special-title">Sonderrechte</div>
+                <div class="permission-special-grid" id="special-permission-grid"></div>
+                <div class="permission-help">Sonderrechte gelten zusätzlich zu den normalen Tab-Rechten und erlauben gezielt einzelne kritische Aktionen.</div>
+            </div>
             <div class="permission-modal-actions">
                 <button type="button" class="btn" style="background-color:var(--card-bg-raised);color:var(--text-color);border:1px solid var(--border-color);" onclick="closePermissionModal()">Abbrechen</button>
                 <button type="button" class="btn btn-success" onclick="saveCurrentTabPermissions()">Rechte speichern</button>
             </div>
+        </div>
+    </div>
+
+    <div id="user-activity-modal-backdrop" class="confirm-modal-backdrop" onclick="handleUserActivityBackdropClick(event)">
+        <div class="confirm-modal user-activity-modal" role="dialog" aria-modal="true" aria-labelledby="user-activity-title">
+            <div class="user-activity-header">
+                <div>
+                    <h2 id="user-activity-title" style="margin:0 0 6px;">Benutzeraktivität</h2>
+                    <div id="user-activity-user" class="permission-help"></div>
+                </div>
+                <button type="button" class="permission-modal-close" onclick="closeUserActivityModal()">×</button>
+            </div>
+            <div id="user-activity-summary" class="user-activity-summary"></div>
+            <div id="user-activity-list" class="user-activity-list"></div>
         </div>
     </div>
 
@@ -370,7 +389,10 @@
                     <div class="sidebar-user-bio" id="sidebar-user-bio"></div>
                 </div>
             </div>
-            <button class="btn" onclick="logoutUser()">Abmelden</button>
+            <div class="sidebar-profile-actions">
+                <button type="button" class="btn btn-secondary" onclick="toggleThemeQuick()" title="Darstellung wechseln">🌙 / ☀️ Design</button>
+                <button class="btn" onclick="logoutUser()">Abmelden</button>
+            </div>
         </div>
     </aside>
 
@@ -384,6 +406,17 @@
 
         <div class="dashboard-section-title">Artikel mit kritischem oder niedrigem Bestand</div>
         <div class="dashboard-list" id="dashboard-lowstock-list"></div>
+
+        <div class="dashboard-analytics-grid">
+            <section class="dashboard-panel">
+                <div class="dashboard-panel-header"><div><div class="dashboard-section-title">Verkaufsstatistik</div><div class="dashboard-panel-subtitle">Letzte 30 Tage</div></div></div>
+                <div id="dashboard-sales-stats" class="dashboard-stats-list"></div>
+            </section>
+            <section class="dashboard-panel">
+                <div class="dashboard-panel-header"><div><div class="dashboard-section-title">Aktive Sitzungen</div><div class="dashboard-panel-subtitle">Aktuell verbundene Benutzer</div></div></div>
+                <div id="dashboard-session-stats" class="dashboard-stats-list"></div>
+            </section>
+        </div>
 
         <div class="dashboard-section-title">Pinnwand</div>
         <div class="pinboard-card">
@@ -1063,6 +1096,7 @@
                         <th style="width: 190px;">Zeitpunkt</th>
                         <th style="width: 140px;">Benutzer</th>
                         <th style="width: 150px;">Kategorie</th>
+                        <th style="width: 110px;">Aktion</th>
                         <th>Änderung</th>
                         <th style="width: 170px;">Details</th>
                     </tr>
@@ -1146,6 +1180,7 @@
                         <th style="width: 150px;">Status</th>
                         <th style="width: 170px;">Rolle</th>
                         <th style="width: 130px;">Registriert am</th>
+                        <th style="width: 170px;">Sitzung</th>
                         <th style="width: 330px;">Aktionen</th>
                     </tr>
                 </thead>
@@ -1176,9 +1211,9 @@
     </div><!-- /#app-content -->
 
 <script src="js/config.js"></script>
-<script src="js/ui-helpers.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/presence.js"></script>
+<script src="js/ui-helpers.js"></script>
 <script src="js/log.js"></script>
 <script src="js/tabs-dashboard.js"></script>
 <script src="js/herstellungskosten.js"></script>
@@ -1194,5 +1229,6 @@
 <script src="js/mitglieder.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/main.js"></script>
+<script src="js/erweiterte-funktionen.js"></script>
 </body>
 </html>

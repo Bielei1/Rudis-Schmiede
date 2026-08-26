@@ -165,8 +165,13 @@
         }
     }
 
+    
 
     async function fulfillOrder(orderId) {
+        if (typeof canSpecialAction === 'function' && !canSpecialAction('bestellungen_ausliefern')) {
+            showToast('Du hast kein Sonderrecht zum Ausliefern von Bestellungen.', 'danger', 'Ausliefern nicht erlaubt');
+            return;
+        }
         const orderIndex = ordersList.findIndex(o => o.id === orderId);
         if (orderIndex === -1) return;
 
@@ -583,6 +588,10 @@
     }
 
     async function deleteArchivedOrder(id) {
+        if (typeof canSpecialAction === 'function' && !canSpecialAction('archiv_loeschen')) {
+            showToast('Du hast kein Sonderrecht zum Löschen von Archiv-Einträgen.', 'danger', 'Löschen nicht erlaubt');
+            return;
+        }
         if (!canDeleteTab('archiv')) {
             showToast('Du hast für diesen Tab keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
             return;

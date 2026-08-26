@@ -262,6 +262,7 @@ function getSalesCartOrderItems() {
 }
 
 async function saveSalesCartAsOrder() {
+if (typeof canSpecialAction === 'function' && !canSpecialAction('verkaufsrechner_aufnehmen')) { showToast('Du hast kein Sonderrecht zum Aufnehmen von Warenkörben.', 'danger', 'Aufnehmen nicht erlaubt'); return; }
     const items = getSalesCartOrderItems();
     if (!items.length) return showToast('Der Warenkorb ist leer.', 'warning', 'Keine Artikel');
 
@@ -295,7 +296,12 @@ async function saveSalesCartAsOrder() {
 }
 
 
+
 async function sellSalesCart() {
+if (typeof canSpecialAction === 'function' && !canSpecialAction('verkaufsrechner_verkaufen')) {
+    showToast('Du hast kein Sonderrecht zum Archivieren als verkauft.', 'danger', 'Verkaufen nicht erlaubt');
+    return;
+}
 const items = Object.values(salesCalculatorCart);
 if (!items.length) return showToast('Der Warenkorb ist leer.', 'warning', 'Keine Artikel');
 
