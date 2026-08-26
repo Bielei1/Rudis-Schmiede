@@ -19,6 +19,10 @@
                 syncPresenceAvatars();
                 renderOnlineUsers();
             })
+            .on('broadcast', { event: 'permissions-updated' }, ({ payload }) => {
+                if (!currentUser || !payload || String(payload.userId) !== String(currentUser.id)) return;
+                refreshCurrentUserPermissions();
+            })
             .subscribe(async (status) => {
                 if (status === 'SUBSCRIBED') {
                     await presenceChannel.track({
@@ -29,6 +33,42 @@
                     await updateLastSeen();
                     renderOnlineUsers();
                     presenceHeartbeatTimer = setInterval(updateLastSeen, 60000);
+                }
+
+                async function refreshCurrentUserPermissions() {
+                    if (!currentUser) return;
+                    const userId = currentUser.id;
+                    if (!userId) return;
+
+                    const { data, error } = await supabaseClient
+                        .from('app_users')
+                        .select('is_admin, special_permissions')
+                        .eq('id', userId)
+                        .maybeSingle();
+                    if (error) {
+                        console.warn('Benutzerrechte konnten live nicht geladen werden:', error.message);
+                        return;
+                    }
+                    if (!data) return;
+
+                    currentUser.isAdmin = !!data.is_admin;
+                    currentUser.specialPermissions = normalizeSpecialPermissions(data.special_permissions, currentUser.isAdmin);
+                    await loadUserTabPermissions();
+                    document.body.classList.toggle('is-admin', !!currentUser.isAdmin);
+                    const roleEl = document.getElementById('sidebar-userrole');
+                    if (roleEl) roleEl.innerText = currentUser.isAdmin ? 'Administrator' : 'Benutzer – Tab-Rechte individuell';
+                    updateTabVisibility();
+                    applyPermissionUI();
+                    ensureAllowedTabSelected();
+                }
+
+                async function broadcastPermissionsUpdated(userId) {
+                    if (!presenceChannel || !userId) return;
+                    await presenceChannel.send({
+                        type: 'broadcast',
+                        event: 'permissions-updated',
+                        payload: { userId }
+                    });
                 }
             });
     }

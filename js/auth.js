@@ -870,6 +870,9 @@
             editingPermissionUser.is_admin = isAdmin;
             editingPermissionUser.special_permissions = permissions.special;
             editingPermissionUser.specialPermissions = permissions.special;
+            if (typeof broadcastPermissionsUpdated === 'function') {
+                await broadcastPermissionsUpdated(editingPermissionUser.id);
+            }
             closePermissionModal();
             renderUsersTab();
             showToast(`Die Tab-Rechte für „${savedUsername}“ wurden gespeichert.`, 'success', 'Tab-Rechte geändert');
