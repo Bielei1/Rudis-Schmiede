@@ -170,6 +170,7 @@
             .update({ last_seen: lastSeen })
             .eq('id', currentUser.id);
         if (!error) {
+            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
             const lists = [];
             if (typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList)) lists.push(memberUsernamesList);
             if (typeof appUsersList !== 'undefined' && Array.isArray(appUsersList)) lists.push(appUsersList);
@@ -207,7 +208,7 @@
     const LIVE_SYNC_TABLES = [
         'inventory', 'orders', 'archive', 'customer_prices', 'sales_prices',
         'purchase_prices', 'recipes', 'notes', 'members', 'app_users',
-        'app_user_tab_permissions', 'password_reset_requests'
+        'app_user_tab_permissions', 'password_reset_requests', 'activity_log'
     ];
     let liveSyncChannel = null;
     let liveSyncDebounceTimer = null;
@@ -225,7 +226,7 @@
             );
         });
         liveSyncChannel.on('broadcast', { event: 'data-updated' }, ({ payload }) => {
-            if (!payload || !payload.table) return;
+            if (!payload || !LIVE_SYNC_TABLES.includes(payload.table)) return;
             handleRemoteDataChange(payload.table, payload);
         });
         liveSyncChannel.subscribe();
@@ -283,6 +284,9 @@
                 }
                 if (table === 'password_reset_requests' && currentUser && currentUser.isAdmin) {
                     await loadPasswordResetRequests();
+                }
+                if (table === 'activity_log') {
+                    await loadActivityLog(false);
                 }
             } catch (e) {
                 console.warn('Live-Sync: Daten konnten nicht aktualisiert werden:', e);
