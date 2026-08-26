@@ -5,6 +5,7 @@
     // wieder aus der Liste (kein Cleanup/Timeout selbst programmiert nötig).
     let presenceChannel = null;
     let presenceHeartbeatTimer = null;
+    let permissionsRefreshTimer = null;
 
     function startPresence() {
         if (!currentUser || !supabaseClient) return;
@@ -33,44 +34,65 @@
                     await updateLastSeen();
                     renderOnlineUsers();
                     presenceHeartbeatTimer = setInterval(updateLastSeen, 60000);
-                }
-
-                async function refreshCurrentUserPermissions() {
-                    if (!currentUser) return;
-                    const userId = currentUser.id;
-                    if (!userId) return;
-
-                    const { data, error } = await supabaseClient
-                        .from('app_users')
-                        .select('is_admin, special_permissions')
-                        .eq('id', userId)
-                        .maybeSingle();
-                    if (error) {
-                        console.warn('Benutzerrechte konnten live nicht geladen werden:', error.message);
-                        return;
-                    }
-                    if (!data) return;
-
-                    currentUser.isAdmin = !!data.is_admin;
-                    currentUser.specialPermissions = normalizeSpecialPermissions(data.special_permissions, currentUser.isAdmin);
-                    await loadUserTabPermissions();
-                    document.body.classList.toggle('is-admin', !!currentUser.isAdmin);
-                    const roleEl = document.getElementById('sidebar-userrole');
-                    if (roleEl) roleEl.innerText = currentUser.isAdmin ? 'Administrator' : 'Benutzer – Tab-Rechte individuell';
-                    updateTabVisibility();
-                    applyPermissionUI();
-                    ensureAllowedTabSelected();
-                }
-
-                async function broadcastPermissionsUpdated(userId) {
-                    if (!presenceChannel || !userId) return;
-                    await presenceChannel.send({
-                        type: 'broadcast',
-                        event: 'permissions-updated',
-                        payload: { userId }
-                    });
+                    startPermissionsRefresh();
                 }
             });
+    }
+
+    async function refreshCurrentUserPermissions() {
+        if (!currentUser || !currentUser.id || !supabaseClient) return;
+        const { data, error } = await supabaseClient
+            .from('app_users')
+            .select('is_admin, special_permissions')
+            .eq('id', currentUser.id)
+            .maybeSingle();
+        if (error) {
+            console.warn('Benutzerrechte konnten live nicht geladen werden:', error.message);
+            return;
+        }
+        if (!data) return;
+
+        const nextIsAdmin = !!data.is_admin;
+        const nextSpecialPermissions = normalizeSpecialPermissions(data.special_permissions, nextIsAdmin);
+        const previousState = JSON.stringify({
+            isAdmin: !!currentUser.isAdmin,
+            specialPermissions: currentUser.specialPermissions || {},
+            tabPermissions: currentUser.tabPermissions || {}
+        });
+        currentUser.isAdmin = nextIsAdmin;
+        currentUser.specialPermissions = nextSpecialPermissions;
+        await loadUserTabPermissions();
+        const nextState = JSON.stringify({
+            isAdmin: currentUser.isAdmin,
+            specialPermissions: currentUser.specialPermissions,
+            tabPermissions: currentUser.tabPermissions
+        });
+        if (previousState === nextState) return;
+
+        document.body.classList.toggle('is-admin', !!currentUser.isAdmin);
+        const roleEl = document.getElementById('sidebar-userrole');
+        if (roleEl) roleEl.innerText = currentUser.isAdmin ? 'Administrator' : 'Benutzer – Tab-Rechte individuell';
+        updateTabVisibility();
+        applyPermissionUI();
+        ensureAllowedTabSelected();
+    }
+
+    function startPermissionsRefresh() {
+        if (permissionsRefreshTimer || !currentUser || !currentUser.id) return;
+        permissionsRefreshTimer = setInterval(() => {
+            refreshCurrentUserPermissions().catch(error => {
+                console.warn('Rechte konnten nicht automatisch aktualisiert werden:', error.message);
+            });
+        }, 3000);
+    }
+
+    async function broadcastPermissionsUpdated(userId) {
+        if (!presenceChannel || !userId) return;
+        await presenceChannel.send({
+            type: 'broadcast',
+            event: 'permissions-updated',
+            payload: { userId }
+        });
     }
 
     window.getOnlineUsersSnapshot = function() {
