@@ -139,7 +139,10 @@ async function archiveInsertWithDiscountFallback(payload) {
     delete preferredPayload.discount;
 
     const { data, error } = await supabaseClient.from('archive').insert([preferredPayload]).select();
-    if (!error) return { data, error: null };
+    if (!error) {
+        if (typeof broadcastDataChange === 'function') await broadcastDataChange('archive');
+        return { data, error: null };
+    }
 
     const missingDiscountColumn = /discount/i.test(error.message || '') || /column .*discount/i.test(error.message || '');
     if (!missingDiscountColumn) throw error;
@@ -151,5 +154,6 @@ async function archiveInsertWithDiscountFallback(payload) {
 
     const { data: fallbackData, error: fallbackError } = await supabaseClient.from('archive').insert([fallbackPayload]).select();
     if (fallbackError) throw fallbackError;
+    if (typeof broadcastDataChange === 'function') await broadcastDataChange('archive');
     return { data: fallbackData, error: null };
 }

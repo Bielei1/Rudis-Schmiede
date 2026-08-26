@@ -212,8 +212,19 @@
     ];
     let liveSyncChannel = null;
     let liveSyncDebounceTimer = null;
-    let liveDataRefreshTimer = null;
     let liveDataRefreshInProgress = false;
+    let liveSyncStatus = 'Verbinde...';
+
+    function updateLiveSyncStatus(status, isError = false) {
+        liveSyncStatus = status;
+        const onlineList = document.getElementById('online-users-list');
+        if (onlineList) onlineList.dataset.syncStatus = status;
+        const statusEl = document.getElementById('live-sync-status');
+        if (statusEl) {
+            statusEl.textContent = status;
+            statusEl.classList.toggle('is-error', isError);
+        }
+    }
 
     function startLiveSync() {
         if (!currentUser || !supabaseClient) return;
@@ -232,43 +243,58 @@
             handleRemoteDataChange(payload.table, payload);
         });
         liveSyncChannel.subscribe();
-        startLiveDataRefresh();
+        updateLiveSyncStatus('Live');
     }
 
-    function startLiveDataRefresh() {
-        if (liveDataRefreshTimer || !currentUser || !supabaseClient) return;
-        liveDataRefreshTimer = setInterval(async () => {
-            if (liveDataRefreshInProgress || document.hidden) return;
-            liveDataRefreshInProgress = true;
-            try {
-                await loadDataFromSupabase();
-                if (currentUser.isAdmin && typeof loadAppUsers === 'function') {
-                    await loadAppUsers();
-                }
-                renderOnlineUsers();
-            } catch (error) {
-                console.warn('Automatische Live-Aktualisierung fehlgeschlagen:', error.message);
-            } finally {
-                liveDataRefreshInProgress = false;
+    function hasPendingFormInput() {
+        const activeElement = document.activeElement;
+        return !!(activeElement && activeElement.matches(
+            'input:not([type="button"]):not([type="submit"]), select, textarea, [contenteditable="true"]'
+        ));
+    }
+
+    async function runLiveDataRefresh(force = false) {
+        if (liveDataRefreshInProgress || (!force && document.hidden) || !currentUser || !supabaseClient) return false;
+        if (!force && hasPendingFormInput()) {
+            return false;
+        }
+        liveDataRefreshInProgress = true;
+        updateLiveSyncStatus('Synchronisiere...');
+        try {
+            await loadDataFromSupabase();
+            if (currentUser.isAdmin && typeof loadAppUsers === 'function') {
+                await loadAppUsers();
             }
-        }, 5000);
+            renderOnlineUsers();
+            updateLiveSyncStatus(`Live · ${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
+            return true;
+        } catch (error) {
+            updateLiveSyncStatus('Sync-Fehler', true);
+            console.warn('Automatische Live-Aktualisierung fehlgeschlagen:', error.message);
+            return false;
+        } finally {
+            liveDataRefreshInProgress = false;
+        }
     }
 
     async function broadcastDataChange(table) {
-        if (!liveSyncChannel || !table) return;
-        await liveSyncChannel.send({
-            type: 'broadcast',
-            event: 'data-updated',
-            payload: { table }
-        });
+        if (!table) return;
+        if (liveSyncChannel) {
+            await liveSyncChannel.send({
+                type: 'broadcast',
+                event: 'data-updated',
+                payload: { table }
+            });
+        }
+        await runLiveDataRefresh(true);
     }
 
     function handleRemoteDataChange(table, payload) {
         clearTimeout(liveSyncDebounceTimer);
         liveSyncDebounceTimer = setTimeout(async () => {
             try {
-                await loadDataFromSupabase();
-                renderOnlineUsers();
+                const refreshed = await runLiveDataRefresh();
+                if (!refreshed) return;
                 if (table === 'app_users' && currentUser && currentUser.isAdmin) {
                     await loadAppUsers();
                 }

@@ -74,7 +74,10 @@
         currentUser.theme = next;
         if (typeof updateThemeChoiceButtons === 'function') updateThemeChoiceButtons(next);
         try {
-            if (currentUser.id && supabaseClient) await supabaseClient.from('app_users').update({theme: next}).eq('id', currentUser.id);
+            if (currentUser.id && supabaseClient) {
+                const { error } = await supabaseClient.from('app_users').update({theme: next}).eq('id', currentUser.id);
+                if (!error && typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
+            }
             if (typeof saveStoredUserProfile === 'function') saveStoredUserProfile(currentUser.username, {...currentUser, theme: next});
         } catch (e) { console.warn('Theme konnte nicht dauerhaft gespeichert werden:', e); }
     };

@@ -91,6 +91,7 @@
                     existing.ingredients = ingredients;
                 }
                 cancelRecipeEdit();
+                if (typeof broadcastDataChange === 'function') await broadcastDataChange('recipes');
                 logActivity('Rezept', `Rezept für "${outputName}" bearbeitet`, `Rezept: ${outputName}\nMenge: ${outputQty}\nZutaten: ${ingredients.length} Positionen`);
             } else {
                 alert("Fehler beim Aktualisieren: " + error.message);
@@ -107,6 +108,7 @@
                 if (!error) {
                     existing.outputQty = outputQty;
                     existing.ingredients = ingredients;
+                    if (typeof broadcastDataChange === 'function') await broadcastDataChange('recipes');
                     logActivity('Rezept', `Rezept für "${outputName}" aktualisiert`, `Rezept: ${outputName}\nMenge: ${outputQty}\nZutaten: ${ingredients.length} Positionen`);
                 }
             } else {
@@ -117,6 +119,7 @@
 
                 if (!error && data) {
                     recipesList.push(data[0]);
+                    if (typeof broadcastDataChange === 'function') await broadcastDataChange('recipes');
                     logActivity('Rezept', `Neues Rezept für "${outputName}" angelegt`, `Rezept: ${outputName}\nMenge: ${outputQty}\nZutaten: ${ingredients.length} Positionen`);
                 }
             }
@@ -158,6 +161,7 @@
                 renderPriceTable();
                 updateOrderRecipeSelects();
                 document.getElementById('crafting-action-box').style.display = 'none';
+                if (typeof broadcastDataChange === 'function') await broadcastDataChange('recipes');
                 logActivity('Rezept', `Rezept für "${recipe ? recipe.outputName : id}" gelöscht`, `Rezept: ${recipe ? recipe.outputName : id}\nMenge: ${recipe ? (recipe.outputQty ?? '-') : '-'}\nZutaten: ${recipe ? (recipe.ingredients ? recipe.ingredients.length : 0) : 0} Positionen`);
             }
         }
@@ -376,4 +380,3 @@
         let targetQty = recipeTargetAmounts[recipeId] || recipe.outputQty;
         await executeCrafting(recipe.outputName, targetQty);
     }
-

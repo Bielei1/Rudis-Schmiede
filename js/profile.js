@@ -171,6 +171,9 @@
                 if (historyError) {
                     console.warn('Avatar-Historie konnte nicht gespeichert werden:', historyError.message);
                 }
+                if (typeof broadcastDataChange === 'function') {
+                    await broadcastDataChange('app_users');
+                }
             } catch (e) {
                 console.warn('Profil-DB-Update fehlgeschlagen.', e);
                 showToast('Profil konnte nicht in Supabase gespeichert werden.', 'danger');
@@ -315,6 +318,7 @@
         if (typeof renderMembersTable === 'function') renderMembersTable();
         if (typeof renderUsersTab === 'function') renderUsersTab();
         renderAvatarLogs();
+        if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
         await logActivity(
             'Profil',
             `Avatar von „${user.username}“ wurde gelöscht`,

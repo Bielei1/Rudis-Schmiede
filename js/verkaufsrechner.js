@@ -284,6 +284,7 @@ if (typeof canSpecialAction === 'function' && !canSpecialAction('verkaufsrechner
             ordersList.push(data[0]);
             updateOrderCustomerDropdown();
             renderOrders();
+            if (typeof broadcastDataChange === 'function') await broadcastDataChange('orders');
         }
 
         logActivity('Bestellung', `Warenkorb wurde von „${currentUser ? currentUser.username : 'Unbekannt'}“ als Bestellung aufgenommen ($${totals.total.toFixed(2)})`, `Kunde: Warenkorb\nPositionen: ${items.length}\nGesamt: $${totals.total.toFixed(2)}\nRabatt: ${totals.discountPercent}%`);

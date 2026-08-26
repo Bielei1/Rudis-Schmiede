@@ -52,6 +52,7 @@
                 renderStockTable();
                 renderRecipes();
                 renderOrders();
+                if (typeof broadcastDataChange === 'function') await broadcastDataChange('inventory');
                 logActivity('Lagerbestand', `Bestand von "${item.name}" geändert: ${oldQty} → ${value} Stk.`, `Artikel: ${item.name}\nBestand: ${oldQty} → ${value} Stk.`);
             }
         } else {
@@ -72,6 +73,7 @@
                 renderStockTable();
                 renderRecipes();
                 renderOrders();
+                if (typeof broadcastDataChange === 'function') await broadcastDataChange('inventory');
                 logActivity('Lagerbestand', `Artikel "${item ? item.name : id}" aus dem Lager gelöscht`, `Artikel: ${item ? item.name : id}\nBestand: ${item ? item.qty : '-'} Stk.`);
             } else {
                 alert("Fehler beim Löschen: " + error.message);
@@ -100,6 +102,7 @@
             if (!error) {
                 existing.quantity = qty;
                 existing.stockupdated = updatedTime;
+                if (typeof broadcastDataChange === 'function') await broadcastDataChange('inventory');
                 logActivity('Lagerbestand', `Bestand von "${name}" geändert: ${oldQty} → ${qty} Stk.`, `Artikel: ${name}\nBestand: ${oldQty} → ${qty} Stk.`);
             }
         } else {
@@ -110,6 +113,7 @@
 
             if (!error && data) {
                 inventoryList.push(data[0]);
+                if (typeof broadcastDataChange === 'function') await broadcastDataChange('inventory');
                 logActivity('Lagerbestand', `Neuer Artikel "${name}" mit Bestand ${qty} Stk. angelegt`, `Artikel: ${name}\nAnfangsbestand: ${qty} Stk.`);
             }
         }
@@ -160,4 +164,3 @@
         }
         updateOrderTotalsPreview();
     }
-
