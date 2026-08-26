@@ -142,6 +142,7 @@
     function splitLogMessage(message) {
         const raw = String(message || '').trim();
         if (!raw) return { summary: 'Keine weiteren Details verfügbar.', details: 'Keine weiteren Details verfügbar.' };
+
         const marker = '\n\nDetails:\n';
         const index = raw.indexOf(marker);
         if (index >= 0) {
@@ -149,6 +150,21 @@
             const details = raw.slice(index + marker.length).trim();
             return { summary: summary || 'Änderung', details: details || summary || 'Änderung' };
         }
+
+        const colonIndex = raw.indexOf(': ');
+        const suffix = colonIndex >= 0 ? raw.slice(colonIndex + 2).trim() : '';
+        const hasValueDetail = colonIndex > 0 && (
+            suffix.includes('→') ||
+            suffix.includes('->') ||
+            /\d/.test(suffix) ||
+            /\$/.test(suffix)
+        );
+
+        if (hasValueDetail) {
+            const summary = raw.slice(0, colonIndex).trim();
+            return { summary: summary || 'Änderung', details: raw };
+        }
+
         return { summary: raw, details: raw };
     }
 
