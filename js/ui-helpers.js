@@ -86,6 +86,9 @@
         const normalized = raw.toLowerCase();
 
         const userLists = [];
+        if (typeof currentUser !== 'undefined' && currentUser && String(currentUser.username || '').trim().toLowerCase() === normalized) {
+            return currentUser;
+        }
         if (typeof appUsersList !== 'undefined' && Array.isArray(appUsersList)) userLists.push(appUsersList);
         if (typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList)) userLists.push(memberUsernamesList);
 
@@ -125,4 +128,3 @@
             ? `<span class="req-status status-ok">✓ ${okText}</span>`
             : `<span class="req-status status-missing">✕ ${missingText}</span>`;
     }
-

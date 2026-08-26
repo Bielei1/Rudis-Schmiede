@@ -19,8 +19,10 @@
                 if (status === 'SUBSCRIBED') {
                     await presenceChannel.track({
                         username: currentUser.username,
-                        isAdmin: !!currentUser.isAdmin
+                        isAdmin: !!currentUser.isAdmin,
+                        avatar: currentUser.avatar || null
                     });
+                    renderOnlineUsers();
                 }
             });
     }
@@ -44,7 +46,7 @@
             return `
                 <div class="online-user-row">
                     <span class="online-dot"></span>
-                    ${renderUsernameWithAvatar(displayName, null, { size: 'small', suffix: isYou ? ' (Du)' : '' })}
+                    ${renderUsernameWithAvatar(displayName, meta, { size: 'small', suffix: isYou ? ' (Du)' : '' })}
                 </div>
             `;
         }).join('');
@@ -84,8 +86,10 @@
         liveSyncDebounceTimer = setTimeout(async () => {
             try {
                 await loadDataFromSupabase();
+                renderOnlineUsers();
                 if (table === 'app_users' && currentUser && currentUser.isAdmin) {
                     await loadAppUsers();
+                    renderOnlineUsers();
                 }
                 if (table === 'app_user_tab_permissions' && currentUser && !currentUser.isAdmin) {
                     await loadUserTabPermissions();

@@ -194,6 +194,14 @@
         applyTheme(chosenTheme);
         updateSidebarAvatar();
         updateSidebarProfileInfo();
+        if (typeof presenceChannel !== 'undefined' && presenceChannel) {
+            await presenceChannel.track({
+                username: currentUser.username,
+                isAdmin: !!currentUser.isAdmin,
+                avatar: currentUser.avatar || null
+            });
+            renderOnlineUsers();
+        }
         closeProfileModal(false);
         showToast('Dein Profil wurde aktualisiert.', 'success', 'Profil geändert');
 
