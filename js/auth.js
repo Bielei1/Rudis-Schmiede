@@ -69,6 +69,7 @@
         'lagerbestand', 'bestellungen', 'archiv', 'kunden',
         'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen'
     ]);
+    const ADMIN_ONLY_TABS = new Set(['log', 'benutzer', 'avatarlogs']);
 
     const SPECIAL_PERMISSION_DEFINITIONS = [
         { key: 'bestellungen_ausliefern', label: 'Bestellungen ausliefern' },
@@ -470,6 +471,7 @@
     function canViewTab(tabName) {
         if (!currentUser) return false;
         if (currentUser.isAdmin) return true;
+        if (ADMIN_ONLY_TABS.has(tabName)) return false;
         const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
         return !!(p && p.view);
     }
@@ -477,6 +479,7 @@
     function canEditTab(tabName) {
         if (!currentUser) return false;
         if (currentUser.isAdmin) return true;
+        if (ADMIN_ONLY_TABS.has(tabName)) return false;
         const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
         return !!(p && p.edit);
     }
@@ -484,6 +487,7 @@
     function canDeleteTab(tabName) {
         if (!currentUser) return false;
         if (currentUser.isAdmin) return true;
+        if (ADMIN_ONLY_TABS.has(tabName)) return false;
         const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
         return !!(p && p.del);
     }
@@ -554,7 +558,7 @@
     function updateTabVisibility() {
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             const tab = btn.dataset.tab;
-            const allowed = (tab === 'log' || tab === 'benutzer')
+            const allowed = ADMIN_ONLY_TABS.has(tab)
                 ? !!(currentUser && currentUser.isAdmin)
                 : canViewTab(tab);
             btn.style.display = allowed ? '' : 'none';
@@ -607,7 +611,7 @@
         updateTabVisibility();
         document.querySelectorAll('main.content-area .tab-content').forEach(tabContent => {
             const tabName = tabContent.id.replace(/^tab-/, '');
-            if (!canViewTab(tabName) && tabName !== 'log' && tabName !== 'benutzer') {
+            if (!canViewTab(tabName) && !ADMIN_ONLY_TABS.has(tabName)) {
                 tabContent.classList.remove('active');
                 return;
             }

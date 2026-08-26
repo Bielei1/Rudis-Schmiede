@@ -1,6 +1,6 @@
     function switchTab(tabName, forceAllowed = false) {
-        if ((tabName === 'log' || tabName === 'benutzer' || tabName === 'avatarlogs') && !(currentUser && currentUser.isAdmin)) return;
-        if (!forceAllowed && tabName !== 'log' && tabName !== 'benutzer' && !canViewTab(tabName)) {
+        if (typeof ADMIN_ONLY_TABS !== 'undefined' && ADMIN_ONLY_TABS.has(tabName) && !(currentUser && currentUser.isAdmin)) return;
+        if (!forceAllowed && !(typeof ADMIN_ONLY_TABS !== 'undefined' && ADMIN_ONLY_TABS.has(tabName)) && !canViewTab(tabName)) {
             showToast('Du hast für diesen Tab keinen Zugriff.', 'danger');
             return;
         }
