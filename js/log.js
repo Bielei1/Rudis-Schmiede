@@ -118,6 +118,18 @@
         }
     }
 
+    function clearActivityLogSearch() {
+        const searchEl = document.getElementById('log-user-search');
+        const clearBtn = document.getElementById('log-user-search-clear');
+        if (searchEl) {
+            searchEl.value = '';
+        }
+        if (clearBtn) {
+            clearBtn.style.display = 'none';
+        }
+        renderActivityLog();
+    }
+
     function renderActivityLog() {
         updateLogAdminControls();
 
@@ -125,8 +137,13 @@
         if (!tbody) return;
         const filterEl = document.getElementById('log-category-filter');
         const searchEl = document.getElementById('log-user-search');
+        const clearBtn = document.getElementById('log-user-search-clear');
         const filterValue = filterEl ? filterEl.value : 'ALL';
         const searchValue = searchEl ? String(searchEl.value || '').trim().toLowerCase() : '';
+
+        if (clearBtn) {
+            clearBtn.style.display = searchValue ? '' : 'none';
+        }
 
         let list = activityLogList;
         if (filterValue !== 'ALL') list = list.filter(e => e.category === filterValue);

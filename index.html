@@ -1021,7 +1021,10 @@
                     <option value="Benutzerverwaltung">Benutzerverwaltung</option>
                 </select>
                 <label for="log-user-search" style="margin-left: 8px;">Nach Benutzer suchen:</label>
-                <input type="search" id="log-user-search" placeholder="Benutzername eingeben..." oninput="renderActivityLog()" style="width: 220px; height: 40px;" />
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <input type="search" id="log-user-search" placeholder="Benutzername eingeben..." oninput="renderActivityLog()" style="width: 220px; height: 40px;" />
+                    <button type="button" id="log-user-search-clear" class="btn btn-secondary" onclick="clearActivityLogSearch()" style="height: 36px; padding: 0 12px; font-size: 0.78rem; display: none;">Zurücksetzen</button>
+                </div>
             </div>
             <button type="button" id="log-clear-btn" class="btn btn-danger" onclick="clearActivityLog()" style="display:none;">Protokoll leeren</button>
         </div>
