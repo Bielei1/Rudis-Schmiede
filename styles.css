@@ -1231,16 +1231,6 @@
             font-weight: 700;
             color: var(--text-color);
         }
-        .live-sync-status {
-            display: block;
-            margin-top: 4px;
-            color: var(--success-color);
-            font-size: 0.7rem;
-            font-weight: 500;
-        }
-        .live-sync-status.is-error {
-            color: var(--danger-color);
-        }
 
         .kpi-sub {
             font-size: 0.8rem;

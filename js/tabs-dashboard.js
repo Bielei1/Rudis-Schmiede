@@ -375,7 +375,6 @@
             notesList.unshift(data[0]);
             input.value = '';
             renderPinboard();
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('notes');
             logActivity('Pinnwand', `Neuer Pinnwand-Eintrag: "${content}"`, `Inhalt:\n${content}`);
         } else {
             showToast("Fehler beim Speichern: " + (error ? error.message : ''), 'danger');
@@ -393,7 +392,6 @@
             if (!error) {
                 notesList = notesList.filter(n => n.id !== id);
                 renderPinboard();
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('notes');
                 logActivity('Pinnwand', `Pinnwand-Eintrag entfernt.`, `Eintrag: ${id}\nInhalt:\n${note ? (note.content || '-') : '-'}`);
             } else {
                 showToast("Fehler beim Löschen: " + error.message, 'danger');

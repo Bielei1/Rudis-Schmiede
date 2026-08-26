@@ -79,7 +79,6 @@
 
             // Echte DB-Version laden, damit ID und Reihenfolge stimmen.
             await loadActivityLog(false);
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('activity_log');
             return true;
         } catch (e) {
             console.error('Änderungsprotokoll wurde NICHT gespeichert:', e);
@@ -124,7 +123,6 @@
 
             activityLogList = [];
             renderActivityLog();
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('activity_log');
             showToast('Das Änderungsprotokoll wurde geleert.', 'success', 'Protokoll gelöscht');
         } catch (e) {
             console.error('Änderungsprotokoll konnte nicht geleert werden:', e);

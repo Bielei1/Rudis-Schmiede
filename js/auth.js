@@ -260,7 +260,6 @@
                     .insert([{user_id:user.id,username:user.username,request_code:requestCode,status:'pending'}])
                     .select('id,request_code').single();
                 if (requestError) return showAuthMsg('forgot-error','Reset-Anfrage konnte nicht erstellt werden: '+requestError.message);
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('password_reset_requests');
                 activePasswordResetRequestId = request.id;
                 document.getElementById('forgot-code').value = request.request_code;
                 showAuthMsg('forgot-info','Reset-Anfrage wurde an den Admin gesendet. Bitte warte auf die Freigabe.');
@@ -285,10 +284,8 @@
             const { error: passwordError }=await supabaseClient.from('app_users')
                 .update({password_hash:passwordHash}).eq('id',request.user_id);
             if (passwordError) return showAuthMsg('forgot-error','Passwort konnte nicht gespeichert werden: '+passwordError.message);
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
 
-            const { error: completedError } = await supabaseClient.from('password_reset_requests').update({status:'completed',completed_at:new Date().toISOString()}).eq('id',request.id);
-            if (!completedError && typeof broadcastDataChange === 'function') await broadcastDataChange('password_reset_requests');
+            await supabaseClient.from('password_reset_requests').update({status:'completed',completed_at:new Date().toISOString()}).eq('id',request.id);
             document.getElementById('forgot-password-form').reset();
             requestStep.style.display='block'; codeStep.style.display='none'; activePasswordResetRequestId=null;
             showLoginForm();
@@ -329,7 +326,6 @@
                 }
                 return;
             }
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
 
             try {
                 const { data: createdUser } = await supabaseClient
@@ -847,13 +843,11 @@
                 .delete()
                 .eq('user_id', editingPermissionUser.id);
             if (deleteError) throw deleteError;
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_user_tab_permissions');
 
             const { error: insertError } = await supabaseClient
                 .from('app_user_tab_permissions')
                 .insert(rows);
             if (insertError) throw insertError;
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_user_tab_permissions');
 
             const isAdmin = !!permissions.special.administrator_rechte;
             const { error: userError } = await supabaseClient
@@ -861,10 +855,6 @@
                 .update({ is_admin: isAdmin, special_permissions: permissions.special })
                 .eq('id', editingPermissionUser.id);
             if (userError) throw userError;
-            if (typeof broadcastDataChange === 'function') {
-                await broadcastDataChange('app_user_tab_permissions');
-                await broadcastDataChange('app_users');
-            }
 
             const savedUsername = editingPermissionUser.username;
             const changedTabSummary = summarizePermissionChanges(previousPermissions, permissions);
@@ -931,7 +921,6 @@
 
             if (data && data[0]) {
                 appUsersList.unshift(data[0]);
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
                 // Beim Anlegen eines Login-Benutzers wird direkt ein dauerhafter
                 // Mitgliedsdatensatz mit dem Erstellungsdatum angelegt.
                 // Dadurch existiert das Beitrittsdatum sofort in der members-Tabelle
@@ -945,8 +934,6 @@
                 if (memberError) {
                     console.warn('Mitgliedsdatensatz konnte nicht automatisch angelegt werden:', memberError);
                     showToast('Benutzer wurde angelegt, aber der Mitgliedsdatensatz konnte nicht automatisch erstellt werden.', 'warning');
-                } else if (typeof broadcastDataChange === 'function') {
-                    await broadcastDataChange('members');
                 }
 
                 await saveDefaultTabPermissionsForUser(data[0].id);
@@ -969,8 +956,7 @@
             can_delete: false
         }));
         try {
-            const { error } = await supabaseClient.from('app_user_tab_permissions').insert(rows);
-            if (!error && typeof broadcastDataChange === 'function') await broadcastDataChange('app_user_tab_permissions');
+            await supabaseClient.from('app_user_tab_permissions').insert(rows);
         } catch (e) {
             console.warn('Standard-Tab-Rechte konnten nicht angelegt werden.', e);
         }
@@ -1031,7 +1017,6 @@
             .update({ status: 'approved', approved_at: new Date().toISOString(), approved_by: currentUser.username })
             .eq('id', id).eq('status', 'pending');
         if (error) return showToast('Reset-Anfrage konnte nicht freigegeben werden: ' + error.message, 'danger');
-        if (typeof broadcastDataChange === 'function') await broadcastDataChange('password_reset_requests');
         await loadPasswordResetRequests();
         showToast('Die Passwort-Zurücksetzung wurde für den Benutzer freigegeben.', 'success', 'Passwort-Zurücksetzung freigegeben');
     }
@@ -1042,7 +1027,6 @@
             .update({ status: 'pending', approved_at: null, approved_by: null })
             .eq('id', id).eq('status', 'approved');
         if (error) return showToast('Freigabe konnte nicht zurückgenommen werden: ' + error.message, 'danger');
-        if (typeof broadcastDataChange === 'function') await broadcastDataChange('password_reset_requests');
         await loadPasswordResetRequests();
         showToast('Die Freigabe wurde zurückgenommen. Der Benutzer kann noch kein neues Passwort setzen.', 'success', 'Passwort-Zurücksetzung geändert');
     }
@@ -1145,7 +1129,6 @@
                 showToast('Fehler beim Zurücksetzen: ' + error.message, 'danger');
                 return;
             }
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
             const targetUser = appUsersList.find(u => u.id === resetPasswordTargetUserId);
             showToast('Das Passwort wurde geändert und sicher gespeichert.', 'success', 'Passwort geändert');
             await logActivity('Benutzerverwaltung', `Passwort für Benutzer „${targetUser ? targetUser.username : resetPasswordTargetUserId}“ wurde geändert`, `Benutzer: ${targetUser ? targetUser.username : resetPasswordTargetUserId}\nAktion: Passwort aktualisiert`);
@@ -1162,7 +1145,6 @@
             const u = appUsersList.find(x => x.id === id);
             if (u) u.approved = approve;
             renderUsersTab();
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
             showToast(approve ? 'Der Benutzer kann sich wieder anmelden.' : 'Der Benutzer kann sich nicht mehr anmelden.', 'success', approve ? 'Benutzer freigeschaltet' : 'Benutzer gesperrt');
             await logActivity('Benutzerverwaltung', `Benutzer „${u ? u.username : id}“ wurde ${approve ? 'freigeschaltet' : 'gesperrt'}`, `Benutzer: ${u ? u.username : id}\nStatus: ${approve ? 'freigeschaltet' : 'gesperrt'}`);
         } else {
@@ -1176,11 +1158,7 @@
         const deletedUser = appUsersList.find(x => x.id === id);
         const { error } = await supabaseClient.from('app_users').delete().eq('id', id);
         if (!error) {
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
-            try {
-                const { error: permissionsError } = await supabaseClient.from('app_user_tab_permissions').delete().eq('user_id', id);
-                if (!permissionsError && typeof broadcastDataChange === 'function') await broadcastDataChange('app_user_tab_permissions');
-            } catch (e) {}
+            try { await supabaseClient.from('app_user_tab_permissions').delete().eq('user_id', id); } catch (e) {}
             // Den zugehörigen Mitglieder-Datensatz ebenfalls entfernen.
             if (deletedUser && deletedUser.username) {
                 const { error: memberDeleteError } = await supabaseClient
@@ -1189,8 +1167,6 @@
                     .eq('name', deletedUser.username);
                 if (memberDeleteError) {
                     console.warn('Mitgliedsdatensatz konnte nicht gelöscht werden:', memberDeleteError);
-                } else if (typeof broadcastDataChange === 'function') {
-                    await broadcastDataChange('members');
                 }
             }
 
@@ -1200,6 +1176,7 @@
             }
             renderUsersTab();
             if (typeof renderMembersTable === 'function') renderMembersTable();
+
             showToast('Der Benutzer und seine gespeicherten Tab-Rechte wurden entfernt.', 'success', 'Benutzer gelöscht');
             await logActivity('Benutzerverwaltung', `Benutzer „${deletedUser ? deletedUser.username : id}“ wurde gelöscht`, `Benutzer: ${deletedUser ? deletedUser.username : id}\nAktion: gelöscht\nTab-Rechte: entfernt`);
         } else {

@@ -57,7 +57,6 @@
                     renderProductionCostsTable();
                     renderCalculatedPricesTable();
                     renderPriceTable();
-                    if (typeof broadcastDataChange === 'function') await broadcastDataChange('purchase_prices');
                     logActivity('Einkaufspreis', `Einkaufspreis von "${item.name}" (${item.business}) geändert: $${Number(oldCost).toFixed(2)} → $${costValue.toFixed(2)}`, `Artikel: ${item.name}\nGewerbe: ${item.business}\nPreis: $${Number(oldCost).toFixed(2)} → $${costValue.toFixed(2)}`);
                 } else {
                     alert("Fehler beim Aktualisieren: " + error.message);
@@ -85,7 +84,6 @@
                 renderProductionCostsTable();
                 renderCalculatedPricesTable();
                 renderPriceTable();
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('purchase_prices');
                 logActivity('Einkaufspreis', `Einkaufspreis für "${item ? item.name : id}" gelöscht`, `Artikel: ${item ? item.name : id}\nGeschäft: ${item ? item.business : '-'}\nPreis: $${item ? Number(item.cost || 0).toFixed(2) : '0.00'}`);
             }
         }
@@ -116,7 +114,6 @@
             if (!error) {
                 existing.cost = cost;
                 existing.costUpdated = costUpdated;
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('purchase_prices');
                 logActivity('Einkaufspreis', `Einkaufspreis von "${name}" (${business}) geändert: $${Number(oldCost).toFixed(2)} → $${cost.toFixed(2)}`, `Artikel: ${name}\nGewerbe: ${business}\nPreis: $${Number(oldCost).toFixed(2)} → $${cost.toFixed(2)}`);
             }
         } else {
@@ -127,7 +124,6 @@
 
             if (!error && data) {
                 purchasePricesList.push(data[0]);
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('purchase_prices');
                 logActivity('Einkaufspreis', `Neuer Einkaufspreis für "${name}" bei "${business}" angelegt: $${cost.toFixed(2)}`, `Artikel: ${name}\nGewerbe: ${business}\nPreis: $${cost.toFixed(2)}`);
             }
         }
@@ -143,3 +139,4 @@
         renderCalculatedPricesTable();
         renderPriceTable();
     }
+

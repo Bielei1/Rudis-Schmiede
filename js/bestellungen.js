@@ -121,7 +121,6 @@
             updateOrderCustomerDropdown();
             renderOrders();
             updateOrderTotalsPreview();
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('orders');
             logActivity('Bestellung', `Neue Bestellung von "${customerName}" mit ${items.length} Position(en) erfasst`, `Kunde: ${customerName}\nPositionen: ${items.length}\nRabatt: ${discount}%`);
         } else {
             alert("Fehler beim Speichern der Bestellung: " + (error ? error.message : ''));
@@ -145,7 +144,6 @@
             order.items[itemIndex].produced = checkboxEl.checked;
         } else {
             renderOrders();
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('orders');
             logActivity('Bestellung', `Produktionsstatus einer Bestellung geändert: ${checkboxEl.checked ? 'produziert' : 'nicht produziert'}`, `Kunde: ${order.customerName}\nArtikel: ${order.items[itemIndex].name}\nStatus: ${checkboxEl.checked ? 'produziert' : 'nicht produziert'}`);
         }
     }
@@ -162,7 +160,6 @@
                 ordersList = ordersList.filter(o => o.id !== id);
                 updateOrderCustomerDropdown();
                 renderOrders();
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('orders');
                 logActivity('Bestellung', `Bestellung von "${order ? order.customerName : id}" gelöscht`, `Kunde: ${order ? order.customerName : id}\nPositionen: ${order ? order.items.length : 0}`);
             }
         }
@@ -240,7 +237,6 @@
         renderOrders();
         renderArchive();
         if (typeof renderMembersTable === 'function') renderMembersTable();
-        if (typeof broadcastDataChange === 'function') await broadcastDataChange('orders');
         logActivity('Bestellung', `Bestellung von "${order.customerName}" ausgeliefert und archiviert (Verkauft von: ${archivedPayload.soldBy}, Summe $${totalSum.toFixed(2)})`, `Kunde: ${order.customerName}\nVerkauft von: ${archivedPayload.soldBy}\nGesamt: $${totalSum.toFixed(2)}\nRabatt: ${order.discount !== undefined ? order.discount : 0}%`);
     }
 

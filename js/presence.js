@@ -214,18 +214,6 @@
     let liveSyncDebounceTimer = null;
     let liveDataRefreshTimer = null;
     let liveDataRefreshInProgress = false;
-    let liveSyncStatus = 'Verbinde...';
-
-    function updateLiveSyncStatus(status, isError = false) {
-        liveSyncStatus = status;
-        const onlineList = document.getElementById('online-users-list');
-        if (onlineList) onlineList.dataset.syncStatus = status;
-        const statusEl = document.getElementById('live-sync-status');
-        if (statusEl) {
-            statusEl.textContent = status;
-            statusEl.classList.toggle('is-error', isError);
-        }
-    }
 
     function startLiveSync() {
         if (!currentUser || !supabaseClient) return;
@@ -245,42 +233,25 @@
         });
         liveSyncChannel.subscribe();
         startLiveDataRefresh();
-        runLiveDataRefresh();
     }
 
     function startLiveDataRefresh() {
         if (liveDataRefreshTimer || !currentUser || !supabaseClient) return;
-        liveDataRefreshTimer = setInterval(runLiveDataRefresh, 5000);
-    }
-
-    function hasPendingFormInput() {
-        const activeElement = document.activeElement;
-        return !!(activeElement && activeElement.matches(
-            'input:not([type="button"]):not([type="submit"]), select, textarea, [contenteditable="true"]'
-        ));
-    }
-
-    async function runLiveDataRefresh(force = false) {
-        if (liveDataRefreshInProgress || document.hidden || !currentUser || !supabaseClient) return;
-        if (!force && hasPendingFormInput()) {
-            updateLiveSyncStatus('Eingabe geschützt');
-            return;
-        }
-        liveDataRefreshInProgress = true;
-        updateLiveSyncStatus('Synchronisiere...');
-        try {
-            await loadDataFromSupabase();
-            if (currentUser.isAdmin && typeof loadAppUsers === 'function') {
-                await loadAppUsers();
+        liveDataRefreshTimer = setInterval(async () => {
+            if (liveDataRefreshInProgress || document.hidden) return;
+            liveDataRefreshInProgress = true;
+            try {
+                await loadDataFromSupabase();
+                if (currentUser.isAdmin && typeof loadAppUsers === 'function') {
+                    await loadAppUsers();
+                }
+                renderOnlineUsers();
+            } catch (error) {
+                console.warn('Automatische Live-Aktualisierung fehlgeschlagen:', error.message);
+            } finally {
+                liveDataRefreshInProgress = false;
             }
-            renderOnlineUsers();
-            updateLiveSyncStatus(`Live · ${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
-        } catch (error) {
-            updateLiveSyncStatus('Sync-Fehler', true);
-            console.warn('Automatische Live-Aktualisierung fehlgeschlagen:', error.message);
-        } finally {
-            liveDataRefreshInProgress = false;
-        }
+        }, 5000);
     }
 
     async function broadcastDataChange(table) {
@@ -290,14 +261,14 @@
             event: 'data-updated',
             payload: { table }
         });
-        await runLiveDataRefresh(true);
     }
 
     function handleRemoteDataChange(table, payload) {
         clearTimeout(liveSyncDebounceTimer);
         liveSyncDebounceTimer = setTimeout(async () => {
             try {
-                await runLiveDataRefresh();
+                await loadDataFromSupabase();
+                renderOnlineUsers();
                 if (table === 'app_users' && currentUser && currentUser.isAdmin) {
                     await loadAppUsers();
                 }

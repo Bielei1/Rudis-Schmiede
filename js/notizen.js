@@ -57,7 +57,6 @@
                 cancelNoteEdit();
                 renderNotes();
                 renderPinboard();
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('notes');
                 logActivity('Notizen', `Notiz "${label}" wurde geändert.`, `Titel: ${label}\nInhalt:\n${content}`);
             } else {
                 alert("Fehler beim Aktualisieren: " + error.message);
@@ -73,7 +72,6 @@
                 cancelNoteEdit();
                 renderNotes();
                 renderPinboard();
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('notes');
                 logActivity('Notizen', `Neue Notiz "${label}" wurde gespeichert.`, `Titel: ${label}\nInhalt:\n${content}`);
             } else {
                 alert("Fehler beim Speichern: " + (error ? error.message : ''));
@@ -93,7 +91,6 @@
                 notesList = notesList.filter(n => n.id !== id);
                 renderNotes();
                 renderPinboard();
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('notes');
                 logActivity('Notizen', `Notiz "${note ? (note.label || id) : id}" wurde gelöscht.`, `Titel: ${note ? (note.label || '-') : '-'}\nInhalt:\n${note ? (note.content || '-') : '-'}`);
             }
         }

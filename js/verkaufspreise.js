@@ -80,7 +80,6 @@
                 logActivity('Verkaufspreis', `Verkaufspreis für "${itemName}" auf $${priceVal.toFixed(2)} aktualisiert`, `Artikel: ${itemName}\nPreis: $${priceVal.toFixed(2)}`);
                 renderPriceTable();
                 renderOrders();
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('sales_prices');
             }
         } else {
             const { data, error } = await supabaseClient
@@ -94,7 +93,6 @@
                 logActivity('Verkaufspreis', `Verkaufspreis für "${itemName}" mit $${priceVal.toFixed(2)} neu angelegt`, `Artikel: ${itemName}\nPreis: $${priceVal.toFixed(2)}`);
                 renderPriceTable();
                 renderOrders();
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('sales_prices');
             }
         }
     }
@@ -188,7 +186,6 @@
                 inputEl.value = '';
                 renderPriceTable();
                 renderOrders();
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('sales_prices');
                 logActivity('Verkaufspreis', `Verkaufspreis von "${item.name}" geändert: $${Number(oldPrice).toFixed(2)} → $${value.toFixed(2)}`, `Artikel: ${item.name}\nPreis: $${Number(oldPrice).toFixed(2)} → $${value.toFixed(2)}`);
             }
         }
@@ -207,7 +204,6 @@
                 updateSalesPriceSearchSelect();
                 renderPriceTable();
                 renderOrders();
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('sales_prices');
                 logActivity('Verkaufspreis', `Verkaufspreis für "${item ? item.name : id}" gelöscht`, `Artikel: ${item ? item.name : id}\nPreis: $${item ? Number(item.price || 0).toFixed(2) : '0.00'}`);
             }
         }
@@ -234,7 +230,6 @@
             if (!error) {
                 existing.price = price;
                 existing.priceUpdated = priceUpdated;
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('sales_prices');
                 logActivity('Verkaufspreis', `Verkaufspreis von "${name}" geändert: $${Number(oldPrice).toFixed(2)} → $${price.toFixed(2)}`, `Artikel: ${name}\nPreis: $${Number(oldPrice).toFixed(2)} → $${price.toFixed(2)}`);
             }
         } else {
@@ -245,7 +240,6 @@
 
             if (!error && data) {
                 salesPricesList.push(data[0]);
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('sales_prices');
                 logActivity('Verkaufspreis', `Neuer Verkaufspreis für "${name}" angelegt: $${price.toFixed(2)}`, `Artikel: ${name}\nPreis: $${price.toFixed(2)}`);
             }
         }
@@ -272,3 +266,4 @@
         });
         filterSelect.value = businesses.includes(currentSelected) ? currentSelected : "ALL";
     }
+
