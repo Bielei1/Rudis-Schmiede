@@ -316,14 +316,15 @@
                 }
                 if (table === 'app_users') {
                     const changedUser = payload && (payload.new || payload.old);
-                    if (changedUser && currentUser && String(changedUser.id) === String(currentUser.id)) {
-                        if (payload.new) {
+                    if (currentUser) {
+                        const refreshedUser = [
+                            ...(typeof appUsersList !== 'undefined' && Array.isArray(appUsersList) ? appUsersList : []),
+                            ...(typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList) ? memberUsernamesList : [])
+                        ].find(user => String(user.id) === String(currentUser.id));
+                        if (changedUser && String(changedUser.id) === String(currentUser.id) && payload.new) {
                             currentUser.isAdmin = !!payload.new.is_admin;
                             currentUser.specialPermissions = normalizeSpecialPermissions(payload.new.special_permissions, currentUser.isAdmin);
                         }
-                        const refreshedUser = typeof appUsersList !== 'undefined' && Array.isArray(appUsersList)
-                            ? appUsersList.find(user => String(user.id) === String(currentUser.id))
-                            : null;
                         if (refreshedUser) {
                             currentUser.avatar = refreshedUser.avatar || null;
                             currentUser.avatarHistory = Array.isArray(refreshedUser.avatar_history) ? refreshedUser.avatar_history : [];
