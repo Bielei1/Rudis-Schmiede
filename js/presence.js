@@ -212,6 +212,8 @@
     ];
     let liveSyncChannel = null;
     let liveSyncDebounceTimer = null;
+    let liveDataRefreshTimer = null;
+    let liveDataRefreshInProgress = false;
 
     function startLiveSync() {
         if (!currentUser || !supabaseClient) return;
@@ -230,6 +232,26 @@
             handleRemoteDataChange(payload.table, payload);
         });
         liveSyncChannel.subscribe();
+        startLiveDataRefresh();
+    }
+
+    function startLiveDataRefresh() {
+        if (liveDataRefreshTimer || !currentUser || !supabaseClient) return;
+        liveDataRefreshTimer = setInterval(async () => {
+            if (liveDataRefreshInProgress || document.hidden) return;
+            liveDataRefreshInProgress = true;
+            try {
+                await loadDataFromSupabase();
+                if (currentUser.isAdmin && typeof loadAppUsers === 'function') {
+                    await loadAppUsers();
+                }
+                renderOnlineUsers();
+            } catch (error) {
+                console.warn('Automatische Live-Aktualisierung fehlgeschlagen:', error.message);
+            } finally {
+                liveDataRefreshInProgress = false;
+            }
+        }, 5000);
     }
 
     async function broadcastDataChange(table) {
