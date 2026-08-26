@@ -121,12 +121,12 @@
             details.innerHTML = `
                 <summary style="display: flex; align-items: center; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="background: ${labelColor}22; color: ${labelColor}; border: 1px solid ${labelColor}; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">${note.label}</span>
-                        <span style="font-size: 0.95rem; color: var(--text-muted); font-weight: normal; display: inline-flex; align-items: center; gap: 4px;">${note.createdBy ? `von ${renderUsernameWithAvatar(note.createdBy, null, { size: 'small' })} · ` : ''}Zuletzt geändert: ${note.updatedAt || '-'}</span>
+                        <span style="background: ${labelColor}22; color: ${labelColor}; border: 1px solid ${labelColor}; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">${escapeHtml(note.label || '')}</span>
+                        <span style="font-size: 0.95rem; color: var(--text-muted); font-weight: normal; display: inline-flex; align-items: center; gap: 4px;">${note.createdBy ? `von ${renderUsernameWithAvatar(note.createdBy, null, { size: 'small' })} · ` : ''}Zuletzt geändert: ${escapeHtml(note.updatedAt || '-')}</span>
                     </div>
                 </summary>
                 <div style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;">
-                    <div style="font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: var(--text-color); margin-bottom: 14px;">${note.content}</div>
+                    <div style="font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: var(--text-color); margin-bottom: 14px;">${escapeHtml(note.content || '')}</div>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-secondary" style="height: 34px; font-size: 0.85rem;" onclick="editNote(${note.id})">Bearbeiten</button>
                         <button class="btn btn-danger delete-action" data-permission-action="delete" onclick="deleteNote(${note.id})">Löschen</button>

@@ -282,10 +282,10 @@
                 itemsHtml += `
                     <div style="margin-bottom: 6px; display: flex; align-items: center; gap: 8px; ${textDecoration}">
                         <input type="checkbox" ${isChecked} onchange="toggleOrderProductionStatus(${order.id}, ${idx}, this)" title="Artikel fertig produziert" style="width: 16px; height: 16px; cursor: pointer;" />
-                        <span>• <strong>${ordItem.qty}x</strong> ${ordItem.name} à $${priceInfo.price.toFixed(2)} 
-                        <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${priceInfo.type}</span> = 
+                        <span>• <strong>${Number(ordItem.qty) || 0}x</strong> ${escapeHtml(ordItem.name)} à $${priceInfo.price.toFixed(2)} 
+                        <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${escapeHtml(priceInfo.type)}</span> = 
                         <span style="color: var(--accent-green); font-weight: 600;">$${itemTotal.toFixed(2)}</span> 
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${isEnough ? 'var(--accent-green)' : 'var(--accent-red)'}">${available}</span>)</span></span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${isEnough ? 'var(--accent-green)' : 'var(--accent-red)'}">${Number(available) || 0}</span>)</span></span>
                     </div>`;
 
                 resolveRawMaterials(ordItem.name, ordItem.qty, rawMaterialMap);
@@ -310,7 +310,7 @@
                     if (!hasEnoughMat) allOk = false;
 
                     let stockColorStyle = stockQty === 0 ? 'color: var(--danger-color); font-weight: bold;' : (hasEnoughMat ? 'var(--accent-green)' : 'var(--accent-red)');
-                    rawMaterialsHtml += `<div>• <strong>${reqQty}x</strong> ${matName} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${stockColorStyle}">${stockQty}</span>)</span></div>`;
+                    rawMaterialsHtml += `<div>• <strong>${Number(reqQty) || 0}x</strong> ${escapeHtml(matName)} <span style="font-size: 0.8rem; color: var(--text-muted);">(Lager: <span style="color: ${stockColorStyle}">${Number(stockQty) || 0}</span>)</span></div>`;
                 });
             } else {
                 rawMaterialsHtml = `<span style="color: var(--text-muted); font-style: italic;">Keine Rohmaterialien definiert</span>`;
@@ -319,10 +319,10 @@
             let statusHtml = buildStatusBadge(allOk, 'Alles im Lager', 'Material fehlt');
 
             tr.innerHTML = `
-                <td><div class="material-name" style="color: var(--accent-blue); font-size: 1.05rem;">${order.customerName}</div></td>
+                <td><div class="material-name" style="color: var(--accent-blue); font-size: 1.05rem;">${escapeHtml(order.customerName)}</div></td>
                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${itemsHtml}</div></td>
                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${rawMaterialsHtml}</div></td>
-                <td class="time-text">${order.createdAt || '-'}</td>
+                <td class="time-text">${escapeHtml(order.createdAt || '-')}</td>
                 <td>${statusHtml}</td>
                 <td>
                     <div style="display: flex; gap: 8px;">
@@ -560,13 +560,13 @@
 
                                         archivedOrder.items.forEach(item => {
                                             let badgeColor = item.priceType === 'Sonderpreis' ? 'var(--accent-blue)' : 'var(--accent-gray)';
-                                            itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${item.qty}x</strong> ${item.name} à $${item.price.toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${item.priceType}</span> = <span style="color: var(--accent-green); font-weight: 600;">$${item.total.toFixed(2)}</span></div>`;
+                                            itemsHtml += `<div style="margin-bottom: 4px;">• <strong>${Number(item.qty) || 0}x</strong> ${escapeHtml(item.name)} à $${Number(item.price || 0).toFixed(2)} <span style="font-size: 0.75rem; background: ${badgeColor}22; color: ${badgeColor}; padding: 1px 6px; border-radius: 4px; border: 1px solid ${badgeColor};">${escapeHtml(item.priceType)}</span> = <span style="color: var(--accent-green); font-weight: 600;">$${Number(item.total || 0).toFixed(2)}</span></div>`;
                                         });
 
                                         return `
                                             <tr>
                                                 <td>
-                                                    <div class="material-name" style="color: var(--accent-blue); font-size: 1.05rem;">${archivedOrder.customerName}</div>
+                                                    <div class="material-name" style="color: var(--accent-blue); font-size: 1.05rem;">${escapeHtml(archivedOrder.customerName)}</div>
                                                     ${getArchivedDiscountLabel(archivedOrder)}
                                                 </td>
                                                 <td><div style="font-size: 0.9rem; line-height: 1.4;">${itemsHtml}</div></td>

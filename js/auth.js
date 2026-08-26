@@ -1,9 +1,12 @@
     // ============ AUTHENTIFIZIERUNG / BENUTZERVERWALTUNG ============
     const ADMIN_USERNAME = 'admin';
-    const ADMIN_PASSWORD = '0815';
     const AUTH_STORAGE_KEY = 'rs_auth_session';
     const APP_NAME_STORAGE_KEY = 'rs_app_name';
     const DEFAULT_APP_NAME = 'Rudis Schmiede';
+    function getAuthEmailForUsername(username) {
+        const normalized = String(username || '').trim().toLowerCase();
+        return `${normalized.replace(/[^a-z0-9._-]/g, '-') }@auth.rudis-schmiede.de`;
+    }
 
     function getUserProfileStorageKey(username) {
         const key = String(username || '').trim();
@@ -101,12 +104,6 @@
     let editingPermissionUser = null;
     let editingPermissionDraft = null;
 
-    async function hashPassword(password) {
-        const enc = new TextEncoder().encode(password);
-        const buf = await crypto.subtle.digest('SHA-256', enc);
-        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
     function showLoginForm() {
         document.getElementById('register-form').style.display = 'none';
         document.getElementById('forgot-password-form').style.display = 'none';
@@ -159,42 +156,38 @@
         submitBtn.disabled = true;
 
         try {
-            // Fest hinterlegter Admin-Zugang
+            // Der frühere fest eingebaute Admin-Zugang wurde entfernt.
             if (username.toLowerCase() === ADMIN_USERNAME) {
-                if (password === ADMIN_PASSWORD) {
-                    let adminProfile = {};
-                    try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
-                    const localAdminProfile = readStoredUserProfile(ADMIN_USERNAME, adminProfile);
-                    await completeLogin({ username: ADMIN_USERNAME, isAdmin: true, isSystemAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar !== undefined ? localAdminProfile.avatar : (adminProfile.avatar || null), avatarHistory: localAdminProfile.avatarHistory || [], theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '', specialPermissions: normalizeSpecialPermissions(null, true) }, password, true);
-                } else {
-                    showAuthMsg('login-error', 'Benutzername oder Passwort falsch.');
-                }
+                showAuthMsg('login-error', 'Der reservierte Admin-Benutzer muss im Supabase-Testprojekt eingerichtet werden.');
                 return;
             }
 
-            const passwordHash = await hashPassword(password);
-            const { data, error } = await supabaseClient
+            const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+                email: getAuthEmailForUsername(username),
+                password
+            });
+            if (authError || !authData || !authData.user) {
+                showAuthMsg('login-error', authError && authError.message || 'Benutzername oder Passwort falsch.');
+                return;
+            }
+            const { data: user, error: userError } = await supabaseClient
                 .from('app_users')
-                .select('*')
-                .ilike('username', username)
-                .limit(1);
-
-            if (error) {
-                showAuthMsg('login-error', 'Anmeldung aktuell nicht möglich: ' + error.message);
-                return;
-            }
-            const user = data && data[0];
-            if (!user || user.password_hash !== passwordHash) {
-                showAuthMsg('login-error', 'Benutzername oder Passwort falsch.');
+                .select('id, username, auth_user_id, permission, approved, is_admin, avatar, theme, bio, avatar_history, special_permissions')
+                .eq('auth_user_id', authData.user.id)
+                .maybeSingle();
+            if (userError || !user) {
+                await supabaseClient.auth.signOut();
+                showAuthMsg('login-error', 'Benutzerprofil konnte nicht geladen werden.');
                 return;
             }
             if (!user.approved) {
+                await supabaseClient.auth.signOut();
                 showAuthMsg('login-error', 'Dein Konto wartet noch auf Freischaltung durch den Admin.');
                 return;
             }
 
             const localProfile = readStoredUserProfile(user.username, {});
-            await completeLogin({ username: user.username, id: user.id, isAdmin: !!user.is_admin, isSystemAdmin: false, permission: user.permission || 'view', avatar: user.avatar !== undefined ? user.avatar : (localProfile.avatar || null), avatarHistory: Array.isArray(user.avatar_history) ? user.avatar_history : (localProfile.avatarHistory || []), theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '', specialPermissions: normalizeSpecialPermissions(user.special_permissions, !!user.is_admin) }, password, !!user.is_admin);
+            await completeLogin({ username: user.username, id: user.id, authUserId: user.auth_user_id, isAdmin: !!user.is_admin, isSystemAdmin: false, permission: user.permission || 'view', avatar: user.avatar !== undefined ? user.avatar : (localProfile.avatar || null), avatarHistory: Array.isArray(user.avatar_history) ? user.avatar_history : (localProfile.avatarHistory || []), theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '', specialPermissions: normalizeSpecialPermissions(user.special_permissions, !!user.is_admin) }, password, !!user.is_admin);
         } finally {
             submitBtn.disabled = false;
         }
@@ -269,7 +262,7 @@
 
             // 2. Nach Admin-Freigabe Passwort ändern
             if (!code) return showAuthMsg('forgot-error','Bitte den Reset-Code eingeben.');
-            if (newPassword.length < 4) return showAuthMsg('forgot-error','Das neue Passwort muss mindestens 4 Zeichen lang sein.');
+            if (newPassword.length < 6) return showAuthMsg('forgot-error','Das neue Passwort muss mindestens 6 Zeichen lang sein.');
             if (newPassword !== newPassword2) return showAuthMsg('forgot-error','Die neuen Passwörter stimmen nicht überein.');
 
             let query = supabaseClient.from('password_reset_requests')
@@ -281,20 +274,8 @@
             const request=requests && requests[0];
             if (!request) return showAuthMsg('forgot-error','Reset-Code ist ungültig oder wurde noch nicht vom Admin freigegeben.');
 
-            const passwordHash=await hashPassword(newPassword);
-            const { error: passwordError }=await supabaseClient.from('app_users')
-                .update({password_hash:passwordHash}).eq('id',request.user_id);
-            if (passwordError) return showAuthMsg('forgot-error','Passwort konnte nicht gespeichert werden: '+passwordError.message);
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
-
-            const { error: completedError } = await supabaseClient.from('password_reset_requests').update({status:'completed',completed_at:new Date().toISOString()}).eq('id',request.id);
-            if (!completedError && typeof broadcastDataChange === 'function') await broadcastDataChange('password_reset_requests');
-            document.getElementById('forgot-password-form').reset();
-            requestStep.style.display='block'; codeStep.style.display='none'; activePasswordResetRequestId=null;
-            showLoginForm();
-            const loginMsg=document.getElementById('login-error');
-            loginMsg.innerText='Passwort erfolgreich geändert. Du kannst dich jetzt mit deinem neuen Passwort anmelden.';
-            loginMsg.classList.remove('error'); loginMsg.classList.add('info','show');
+            showAuthMsg('forgot-error', 'Die sichere Passwort-Reset-Funktion wird nach Einrichtung der serverseitigen Reset-Funktion aktiviert.');
+            return;
         } finally { if (submitBtn) submitBtn.disabled=false; }
     }
 
@@ -308,7 +289,7 @@
         const password2 = document.getElementById('register-password2').value;
 
         if (!username) return;
-        if (password.length < 4) return showAuthMsg('register-error', 'Passwort muss mindestens 4 Zeichen lang sein.');
+        if (password.length < 6) return showAuthMsg('register-error', 'Passwort muss mindestens 6 Zeichen lang sein.');
         if (password !== password2) return showAuthMsg('register-error', 'Die Passwörter stimmen nicht überein.');
         if (username.toLowerCase() === ADMIN_USERNAME) return showAuthMsg('register-error', 'Dieser Benutzername ist reserviert.');
 
@@ -316,32 +297,34 @@
         submitBtn.disabled = true;
 
         try {
-            const passwordHash = await hashPassword(password);
-            const { error } = await supabaseClient
-                .from('app_users')
-                .insert([{ username, password_hash: passwordHash, permission: 'view', is_admin: false, approved: false }]);
-
-            if (error) {
-                if (String(error.message).toLowerCase().includes('duplicate') || String(error.code) === '23505') {
+            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                email: getAuthEmailForUsername(username),
+                password
+            });
+            if (authError || !authData.user) {
+                const authMessage = String(authError && authError.message || '').toLowerCase();
+                if (authMessage.includes('rate limit')) {
+                    showAuthMsg('register-error', 'Zu viele Registrierungsversuche. Bitte später erneut versuchen oder den Testbenutzer direkt im Supabase-Dashboard anlegen.');
+                } else if (authError && (authMessage.includes('already') || String(authError.code) === 'user_already_exists')) {
                     showAuthMsg('register-error', 'Dieser Benutzername ist bereits vergeben.');
                 } else {
-                    showAuthMsg('register-error', 'Registrierung fehlgeschlagen: ' + error.message);
+                    showAuthMsg('register-error', 'Registrierung fehlgeschlagen: ' + (authError ? authError.message : 'Auth-Benutzer konnte nicht angelegt werden.'));
                 }
                 return;
             }
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
-
-            try {
-                const { data: createdUser } = await supabaseClient
-                    .from('app_users')
-                    .select('id')
-                    .ilike('username', username)
-                    .limit(1)
-                    .maybeSingle();
-                if (createdUser && createdUser.id) await saveDefaultTabPermissionsForUser(createdUser.id);
-            } catch (e) {
-                console.warn('Standard-Tab-Rechte für Registrierung konnten nicht angelegt werden.', e);
+            const { data: createdUser, error } = await supabaseClient
+                .from('app_users')
+                .insert([{ username, auth_user_id: authData.user.id, permission: 'view', is_admin: false, approved: false }])
+                .select('id')
+                .single();
+            if (error) {
+                await supabaseClient.auth.signOut();
+                showAuthMsg('register-error', 'Benutzerprofil konnte nicht angelegt werden: ' + error.message);
+                return;
             }
+            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
+            if (createdUser && createdUser.id) await saveDefaultTabPermissionsForUser(createdUser.id);
+            await supabaseClient.auth.signOut();
 
             event.target.reset();
             showAuthMsg('register-info', '');
@@ -355,39 +338,22 @@
 
     async function completeLogin(user, plainPassword, isAdmin) {
         currentUser = user;
-        const passwordHash = isAdmin ? await hashPassword(plainPassword) : await hashPassword(plainPassword);
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ username: user.username, passwordHash }));
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ username: user.username }));
         await enterApp();
     }
 
     async function tryRestoreSession() {
-        const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-        if (!raw) return false;
-
-        let stored;
-        try { stored = JSON.parse(raw); } catch (e) { return false; }
-        if (!stored || !stored.username) return false;
-
-        if (stored.username.toLowerCase() === ADMIN_USERNAME) {
-            const adminHash = await hashPassword(ADMIN_PASSWORD);
-            if (stored.passwordHash !== adminHash) return false;
-            let adminProfile = {};
-            try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
-            const localAdminProfile = readStoredUserProfile(ADMIN_USERNAME, adminProfile);
-            currentUser = { username: ADMIN_USERNAME, isAdmin: true, isSystemAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar !== undefined ? localAdminProfile.avatar : (adminProfile.avatar || null), avatarHistory: localAdminProfile.avatarHistory || [], theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '', specialPermissions: normalizeSpecialPermissions(null, true) };
-            await enterApp();
-            return true;
-        }
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        if (!sessionData.session) return false;
 
         try {
             const { data, error } = await supabaseClient
                 .from('app_users')
-                .select('*')
-                .ilike('username', stored.username)
-                .limit(1);
-            if (error || !data || !data[0]) return false;
-            const user = data[0];
-            if (user.password_hash !== stored.passwordHash || !user.approved) return false;
+                .select('id, username, auth_user_id, permission, approved, is_admin, avatar, theme, bio, avatar_history, special_permissions')
+                .eq('auth_user_id', sessionData.session.user.id)
+                .maybeSingle();
+            if (error || !data || !data.approved) return false;
+            const user = data;
             const localProfile = readStoredUserProfile(user.username, {});
             currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, isSystemAdmin: false, permission: user.permission || 'view', avatar: user.avatar !== undefined ? user.avatar : (localProfile.avatar || null), avatarHistory: Array.isArray(user.avatar_history) ? user.avatar_history : (localProfile.avatarHistory || []), theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '', specialPermissions: normalizeSpecialPermissions(user.special_permissions, !!user.is_admin) };
             await enterApp();
@@ -452,9 +418,13 @@
         startLiveSync();
     }
 
-    function logoutUser() {
+    async function logoutUser() {
         localStorage.removeItem(AUTH_STORAGE_KEY);
         currentUser = null;
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) {
+            console.error('Supabase-Abmeldung fehlgeschlagen:', error);
+        }
         location.reload();
     }
 
@@ -902,7 +872,7 @@
         const memberNotiz = document.getElementById('admin-new-member-notiz').value.trim();
         const isAdmin = role === 'admin';
 
-        if (!username || password.length < 4) {
+        if (!username || password.length < 6) {
             showToast('Bitte Benutzername und Passwort (mind. 4 Zeichen) angeben.', 'danger');
             return;
         }
@@ -914,47 +884,8 @@
         const submitBtn = event.target.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         try {
-            const passwordHash = await hashPassword(password);
-            const { data, error } = await supabaseClient
-                .from('app_users')
-                .insert([{ username, password_hash: passwordHash, permission: isAdmin ? 'edit' : 'view', is_admin: isAdmin, approved: true }])
-                .select();
-
-            if (error) {
-                if (String(error.message).toLowerCase().includes('duplicate') || String(error.code) === '23505') {
-                    showToast('Dieser Benutzername ist bereits vergeben.', 'danger');
-                } else {
-                    showToast('Fehler beim Anlegen: ' + error.message, 'danger');
-                }
-                return;
-            }
-
-            if (data && data[0]) {
-                appUsersList.unshift(data[0]);
-                if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
-                // Beim Anlegen eines Login-Benutzers wird direkt ein dauerhafter
-                // Mitgliedsdatensatz mit dem Erstellungsdatum angelegt.
-                // Dadurch existiert das Beitrittsdatum sofort in der members-Tabelle
-                // und muss im Tab „Mitglieder“ nicht erst manuell gespeichert werden.
-                const createdAt = data[0].created_at;
-                const joinedAt = createdAt ? new Date(createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
-                const { error: memberError } = await supabaseClient
-                    .from('members')
-                    .insert([{ name: username, rang: memberRang, joinedAt, notiz: memberNotiz }]);
-
-                if (memberError) {
-                    console.warn('Mitgliedsdatensatz konnte nicht automatisch angelegt werden:', memberError);
-                    showToast('Benutzer wurde angelegt, aber der Mitgliedsdatensatz konnte nicht automatisch erstellt werden.', 'warning');
-                } else if (typeof broadcastDataChange === 'function') {
-                    await broadcastDataChange('members');
-                }
-
-                await saveDefaultTabPermissionsForUser(data[0].id);
-            }
-            renderUsersTab();
-            event.target.reset();
-            showToast(`${isAdmin ? 'Administrator' : 'Benutzer'} „${username}“ wurde angelegt und freigeschaltet.`, 'success', 'Benutzer angelegt');
-            await logActivity('Benutzerverwaltung', `${isAdmin ? 'Administrator' : 'Benutzer'} „${username}“ wurde angelegt und freigeschaltet`, `Benutzer: ${username}\nRolle: ${isAdmin ? 'Administrator' : 'Benutzer'}\nStatus: freigeschaltet`);
+            showToast('Benutzer werden nach Einrichtung der serverseitigen Auth-Funktion durch den Admin angelegt.', 'warning');
+            return;
         } finally {
             submitBtn.disabled = false;
         }
@@ -977,7 +908,9 @@
     }
 
     async function loadAppUsers() {
-        const { data, error } = await supabaseClient.from('app_users').select('*').order('created_at', { ascending: false });
+        const { data, error } = await supabaseClient.from('app_users')
+            .select('id, username, auth_user_id, permission, approved, created_at, is_admin, avatar, theme, bio, avatar_history, special_permissions, last_seen')
+            .order('created_at', { ascending: false });
         if (!error && data) {
             appUsersList = data;
             renderUsersTab();
@@ -1071,7 +1004,7 @@
                     <td>
                         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                             <span style="color:var(--text-muted);font-size:.78rem;">Aus Sicherheitsgründen nicht auslesbar</span>
-                            <button type="button" class="btn" style="height:34px;font-size:.78rem;padding:6px 12px;background-color:var(--card-bg-raised);color:var(--text-color);border:1px solid var(--border-color);" onclick="openResetPasswordModal(${u.id}, '${String(u.username).replace(/'/g, "\'")}')">Passwort setzen / anzeigen</button>
+                            <button type="button" class="btn" style="height:34px;font-size:.78rem;padding:6px 12px;background-color:var(--card-bg-raised);color:var(--text-color);border:1px solid var(--border-color);" onclick="openResetPasswordModal(${u.id}, decodeURIComponent('${encodeURIComponent(String(u.username))}'))">Passwort setzen / anzeigen</button>
                         </div>
                     </td>
                     <td>${statusHtml}</td>
@@ -1132,24 +1065,14 @@
         event.preventDefault();
         if (!resetPasswordTargetUserId) return;
         const newPassword = document.getElementById('reset-password-input').value;
-        if (!newPassword || newPassword.length < 4) {
-            showToast('Das Passwort muss mindestens 4 Zeichen lang sein.', 'danger');
+        if (!newPassword || newPassword.length < 6) {
+            showToast('Das Passwort muss mindestens 6 Zeichen lang sein.', 'danger');
             return;
         }
         const submitBtn = event.target.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         try {
-            const passwordHash = await hashPassword(newPassword);
-            const { error } = await supabaseClient.from('app_users').update({ password_hash: passwordHash }).eq('id', resetPasswordTargetUserId);
-            if (error) {
-                showToast('Fehler beim Zurücksetzen: ' + error.message, 'danger');
-                return;
-            }
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_users');
-            const targetUser = appUsersList.find(u => u.id === resetPasswordTargetUserId);
-            showToast('Das Passwort wurde geändert und sicher gespeichert.', 'success', 'Passwort geändert');
-            await logActivity('Benutzerverwaltung', `Passwort für Benutzer „${targetUser ? targetUser.username : resetPasswordTargetUserId}“ wurde geändert`, `Benutzer: ${targetUser ? targetUser.username : resetPasswordTargetUserId}\nAktion: Passwort aktualisiert`);
-            closeResetPasswordModal();
+            showToast('Passwortänderungen werden nach Einrichtung der serverseitigen Auth-Funktion aktiviert.', 'warning');
         } finally {
             submitBtn.disabled = false;
         }

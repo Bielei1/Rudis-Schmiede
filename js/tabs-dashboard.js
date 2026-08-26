@@ -124,37 +124,33 @@
 
     async function loadDataFromSupabase() {
         try {
-            const { data: inv } = await supabaseClient.from('inventory').select('*');
-            if (inv) inventoryList = inv;
+            const canRead = tabName => currentUser && (currentUser.isAdmin || canViewTab(tabName));
+            const readTable = async (tabName, table) => {
+                if (!canRead(tabName)) return null;
+                const { data, error } = await supabaseClient.from(table).select('*');
+                if (error) throw error;
+                return data || [];
+            };
 
-            const { data: ord } = await supabaseClient.from('orders').select('*');
-            if (ord) ordersList = ord;
+            inventoryList = await readTable('lagerbestand', 'inventory') || [];
+            ordersList = await readTable('bestellungen', 'orders') || [];
+            archivedOrdersList = await readTable('archiv', 'archive') || [];
+            customerPricesList = await readTable('kunden', 'customer_prices') || [];
+            salesPricesList = await readTable('verkaufspreise', 'sales_prices') || [];
+            purchasePricesList = await readTable('einkaufspreise', 'purchase_prices') || [];
+            recipesList = await readTable('herstellung', 'recipes') || [];
+            notesList = await readTable('notizen', 'notes') || [];
+            membersList = await readTable('mitglieder', 'members') || [];
 
-            const { data: arch } = await supabaseClient.from('archive').select('*');
-            if (arch) archivedOrdersList = arch;
+            if (canRead('mitglieder') || canRead('benutzer')) await loadMemberUsernames();
+            else if (typeof memberUsernamesList !== 'undefined') memberUsernamesList = [];
 
-            const { data: custP } = await supabaseClient.from('customer_prices').select('*');
-            if (custP) customerPricesList = custP;
-
-            const { data: salesP } = await supabaseClient.from('sales_prices').select('*');
-            if (salesP) salesPricesList = salesP;
-
-            const { data: purchP } = await supabaseClient.from('purchase_prices').select('*');
-            if (purchP) purchasePricesList = purchP;
-
-            const { data: rec } = await supabaseClient.from('recipes').select('*');
-            if (rec) recipesList = rec;
-
-            const { data: nots } = await supabaseClient.from('notes').select('*');
-            if (nots) notesList = nots;
-
-            const { data: mems } = await supabaseClient.from('members').select('*');
-            if (mems) membersList = mems;
-
-            await loadMemberUsernames();
-
-            await loadActivityLog(false);
-            if (currentUser && currentUser.isAdmin) startActivityLogRefresh();
+            if (canRead('log')) {
+                await loadActivityLog(false);
+                if (currentUser && currentUser.isAdmin) startActivityLogRefresh();
+            } else if (typeof activityLogList !== 'undefined') {
+                activityLogList = [];
+            }
 
             renderTables();
 			updateStockAddDropdown();
