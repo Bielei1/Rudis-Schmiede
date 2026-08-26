@@ -199,8 +199,12 @@
         const backdrop = document.getElementById('log-detail-backdrop');
         const beforeAvatarMatch = rawMessage.match(/^Avatar vorher: (.*)$/m);
         const afterAvatarMatch = rawMessage.match(/^Avatar nachher: (.*)$/m);
-        const beforeAvatar = beforeAvatarMatch ? beforeAvatarMatch[1] : '';
-        const afterAvatar = afterAvatarMatch ? afterAvatarMatch[1] : '';
+        const beforeAvatar = beforeAvatarMatch && beforeAvatarMatch[1] !== '__NO_AVATAR__'
+            ? beforeAvatarMatch[1]
+            : '';
+        const afterAvatar = afterAvatarMatch && afterAvatarMatch[1] !== '__NO_AVATAR__'
+            ? afterAvatarMatch[1]
+            : '';
         const visibleDetails = details
             .split('\n')
             .filter(line => !line.startsWith('Avatar vorher: ') && !line.startsWith('Avatar nachher: '))
@@ -231,7 +235,8 @@
                         image.style.backgroundSize = 'cover';
                         image.setAttribute('aria-label', label);
                     } else {
-                        image.innerText = 'Kein Avatar';
+                        image.innerText = getInitial(user);
+                        image.setAttribute('aria-label', `${label} – kein Avatar`);
                     }
                     const text = document.createElement('span');
                     text.innerText = label;

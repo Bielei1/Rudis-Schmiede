@@ -182,8 +182,8 @@
             const changed = [];
             if (avatarChanged) {
                 changed.push('Avatar geändert');
-                changed.push(`Avatar vorher: ${previousAvatar || ''}`);
-                changed.push(`Avatar nachher: ${newAvatar || ''}`);
+                changed.push(`Avatar vorher: ${previousAvatar || '__NO_AVATAR__'}`);
+                changed.push(`Avatar nachher: ${newAvatar || '__NO_AVATAR__'}`);
             }
             if (bioChanged) {
                 changed.push(`Bio geändert: „${previousBio || '-'}“ → „${bioValue || '-'}“`);
