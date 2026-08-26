@@ -1020,6 +1020,8 @@
                     <option value="Pinnwand">Pinnwand</option>
                     <option value="Benutzerverwaltung">Benutzerverwaltung</option>
                 </select>
+                <label for="log-user-search" style="margin-left: 8px;">Nach Benutzer suchen:</label>
+                <input type="search" id="log-user-search" placeholder="Benutzername eingeben..." oninput="renderActivityLog()" style="width: 220px; height: 40px;" />
             </div>
             <button type="button" id="log-clear-btn" class="btn btn-danger" onclick="clearActivityLog()" style="display:none;">Protokoll leeren</button>
         </div>

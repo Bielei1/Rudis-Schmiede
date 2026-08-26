@@ -124,10 +124,18 @@
         const tbody = document.getElementById('log-table-body');
         if (!tbody) return;
         const filterEl = document.getElementById('log-category-filter');
+        const searchEl = document.getElementById('log-user-search');
         const filterValue = filterEl ? filterEl.value : 'ALL';
+        const searchValue = searchEl ? String(searchEl.value || '').trim().toLowerCase() : '';
 
         let list = activityLogList;
         if (filterValue !== 'ALL') list = list.filter(e => e.category === filterValue);
+        if (searchValue) {
+            list = list.filter(entry => {
+                const username = String(entry.username || '').trim().toLowerCase();
+                return username.includes(searchValue);
+            });
+        }
 
         if (list.length === 0) {
             tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Noch keine Änderungen protokolliert.</td></tr>`;
