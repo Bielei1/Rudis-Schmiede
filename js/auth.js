@@ -72,6 +72,7 @@
     const ADMIN_ONLY_TABS = new Set(['log', 'benutzer', 'avatarlogs']);
 
     const SPECIAL_PERMISSION_DEFINITIONS = [
+        { key: 'administrator_rechte', label: 'Administratorrechte (Vollzugriff)' },
         { key: 'bestellungen_ausliefern', label: 'Bestellungen ausliefern' },
         { key: 'verkaufsrechner_verkaufen', label: 'Warenkorb als verkauft archivieren' },
         { key: 'verkaufsrechner_aufnehmen', label: 'Warenkorb in Bestellungen aufnehmen' },
@@ -80,10 +81,14 @@
         { key: 'archiv_loeschen', label: 'Archiv-Einträge löschen' },
         { key: 'log_leeren', label: 'Änderungsprotokoll leeren' }
     ];
-    const DEFAULT_SPECIAL_PERMISSIONS = { bestellungen_ausliefern: true, verkaufsrechner_verkaufen: true, verkaufsrechner_aufnehmen: true, benutzer_sperren: false, benutzer_loeschen: false, archiv_loeschen: true, log_leeren: false };
+    const DEFAULT_SPECIAL_PERMISSIONS = { administrator_rechte: false, bestellungen_ausliefern: true, verkaufsrechner_verkaufen: true, verkaufsrechner_aufnehmen: true, benutzer_sperren: false, benutzer_loeschen: false, archiv_loeschen: true, log_leeren: false };
     function normalizeSpecialPermissions(raw, isAdmin = false) {
         const result = { ...DEFAULT_SPECIAL_PERMISSIONS };
-        SPECIAL_PERMISSION_DEFINITIONS.forEach(item => result[item.key] = isAdmin ? true : !!(raw && raw[item.key]));
+        SPECIAL_PERMISSION_DEFINITIONS.forEach(item => {
+            result[item.key] = item.key === 'administrator_rechte'
+                ? isAdmin
+                : (isAdmin ? true : !!(raw && raw[item.key]));
+        });
         return result;
     }
 
@@ -829,8 +834,12 @@
                 .insert(rows);
             if (insertError) throw insertError;
 
-            const { error: specialError } = await supabaseClient.from('app_users').update({ special_permissions: permissions.special }).eq('id', editingPermissionUser.id);
-            if (specialError) console.warn('Sonderrechte konnten nicht gespeichert werden:', specialError.message);
+            const isAdmin = !!permissions.special.administrator_rechte;
+            const { error: userError } = await supabaseClient
+                .from('app_users')
+                .update({ is_admin: isAdmin, special_permissions: permissions.special })
+                .eq('id', editingPermissionUser.id);
+            if (userError) throw userError;
 
             const savedUsername = editingPermissionUser.username;
             const changedTabSummary = summarizePermissionChanges(previousPermissions, permissions);
@@ -843,6 +852,7 @@
             const detailText = changedTabSummary.length ? `Tab-Rechte für Benutzer „${savedUsername}“ geändert\n\nDetails:\n${changedTabSummary.join('\n')}` : `Tab-Rechte für Benutzer „${savedUsername}“ geändert`;
 
             editingPermissionUser.tabPermissions = permissions;
+            editingPermissionUser.is_admin = isAdmin;
             editingPermissionUser.special_permissions = permissions.special;
             editingPermissionUser.specialPermissions = permissions.special;
             closePermissionModal();
