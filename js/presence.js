@@ -256,7 +256,6 @@
     function captureFormState() {
         const state = {};
         document.querySelectorAll('input[id], select[id], textarea[id]').forEach(element => {
-            if (!element.matches(':focus') && !element.value) return;
             state[element.id] = {
                 value: element.value,
                 checked: element.type === 'checkbox' ? element.checked : undefined
@@ -268,7 +267,7 @@
     function restoreFormState(state) {
         Object.entries(state).forEach(([id, saved]) => {
             const element = document.getElementById(id);
-            if (!element || document.activeElement === element) return;
+            if (!element) return;
             element.value = saved.value;
             if (saved.checked !== undefined) element.checked = saved.checked;
         });
