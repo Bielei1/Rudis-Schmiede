@@ -131,7 +131,8 @@
         pendingProfileBio = bioValue;
         const avatarChanged = pendingAvatarBase64 !== profileModalOriginalAvatar;
         const bioChanged = bioValue !== profileModalOriginalBio;
-        const avatarWasSet = !!pendingAvatarBase64;
+        const previousAvatar = profileModalOriginalAvatar;
+        const newAvatar = pendingAvatarBase64;
         const previousBio = profileModalOriginalBio;
 
         const localProfile = {
@@ -180,7 +181,9 @@
         if (avatarChanged || bioChanged) {
             const changed = [];
             if (avatarChanged) {
-                changed.push(avatarWasSet ? 'Avatar geändert' : 'Avatar entfernt');
+                changed.push('Avatar geändert');
+                changed.push(`Avatar vorher: ${previousAvatar || ''}`);
+                changed.push(`Avatar nachher: ${newAvatar || ''}`);
             }
             if (bioChanged) {
                 changed.push(`Bio geändert: „${previousBio || '-'}“ → „${bioValue || '-'}“`);

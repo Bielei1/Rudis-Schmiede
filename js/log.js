@@ -195,14 +195,56 @@
         const categoryEl = document.getElementById('log-detail-category');
         const actionEl = document.getElementById('log-detail-action');
         const messageEl = document.getElementById('log-detail-message');
+        const avatarChangeEl = document.getElementById('log-detail-avatar-change');
         const backdrop = document.getElementById('log-detail-backdrop');
+        const beforeAvatarMatch = rawMessage.match(/^Avatar vorher: (.*)$/m);
+        const afterAvatarMatch = rawMessage.match(/^Avatar nachher: (.*)$/m);
+        const beforeAvatar = beforeAvatarMatch ? beforeAvatarMatch[1] : '';
+        const afterAvatar = afterAvatarMatch ? afterAvatarMatch[1] : '';
+        const visibleDetails = details
+            .split('\n')
+            .filter(line => !line.startsWith('Avatar vorher: ') && !line.startsWith('Avatar nachher: '))
+            .join('\n')
+            .trim();
 
         if (userEl) userEl.innerText = user;
         if (categoryEl) categoryEl.innerText = category;
         if (actionEl) actionEl.innerText = action;
         if (messageEl) {
-            const detailText = details !== summary ? `${summary}\n\n${details}` : summary;
+            const detailText = visibleDetails && visibleDetails !== summary ? `${summary}\n\n${visibleDetails}` : summary;
             messageEl.innerText = detailText;
+        }
+        if (avatarChangeEl) {
+            avatarChangeEl.innerHTML = '';
+            avatarChangeEl.hidden = !(beforeAvatarMatch && afterAvatarMatch);
+            if (beforeAvatarMatch && afterAvatarMatch) {
+                [
+                    ['Vorheriger Avatar', beforeAvatar],
+                    ['Neuer Avatar', afterAvatar]
+                ].forEach(([label, avatar]) => {
+                    const side = document.createElement('div');
+                    side.className = 'log-detail-avatar-side';
+                    const image = document.createElement('div');
+                    image.className = 'log-detail-avatar-image';
+                    if (avatar) {
+                        image.style.backgroundImage = `url(${avatar})`;
+                        image.style.backgroundSize = 'cover';
+                        image.setAttribute('aria-label', label);
+                    } else {
+                        image.innerText = 'Kein Avatar';
+                    }
+                    const text = document.createElement('span');
+                    text.innerText = label;
+                    side.append(image, text);
+                    avatarChangeEl.appendChild(side);
+                    if (label === 'Vorheriger Avatar') {
+                        const arrow = document.createElement('span');
+                        arrow.className = 'log-detail-avatar-arrow';
+                        arrow.innerText = '→';
+                        avatarChangeEl.appendChild(arrow);
+                    }
+                });
+            }
         }
         if (backdrop) backdrop.classList.add('open');
     }
@@ -369,4 +411,3 @@
             selectEl.value = currentSelected;
         }
     }
-
