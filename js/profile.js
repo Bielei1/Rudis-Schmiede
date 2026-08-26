@@ -313,11 +313,24 @@
         }
         user.avatar_history = history;
         if (isCurrent) user.avatar = null;
+        if (typeof appUsersList !== 'undefined' && Array.isArray(appUsersList)) {
+            const appUser = appUsersList.find(item => Number(item.id) === Number(user.id));
+            if (appUser) {
+                appUser.avatar_history = history;
+                if (isCurrent) appUser.avatar = null;
+            }
+        }
+        if (typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList)) {
+            const memberUser = memberUsernamesList.find(item => Number(item.id) === Number(user.id));
+            if (memberUser && isCurrent) memberUser.avatar = null;
+        }
         if (currentUser.id === user.id && isCurrent) {
             currentUser.avatar = null;
             currentUser.avatarHistory = history;
             updateSidebarAvatar();
         }
+        if (typeof renderMembersTable === 'function') renderMembersTable();
+        if (typeof renderUsersTab === 'function') renderUsersTab();
         renderAvatarLogs();
         await logActivity(
             'Profil',
