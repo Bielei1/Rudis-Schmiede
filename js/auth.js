@@ -3,7 +3,11 @@
     const AUTH_STORAGE_KEY = 'rs_auth_session';
     const APP_NAME_STORAGE_KEY = 'rs_app_name';
     const DEFAULT_APP_NAME = 'Rudis Schmiede';
-    const AUTH_EMAIL_DOMAIN = 'cobndqlftctyaihzqatt.supabase.co';
+    const AUTH_EMAIL_DOMAIN = 'accounts.rudis-schmiede.example.com';
+    const LEGACY_AUTH_EMAIL_DOMAINS = [
+        'cobndqltfctyaihzqatt.supabase.co',
+        'cobndqlftctyaihzqatt.supabase.co'
+    ];
     function getAuthEmailForUsername(username) {
         const normalized = String(username || '').trim().toLowerCase();
         return `${normalized.replace(/[^a-z0-9._-]/g, '-') }@${AUTH_EMAIL_DOMAIN}`;
@@ -163,10 +167,19 @@
                 return;
             }
 
-            const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-                email: getAuthEmailForUsername(username),
-                password
-            });
+            const normalizedUsername = String(username).trim().toLowerCase();
+            const authEmails = [
+                getAuthEmailForUsername(normalizedUsername),
+                ...LEGACY_AUTH_EMAIL_DOMAINS.map(domain => `${normalizedUsername}@${domain}`)
+            ];
+            let authData = null;
+            let authError = null;
+            for (const email of authEmails) {
+                const result = await supabaseClient.auth.signInWithPassword({ email, password });
+                authData = result.data;
+                authError = result.error;
+                if (!authError && authData && authData.user) break;
+            }
             if (authError || !authData || !authData.user) {
                 showAuthMsg('login-error', authError && authError.message || 'Benutzername oder Passwort falsch.');
                 return;
