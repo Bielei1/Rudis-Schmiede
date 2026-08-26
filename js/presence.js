@@ -321,6 +321,26 @@
                             currentUser.isAdmin = !!payload.new.is_admin;
                             currentUser.specialPermissions = normalizeSpecialPermissions(payload.new.special_permissions, currentUser.isAdmin);
                         }
+                        const refreshedUser = typeof appUsersList !== 'undefined' && Array.isArray(appUsersList)
+                            ? appUsersList.find(user => String(user.id) === String(currentUser.id))
+                            : null;
+                        if (refreshedUser) {
+                            currentUser.avatar = refreshedUser.avatar || null;
+                            currentUser.avatarHistory = Array.isArray(refreshedUser.avatar_history) ? refreshedUser.avatar_history : [];
+                            currentUser.theme = refreshedUser.theme || currentUser.theme || 'dark';
+                            currentUser.bio = refreshedUser.bio || '';
+                            if (typeof updateSidebarAvatar === 'function') updateSidebarAvatar();
+                            if (typeof updateSidebarProfileInfo === 'function') updateSidebarProfileInfo();
+                            if (typeof applyTheme === 'function') applyTheme(currentUser.theme);
+                            if (presenceChannel) {
+                                await presenceChannel.track({
+                                    username: currentUser.username,
+                                    isAdmin: !!currentUser.isAdmin,
+                                    avatar: currentUser.avatar || null,
+                                    lastSeen: new Date().toISOString()
+                                });
+                            }
+                        }
                         await loadUserTabPermissions();
                         document.body.classList.toggle('is-admin', !!currentUser.isAdmin);
                         const roleEl = document.getElementById('sidebar-userrole');
