@@ -622,7 +622,9 @@
         editingPermissionDraft = normalizeTabPermissions(null);
 
         loadPermissionsForAdminUser(user.id).then(perms => {
-            editingPermissionDraft = normalizeTabPermissions(perms);
+            const normalized = normalizeTabPermissions(perms);
+            editingPermissionUser.tabPermissions = normalized;
+            editingPermissionDraft = normalized;
             renderPermissionModal();
             document.getElementById('permission-modal-backdrop').classList.add('open');
         });
@@ -742,7 +744,7 @@
 
         const previousPermissions = editingPermissionUser.tabPermissions
             ? JSON.parse(JSON.stringify(editingPermissionUser.tabPermissions))
-            : normalizeTabPermissions(null);
+            : normalizeTabPermissions(await loadPermissionsForAdminUser(editingPermissionUser.id));
 
         const permissions = {};
         TAB_DEFINITIONS.forEach(tab => {
