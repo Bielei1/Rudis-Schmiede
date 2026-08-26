@@ -40,12 +40,26 @@ function openMemberProfile(userId) {
 }
 
 async function loadMemberUsernames() {
-    const { data, error } = await supabaseClient
-        .from('app_users')
-    .select('id, username, created_at, avatar, bio, last_seen')
-        .order('username', { ascending: true });
-    if (!error && data) {
-        memberUsernamesList = data;
+    const directoryResponse = await supabaseClient.rpc('get_member_directory');
+    let data = directoryResponse.data;
+    let error = directoryResponse.error;
+
+    // Some database setups expose the directory RPC only to administrators.
+    // The fallback uses profile fields only and is still protected by RLS.
+    if (error || !Array.isArray(data) || data.length === 0) {
+        const fallbackResponse = await supabaseClient
+            .from('app_users')
+            .select('id, username, created_at, avatar, bio')
+            .order('username', { ascending: true });
+        data = fallbackResponse.data;
+        error = fallbackResponse.error;
+    }
+
+    if (!error && Array.isArray(data)) {
+        memberUsernamesList = data.sort((a, b) => String(a.username || '').localeCompare(String(b.username || ''), 'de'));
+    } else {
+        console.warn('Mitgliederliste konnte nicht geladen werden:', error ? error.message : 'Unbekannter Fehler');
+        memberUsernamesList = [];
     }
 }
 
