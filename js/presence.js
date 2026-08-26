@@ -99,7 +99,8 @@
         if (!presenceChannel) return [];
         const state = presenceChannel.presenceState();
         return Object.keys(state).map(name => {
-            const meta = state[name] && state[name][0] ? state[name][0] : {};
+            const entries = state[name] || [];
+            const meta = entries.length ? entries[entries.length - 1] : {};
             return { username: meta.username || name, avatar: meta.avatar || null, isAdmin: !!meta.isAdmin, lastSeen: meta.lastSeen || null };
         }).sort((a,b) => a.username.localeCompare(b.username));
     };
@@ -110,7 +111,8 @@
 
         const state = presenceChannel.presenceState();
         const onlineUsers = Object.keys(state).map(name => {
-            const meta = state[name][0] || {};
+            const entries = state[name] || [];
+            const meta = entries.length ? entries[entries.length - 1] : {};
             return { ...meta, username: meta.username || name };
         }).sort((a, b) => a.username.localeCompare(b.username));
         const allUsers = typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList)
@@ -184,7 +186,8 @@
         if (!presenceChannel) return;
         const state = presenceChannel.presenceState();
         Object.keys(state).forEach(name => {
-            const meta = state[name] && state[name][0];
+            const entries = state[name] || [];
+            const meta = entries.length ? entries[entries.length - 1] : null;
             if (!meta || !meta.username) return;
             const lists = [];
             if (typeof appUsersList !== 'undefined' && Array.isArray(appUsersList)) lists.push(appUsersList);
