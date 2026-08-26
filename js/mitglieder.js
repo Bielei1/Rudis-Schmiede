@@ -42,7 +42,7 @@ function openMemberProfile(userId) {
 async function loadMemberUsernames() {
     const { data, error } = await supabaseClient
         .from('app_users')
-    .select('id, username, created_at, avatar, bio')
+    .select('id, username, created_at, avatar, bio, last_seen')
         .order('username', { ascending: true });
     if (!error && data) {
         memberUsernamesList = data;

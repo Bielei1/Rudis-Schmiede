@@ -4,6 +4,7 @@
     // Benutzernamen an; schließt jemand die Seite, verschwindet er automatisch
     // wieder aus der Liste (kein Cleanup/Timeout selbst programmiert nötig).
     let presenceChannel = null;
+    let presenceHeartbeatTimer = null;
 
     function startPresence() {
         if (!currentUser || !supabaseClient) return;
@@ -25,7 +26,9 @@
                         isAdmin: !!currentUser.isAdmin,
                         avatar: currentUser.avatar || null, lastSeen: new Date().toISOString()
                     });
+                    await updateLastSeen();
                     renderOnlineUsers();
+                    presenceHeartbeatTimer = setInterval(updateLastSeen, 60000);
                 }
             });
     }
@@ -44,24 +47,75 @@
         if (!container || !presenceChannel) return;
 
         const state = presenceChannel.presenceState();
-        const usernames = Object.keys(state).sort((a, b) => a.localeCompare(b));
-
-        if (usernames.length === 0) {
-            container.innerHTML = `<div class="dashboard-empty" style="padding: 12px 4px;">Niemand online</div>`;
-            return;
-        }
-
-        container.innerHTML = usernames.map(name => {
-            const meta = state[name][0];
-            const isYou = currentUser && name === currentUser.username;
-            const displayName = meta.username || name;
-            return `
+        const onlineUsers = Object.keys(state).map(name => {
+            const meta = state[name][0] || {};
+            return { ...meta, username: meta.username || name };
+        }).sort((a, b) => a.username.localeCompare(b.username));
+        const allUsers = typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList)
+            ? memberUsernamesList
+            : (typeof appUsersList !== 'undefined' && Array.isArray(appUsersList) ? appUsersList : []);
+        const onlineNames = new Set(onlineUsers.map(user => user.username.toLowerCase()));
+        const offlineUsers = allUsers
+            .filter(user => user.username && !onlineNames.has(user.username.toLowerCase()))
+            .sort((a, b) => a.username.localeCompare(b.username, 'de'));
+        const onlineHtml = onlineUsers.length
+            ? onlineUsers.map(meta => {
+                const isYou = currentUser && meta.username === currentUser.username;
+                return `
                 <div class="online-user-row">
                     <span class="online-dot"></span>
-                    ${renderUsernameWithAvatar(displayName, meta, { size: 'small', suffix: isYou ? ' (Du)' : '' })}
+                    ${renderUsernameWithAvatar(meta.username, meta, { size: 'small', suffix: isYou ? ' (Du)' : '' })}
                 </div>
-            `;
-        }).join('');
+                `;
+            }).join('')
+            : `<div class="dashboard-empty" style="padding: 8px 4px;">Niemand online</div>`;
+        const offlineHtml = offlineUsers.length
+            ? offlineUsers.map(user => `
+                <div class="offline-user-row">
+                    <span class="offline-dot"></span>
+                    <div>
+                        ${renderUsernameWithAvatar(user.username, user, { size: 'small' })}
+                        <div class="offline-last-seen">${formatLastSeen(user.last_seen)}</div>
+                    </div>
+                </div>
+            `).join('')
+            : `<div class="dashboard-empty" style="padding: 8px 4px;">Keine Offline-Benutzer</div>`;
+        container.innerHTML = `
+            <div class="presence-section-title">Online</div>
+            ${onlineHtml}
+            <div class="presence-section-title presence-section-title-offline">Offline</div>
+            ${offlineHtml}
+        `;
+    }
+
+    function formatLastSeen(value) {
+        if (!value) return 'Noch nie online';
+        const elapsed = Math.max(0, Date.now() - new Date(value).getTime());
+        const minutes = Math.floor(elapsed / 60000);
+        if (minutes < 1) return 'Zuletzt gerade eben';
+        if (minutes < 60) return `Zuletzt vor ${minutes} Minute${minutes === 1 ? '' : 'n'}`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `Zuletzt vor ${hours} Stunde${hours === 1 ? '' : 'n'}`;
+        const days = Math.floor(hours / 24);
+        return `Zuletzt vor ${days} Tag${days === 1 ? '' : 'en'}`;
+    }
+
+    async function updateLastSeen() {
+        if (!currentUser || !currentUser.id || !supabaseClient) return;
+        const lastSeen = new Date().toISOString();
+        const { error } = await supabaseClient
+            .from('app_users')
+            .update({ last_seen: lastSeen })
+            .eq('id', currentUser.id);
+        if (!error) {
+            const lists = [];
+            if (typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList)) lists.push(memberUsernamesList);
+            if (typeof appUsersList !== 'undefined' && Array.isArray(appUsersList)) lists.push(appUsersList);
+            lists.forEach(list => {
+                const user = list.find(item => Number(item.id) === Number(currentUser.id));
+                if (user) user.last_seen = lastSeen;
+            });
+        }
     }
 
     function syncPresenceAvatars() {

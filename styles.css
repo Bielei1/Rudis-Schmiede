@@ -1451,6 +1451,43 @@
             font-size: 0.85rem;
         }
 
+        .presence-section-title {
+            margin: 8px 0 6px;
+            color: var(--success-color);
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .presence-section-title-offline {
+            margin-top: 18px;
+            color: var(--text-muted);
+        }
+
+        .offline-user-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 5px 0;
+        }
+
+        .offline-dot {
+            width: 7px;
+            height: 7px;
+            margin-top: 7px;
+            flex: 0 0 7px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            opacity: 0.75;
+        }
+
+        .offline-last-seen {
+            margin-top: 2px;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+        }
+
         .online-dot {
             width: 8px;
             height: 8px;
