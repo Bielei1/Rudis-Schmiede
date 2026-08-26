@@ -255,21 +255,14 @@
 
     function hasPendingFormInput() {
         const activeElement = document.activeElement;
-        if (activeElement && activeElement.matches('input, select, textarea, [contenteditable="true"]')) {
-            return true;
-        }
-
-        return Array.from(document.querySelectorAll('input[id], select[id], textarea[id]')).some(element => {
-            if (element.type === 'checkbox' || element.type === 'radio') {
-                return element.checked !== element.defaultChecked;
-            }
-            return element.value !== element.defaultValue;
-        });
+        return !!(activeElement && activeElement.matches(
+            'input:not([type="button"]):not([type="submit"]), select, textarea, [contenteditable="true"]'
+        ));
     }
 
-    async function runLiveDataRefresh() {
+    async function runLiveDataRefresh(force = false) {
         if (liveDataRefreshInProgress || document.hidden || !currentUser || !supabaseClient) return;
-        if (hasPendingFormInput()) {
+        if (!force && hasPendingFormInput()) {
             updateLiveSyncStatus('Eingabe geschützt');
             return;
         }
@@ -297,6 +290,7 @@
             event: 'data-updated',
             payload: { table }
         });
+        await runLiveDataRefresh(true);
     }
 
     function handleRemoteDataChange(table, payload) {
