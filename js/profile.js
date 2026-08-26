@@ -228,32 +228,6 @@
         }
         avatarLogsUsers = data || [];
 
-        // Bereits vorhandene Profil-Logs nachträglich in die Avatar-Historie übernehmen.
-        const { data: profileLogs } = await supabaseClient
-            .from('activity_log')
-            .select('username, message')
-            .eq('category', 'Profil');
-        (profileLogs || []).forEach(entry => {
-            const user = avatarLogsUsers.find(item => item.username === entry.username);
-            if (!user) return;
-            const foundAvatars = String(entry.message || '').match(/^Avatar (?:vorher|nachher): (.+)$/gm) || [];
-            const history = getAvatarHistory(user);
-            const originalLength = history.length;
-            foundAvatars.forEach(line => {
-                const avatar = line.replace(/^Avatar (?:vorher|nachher): /, '').trim();
-                if (avatar && avatar !== '__NO_AVATAR__' && !history.includes(avatar)) history.push(avatar);
-            });
-            user.avatar_history = history;
-            if (history.length !== originalLength) {
-                supabaseClient
-                    .from('app_users')
-                    .update({ avatar_history: history })
-                    .eq('id', user.id)
-                    .then(({ error: historyError }) => {
-                        if (historyError) console.warn('Nachträgliche Avatar-Historie konnte nicht gespeichert werden:', historyError.message);
-                    });
-            }
-        });
         renderAvatarLogs();
     }
 
