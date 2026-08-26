@@ -3,9 +3,8 @@
     const AUTH_STORAGE_KEY = 'rs_auth_session';
     const APP_NAME_STORAGE_KEY = 'rs_app_name';
     const DEFAULT_APP_NAME = 'Rudis Schmiede';
-    const AUTH_EMAIL_DOMAIN = 'accounts.rudis-schmiede.example.com';
+    const AUTH_EMAIL_DOMAIN = 'cobndqltfctyaihzqatt.supabase.co';
     const LEGACY_AUTH_EMAIL_DOMAINS = [
-        'cobndqltfctyaihzqatt.supabase.co',
         'cobndqlftctyaihzqatt.supabase.co'
     ];
     function getAuthEmailForUsername(username) {
@@ -914,8 +913,65 @@
         const submitBtn = event.target.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         try {
-            showToast('Benutzer werden nach Einrichtung der serverseitigen Auth-Funktion durch den Admin angelegt.', 'warning');
-            return;
+            if (!currentUser || !currentUser.isAdmin) {
+                showToast('Nur Administratoren dürfen Benutzer anlegen.', 'danger');
+                return;
+            }
+
+            const { data: sessionData } = await supabaseClient.auth.getSession();
+            const authEmail = getAuthEmailForUsername(username);
+            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                email: authEmail,
+                password
+            });
+            if (authError || !authData.user) {
+                const message = String(authError && authError.message || '').toLowerCase();
+                showToast(message.includes('already')
+                    ? 'Dieser Benutzername ist bereits vergeben.'
+                    : 'Benutzer konnte nicht angelegt werden: ' + (authError ? authError.message : 'Auth-Benutzer fehlt.'), 'danger');
+                return;
+            }
+
+            if (sessionData.session) {
+                await supabaseClient.auth.setSession(sessionData.session);
+            }
+
+            const { data: createdUser, error: userError } = await supabaseClient
+                .from('app_users')
+                .insert([{
+                    username,
+                    auth_user_id: authData.user.id,
+                    permission: 'view',
+                    is_admin: isAdmin,
+                    approved: true
+                }])
+                .select('id')
+                .single();
+            if (userError) {
+                showToast('Benutzerprofil konnte nicht angelegt werden: ' + userError.message, 'danger');
+                return;
+            }
+
+            if (createdUser && createdUser.id) {
+                await saveDefaultTabPermissionsForUser(createdUser.id);
+                if (memberRang || memberNotiz) {
+                    await supabaseClient.from('members').insert([{
+                        name: username,
+                        rang: memberRang,
+                        notiz: memberNotiz,
+                        joinedAt: new Date().toISOString().slice(0, 10)
+                    }]);
+                }
+            }
+
+            if (typeof broadcastDataChange === 'function') {
+                await broadcastDataChange('app_users');
+                await broadcastDataChange('app_user_tab_permissions');
+                if (memberRang || memberNotiz) await broadcastDataChange('members');
+            }
+            event.target.reset();
+            await loadAppUsers();
+            showToast(`Benutzer „${username}“ wurde angelegt.`, 'success');
         } finally {
             submitBtn.disabled = false;
         }
