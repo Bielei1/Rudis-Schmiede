@@ -159,13 +159,13 @@
             liveSyncChannel.on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table },
-                () => handleRemoteDataChange(table)
+                (payload) => handleRemoteDataChange(table, payload)
             );
         });
         liveSyncChannel.subscribe();
     }
 
-    function handleRemoteDataChange(table) {
+    function handleRemoteDataChange(table, payload) {
         clearTimeout(liveSyncDebounceTimer);
         liveSyncDebounceTimer = setTimeout(async () => {
             try {
@@ -175,6 +175,22 @@
                     await loadAppUsers();
                 }
                 if (table === 'app_users') {
+                    const changedUser = payload && (payload.new || payload.old);
+                    if (changedUser && currentUser && String(changedUser.id) === String(currentUser.id)) {
+                        if (payload.new) {
+                            currentUser.isAdmin = !!payload.new.is_admin;
+                            currentUser.specialPermissions = normalizeSpecialPermissions(payload.new.special_permissions, currentUser.isAdmin);
+                        }
+                        await loadUserTabPermissions();
+                        document.body.classList.toggle('is-admin', !!currentUser.isAdmin);
+                        const roleEl = document.getElementById('sidebar-userrole');
+                        if (roleEl) roleEl.innerText = currentUser.isAdmin
+                            ? 'Administrator'
+                            : 'Benutzer – Tab-Rechte individuell';
+                        updateTabVisibility();
+                        applyPermissionUI();
+                        ensureAllowedTabSelected();
+                    }
                     await loadMemberUsernames();
                     renderMembersTable();
                     if (currentUser && currentUser.isAdmin) {
@@ -182,7 +198,9 @@
                         if (typeof renderAvatarLogs === 'function') renderAvatarLogs();
                     }
                 }
-                if (table === 'app_user_tab_permissions' && currentUser && !currentUser.isAdmin) {
+                if (table === 'app_user_tab_permissions' && currentUser) {
+                    const changedPermission = payload && (payload.new || payload.old);
+                    if (changedPermission && String(changedPermission.user_id) !== String(currentUser.id)) return;
                     await loadUserTabPermissions();
                     updateTabVisibility();
                     applyPermissionUI();
