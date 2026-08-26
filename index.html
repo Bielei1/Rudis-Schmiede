@@ -1004,21 +1004,24 @@
             Jede Änderung an Lagerbestand, Bestellungen, Preisen und Rezepten wird hier automatisch mit Zeitstempel erfasst.
         </div>
 
-        <div class="filter-card">
-            <label for="log-category-filter">Nach Kategorie filtern:</label>
-            <select id="log-category-filter" onchange="renderActivityLog()">
-                <option value="ALL">Alle Kategorien anzeigen</option>
-                <option value="Lagerbestand">Lagerbestand</option>
-                <option value="Bestellung">Bestellung</option>
-                <option value="Archiv">Archiv</option>
-                <option value="Verkaufspreis">Verkaufspreis</option>
-                <option value="Kundenpreis">Kundenpreis</option>
-                <option value="Einkaufspreis">Einkaufspreis</option>
-                <option value="Rezept">Rezept</option>
-                <option value="Notizen">Notizen</option>
-                <option value="Pinnwand">Pinnwand</option>
-                <option value="Benutzerverwaltung">Benutzerverwaltung</option>
-            </select>
+        <div class="filter-card" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-width: 0;">
+                <label for="log-category-filter">Nach Kategorie filtern:</label>
+                <select id="log-category-filter" onchange="renderActivityLog()">
+                    <option value="ALL">Alle Kategorien anzeigen</option>
+                    <option value="Lagerbestand">Lagerbestand</option>
+                    <option value="Bestellung">Bestellung</option>
+                    <option value="Archiv">Archiv</option>
+                    <option value="Verkaufspreis">Verkaufspreis</option>
+                    <option value="Kundenpreis">Kundenpreis</option>
+                    <option value="Einkaufspreis">Einkaufspreis</option>
+                    <option value="Rezept">Rezept</option>
+                    <option value="Notizen">Notizen</option>
+                    <option value="Pinnwand">Pinnwand</option>
+                    <option value="Benutzerverwaltung">Benutzerverwaltung</option>
+                </select>
+            </div>
+            <button type="button" id="log-clear-btn" class="btn btn-danger" onclick="clearActivityLog()" style="display:none;">Protokoll leeren</button>
         </div>
 
         <div class="table-container-scrollable">

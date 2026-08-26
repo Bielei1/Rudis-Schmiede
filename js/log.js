@@ -82,7 +82,45 @@
             .replace(/[^a-z0-9]+/g, '-');
     }
 
+    function updateLogAdminControls() {
+        const btn = document.getElementById('log-clear-btn');
+        if (!btn) return;
+        btn.style.display = currentUser && currentUser.isAdmin ? '' : 'none';
+    }
+
+    async function clearActivityLog() {
+        if (!currentUser || !currentUser.isAdmin) {
+            showToast('Nur Administratoren können das Änderungsprotokoll leeren.', 'danger');
+            return;
+        }
+
+        const confirmed = window.confirm('Möchtest du das gesamte Änderungsprotokoll wirklich löschen?');
+        if (!confirmed) return;
+
+        try {
+            const { error } = await supabaseClient
+                .from('activity_log')
+                .delete()
+                .neq('id', 0);
+
+            if (error) {
+                console.error('Änderungsprotokoll konnte nicht geleert werden:', error.message);
+                showToast('Das Änderungsprotokoll konnte nicht geleert werden: ' + error.message, 'danger');
+                return;
+            }
+
+            activityLogList = [];
+            renderActivityLog();
+            showToast('Das Änderungsprotokoll wurde geleert.', 'success', 'Protokoll gelöscht');
+        } catch (e) {
+            console.error('Änderungsprotokoll konnte nicht geleert werden:', e);
+            showToast('Das Änderungsprotokoll konnte nicht geleert werden.', 'danger');
+        }
+    }
+
     function renderActivityLog() {
+        updateLogAdminControls();
+
         const tbody = document.getElementById('log-table-body');
         if (!tbody) return;
         const filterEl = document.getElementById('log-category-filter');
