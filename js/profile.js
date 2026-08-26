@@ -5,6 +5,8 @@
     let pendingAvatarBase64 = null;
     let pendingProfileBio = '';
     let profileModalOriginalTheme = 'dark';
+    let profileModalOriginalAvatar = null;
+    let profileModalOriginalBio = '';
 
     function applyTheme(theme) {
         const value = theme === 'light' ? 'light' : 'dark';
@@ -44,6 +46,8 @@
         pendingAvatarBase64 = currentUser.avatar || null;
         pendingProfileBio = currentUser.bio || '';
         profileModalOriginalTheme = currentUser.theme || 'dark';
+        profileModalOriginalAvatar = currentUser.avatar || null;
+        profileModalOriginalBio = String(currentUser.bio || '').replace(/\s+/g, ' ').trim();
 
         document.getElementById('profile-modal-username').innerText = currentUser.username;
         document.getElementById('profile-bio-input').value = pendingProfileBio;
@@ -60,6 +64,8 @@
         document.getElementById('profile-modal-backdrop').classList.remove('open');
         pendingAvatarBase64 = null;
         pendingProfileBio = '';
+        profileModalOriginalAvatar = null;
+        profileModalOriginalBio = '';
         const fileInput = document.getElementById('profile-avatar-input');
         if (fileInput) fileInput.value = '';
     }
@@ -123,6 +129,10 @@
         const chosenTheme = document.getElementById('theme-choice-light').classList.contains('active') ? 'light' : 'dark';
         const bioValue = String(document.getElementById('profile-bio-input').value || '').replace(/\s+/g, ' ').trim();
         pendingProfileBio = bioValue;
+        const avatarChanged = pendingAvatarBase64 !== profileModalOriginalAvatar;
+        const bioChanged = bioValue !== profileModalOriginalBio;
+        const avatarWasSet = !!pendingAvatarBase64;
+        const previousBio = profileModalOriginalBio;
 
         const localProfile = {
             avatar: pendingAvatarBase64,
@@ -166,4 +176,19 @@
         updateSidebarProfileInfo();
         closeProfileModal(false);
         showToast('Dein Profil wurde aktualisiert.', 'success', 'Profil geändert');
+
+        if (avatarChanged || bioChanged) {
+            const changed = [];
+            if (avatarChanged) {
+                changed.push(avatarWasSet ? 'Avatar geändert' : 'Avatar entfernt');
+            }
+            if (bioChanged) {
+                changed.push(`Bio geändert: „${previousBio || '-'}“ → „${bioValue || '-'}“`);
+            }
+            await logActivity(
+                'Profil',
+                `Profil von „${currentUser.username}“ wurde geändert`,
+                changed.join('\n')
+            );
+        }
     }
