@@ -355,6 +355,10 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="3"/><circle cx="16.5" cy="8.5" r="2.4"/><path d="M2.5 20c0-3 2.7-5.2 6-5.2s6 2.2 6 5.2M14 20c0-2.1 1.6-4.6 4.2-4.9"/></svg>
                 <span>Benutzer</span>
             </button>
+            <button class="tab-btn" draggable="true" data-tab="avatarlogs" data-admin-only onclick="switchTab('avatarlogs')">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M4 20c.8-3.4 3.5-5.5 8-5.5s7.2 2.1 8 5.5"/><path d="M18.5 3.5v4M16.5 5.5h4"/></svg>
+                <span>Avatar-Logs</span>
+            </button>
         </nav>
 
         <div class="sidebar-user-box">
@@ -1148,6 +1152,15 @@
                 <tbody id="users-table-body"></tbody>
             </table>
         </div>
+    </div>
+
+    <!-- TAB: AVATAR-HISTORIE (nur Admin) -->
+    <div id="tab-avatarlogs" class="tab-content">
+        <h2 style="margin-bottom: 8px;">Avatar-Logs</h2>
+        <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">
+            Hier siehst du alle gespeicherten Avatare der Benutzer. Ein Avatar kann gezielt aus der Historie entfernt werden.
+        </div>
+        <div id="avatar-logs-grid" class="avatar-logs-grid"></div>
     </div>
     </div>
     </main>

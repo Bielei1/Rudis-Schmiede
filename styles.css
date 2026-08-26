@@ -675,6 +675,56 @@
             font-size: 1.3rem;
         }
 
+        .avatar-logs-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .avatar-log-card {
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--card-bg);
+        }
+
+        .avatar-log-card h3 {
+            margin: 0 0 14px;
+        }
+
+        .avatar-log-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .avatar-log-item {
+            display: grid;
+            justify-items: center;
+            gap: 8px;
+        }
+
+        .avatar-log-image {
+            width: 82px;
+            height: 82px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid var(--border-color);
+        }
+
+        .avatar-log-item .btn {
+            font-size: 0.75rem;
+            padding: 6px 9px;
+        }
+
+        .avatar-logs-empty {
+            padding: 20px;
+            color: var(--text-muted);
+            text-align: center;
+            border: 1px dashed var(--border-color);
+            border-radius: 10px;
+        }
+
         @media (max-width: 980px) {
             .log-filter-card {
                 grid-template-columns: 1fr;

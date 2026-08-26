@@ -7,6 +7,12 @@
     let profileModalOriginalTheme = 'dark';
     let profileModalOriginalAvatar = null;
     let profileModalOriginalBio = '';
+    let avatarLogsUsers = [];
+
+    function getAvatarHistory(user) {
+        const history = Array.isArray(user.avatar_history) ? user.avatar_history : (Array.isArray(user.avatarHistory) ? user.avatarHistory : []);
+        return [...new Set(history.filter(avatar => typeof avatar === 'string' && avatar))];
+    }
 
     function applyTheme(theme) {
         const value = theme === 'light' ? 'light' : 'dark';
@@ -138,7 +144,12 @@
         const localProfile = {
             avatar: pendingAvatarBase64,
             theme: chosenTheme,
-            bio: bioValue
+            bio: bioValue,
+            avatarHistory: [...new Set([
+                ...getAvatarHistory(currentUser),
+                profileModalOriginalAvatar,
+                pendingAvatarBase64
+            ].filter(Boolean))]
         };
 
         if (currentUser.id) {
@@ -152,6 +163,13 @@
                 if (error) {
                     showToast('Profil konnte nicht in Supabase gespeichert werden: ' + error.message + '. Prüfe, ob in app_users die Spalte "bio" existiert.', 'danger');
                     return;
+                }
+                const { error: historyError } = await supabaseClient
+                    .from('app_users')
+                    .update({ avatar_history: localProfile.avatarHistory })
+                    .eq('id', currentUser.id);
+                if (historyError) {
+                    console.warn('Avatar-Historie konnte nicht gespeichert werden:', historyError.message);
                 }
             } catch (e) {
                 console.warn('Profil-DB-Update fehlgeschlagen.', e);
@@ -170,6 +188,7 @@
         }
 
         currentUser.avatar = pendingAvatarBase64;
+        currentUser.avatarHistory = localProfile.avatarHistory;
         currentUser.theme = chosenTheme;
         currentUser.bio = bioValue;
         applyTheme(chosenTheme);
@@ -194,4 +213,85 @@
                 changed.join('\n')
             );
         }
+    }
+
+    async function loadAvatarLogs() {
+        if (!currentUser || !currentUser.isAdmin) return;
+        const { data, error } = await supabaseClient
+            .from('app_users')
+            .select('id, username, avatar, avatar_history')
+            .order('username', { ascending: true });
+        if (error) {
+            const grid = document.getElementById('avatar-logs-grid');
+            if (grid) grid.innerHTML = `<div class="avatar-logs-empty">Avatar-Historie konnte nicht geladen werden. Prüfe die Spalte „avatar_history“ in app_users.</div>`;
+            return;
+        }
+        avatarLogsUsers = data || [];
+        renderAvatarLogs();
+    }
+
+    function renderAvatarLogs() {
+        const grid = document.getElementById('avatar-logs-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        let count = 0;
+        avatarLogsUsers.forEach(user => {
+            const avatars = getAvatarHistory(user);
+            if (user.avatar && !avatars.includes(user.avatar)) avatars.push(user.avatar);
+            if (!avatars.length) return;
+            const card = document.createElement('section');
+            card.className = 'avatar-log-card';
+            const title = document.createElement('h3');
+            title.textContent = user.username || 'Unbekannt';
+            card.appendChild(title);
+            const list = document.createElement('div');
+            list.className = 'avatar-log-list';
+            avatars.forEach((avatar, index) => {
+                count++;
+                const item = document.createElement('div');
+                item.className = 'avatar-log-item';
+                const image = document.createElement('div');
+                image.className = 'avatar-log-image';
+                image.style.backgroundImage = `url(${avatar})`;
+                const button = document.createElement('button');
+                button.className = 'btn btn-danger';
+                button.textContent = 'Avatar löschen';
+                button.type = 'button';
+                button.addEventListener('click', () => deleteAvatarLog(user, avatar));
+                item.append(image, button);
+                list.appendChild(item);
+            });
+            card.appendChild(list);
+            grid.appendChild(card);
+        });
+        if (!count) grid.innerHTML = '<div class="avatar-logs-empty">Noch keine gespeicherten Avatare vorhanden.</div>';
+    }
+
+    async function deleteAvatarLog(user, avatar) {
+        if (!currentUser || !currentUser.isAdmin) return;
+        if (!await customConfirm(`Diesen Avatar von „${user.username}“ wirklich löschen?`)) return;
+        const history = getAvatarHistory(user).filter(item => item !== avatar);
+        const isCurrent = user.avatar === avatar;
+        const { error } = await supabaseClient
+            .from('app_users')
+            .update({ avatar_history: history, ...(isCurrent ? { avatar: null } : {}) })
+            .eq('id', user.id);
+        if (error) {
+            showToast('Avatar konnte nicht gelöscht werden: ' + error.message, 'danger');
+            return;
+        }
+        user.avatar_history = history;
+        if (isCurrent) user.avatar = null;
+        if (currentUser.id === user.id && isCurrent) {
+            currentUser.avatar = null;
+            currentUser.avatarHistory = history;
+            updateSidebarAvatar();
+        }
+        renderAvatarLogs();
+        await logActivity(
+            'Profil',
+            `Avatar von „${user.username}“ wurde gelöscht`,
+            `Benutzer: ${user.username}\nAktion: Avatar aus Avatar-Logs entfernt${isCurrent ? ' und beim Benutzer zurückgesetzt' : ''}`
+        );
+        showToast('Avatar wurde gelöscht.', 'success', 'Avatar gelöscht');
     }

@@ -1,5 +1,5 @@
     function switchTab(tabName, forceAllowed = false) {
-        if ((tabName === 'log' || tabName === 'benutzer') && !(currentUser && currentUser.isAdmin)) return;
+        if ((tabName === 'log' || tabName === 'benutzer' || tabName === 'avatarlogs') && !(currentUser && currentUser.isAdmin)) return;
         if (!forceAllowed && tabName !== 'log' && tabName !== 'benutzer' && !canViewTab(tabName)) {
             showToast('Du hast für diesen Tab keinen Zugriff.', 'danger');
             return;
@@ -24,6 +24,8 @@
             renderActivityLog();
         } else if (tabName === 'benutzer') {
             loadAppUsers();
+        } else if (tabName === 'avatarlogs') {
+            loadAvatarLogs();
         } else if (tabName === 'herstellung') {
             updateRecipeSearchSelect();
             renderRecipes();
@@ -467,4 +469,3 @@
         renderCustomerPricesTable();
         showToast(`Manueller Materialpreis für "${ingredientName}" wurde ${isNaN(val) || val < 0 ? 'entfernt' : 'gespeichert'}.`, 'success', 'Herstellungskosten geändert');
     }
-
