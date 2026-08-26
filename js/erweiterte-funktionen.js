@@ -1,6 +1,6 @@
 // ============ ERWEITERTE VERWALTUNGSFUNKTIONEN ============
-// Bewusst separat gehalten: Dashboard, Verkaufsstatistik, Benutzeraktivität,
-// Sitzungen und schnelle Theme-Steuerung. Bestehende Kernmodule bleiben unverändert.
+// Bewusst separat gehalten: Dashboard, Benutzeraktivität, Sitzungen
+// und schnelle Theme-Steuerung. Bestehende Kernmodule bleiben unverändert.
 
 (function () {
     const SPECIAL_FALLBACK_KEY = 'rs_special_permissions_fallback';
@@ -8,56 +8,9 @@
     function money(v) { return '$' + (Number(v) || 0).toFixed(2); }
     function safe(v) { return typeof escapeHtml === 'function' ? escapeHtml(v) : String(v ?? ''); }
 
-    function getRecentSales(days = 30) {
-        const since = Date.now() - days * 86400000;
-        return (Array.isArray(archivedOrdersList) ? archivedOrdersList : []).filter(order => {
-            const raw = order.deliveredAt || order.createdAt;
-            const t = raw ? new Date(raw).getTime() : 0;
-            return !t || t >= since;
-        });
-    }
-
-    function calculateSalesStats() {
-        const orders = getRecentSales(30);
-        const stats = { orders: orders.length, revenue: 0, cost: 0, profit: 0, sellers: {} };
-        orders.forEach(order => {
-            const revenue = Number(order.totalSum) || 0;
-            const cost = Number(order.totalProductionCost) || 0;
-            const seller = order.soldBy || 'Unbekannt';
-            stats.revenue += revenue;
-            stats.cost += cost;
-            stats.profit += revenue - cost;
-            if (!stats.sellers[seller]) stats.sellers[seller] = { orders: 0, revenue: 0, cost: 0, profit: 0 };
-            stats.sellers[seller].orders++;
-            stats.sellers[seller].revenue += revenue;
-            stats.sellers[seller].cost += cost;
-            stats.sellers[seller].profit += revenue - cost;
-        });
-        return stats;
-    }
-
     function renderExtendedDashboard() {
-        const salesEl = document.getElementById('dashboard-sales-stats');
         const sessionsEl = document.getElementById('dashboard-session-stats');
-        if (!salesEl || !sessionsEl) return;
-
-        const stats = calculateSalesStats();
-        const sellers = Object.entries(stats.sellers).sort((a,b) => b[1].revenue - a[1].revenue).slice(0, 5);
-        const avg = stats.orders ? stats.revenue / stats.orders : 0;
-        salesEl.innerHTML = `
-            <div class="dashboard-stat-highlight"><span>Umsatz</span><strong>${money(stats.revenue)}</strong></div>
-            <div class="dashboard-stat-row"><span>Herstellungskosten</span><strong>${money(stats.cost)}</strong></div>
-            <div class="dashboard-stat-row"><span>Gewinn</span><strong class="stat-positive">${money(stats.profit)}</strong></div>
-            <div class="dashboard-stat-row"><span>Bestellungen</span><strong>${stats.orders}</strong></div>
-            <div class="dashboard-stat-row"><span>Ø Bestellung</span><strong>${money(avg)}</strong></div>
-            <div class="dashboard-stat-divider"></div>
-            ${sellers.length ? sellers.map(([name, data], i) => `
-                <div class="dashboard-seller-row">
-                    <span class="dashboard-rank">${i + 1}</span>
-                    ${typeof renderUsernameWithAvatar === 'function' ? renderUsernameWithAvatar(name, null, {size:'small'}) : safe(name)}
-                    <span class="dashboard-seller-value">${money(data.revenue)}</span>
-                </div>`).join('') : '<div class="dashboard-empty">Noch keine Verkäufe in den letzten 30 Tagen.</div>'}
-        `;
+        if (!sessionsEl) return;
 
         const online = typeof getOnlineUsersSnapshot === 'function' ? getOnlineUsersSnapshot() : [];
         sessionsEl.innerHTML = online.length ? online.map(user => `
