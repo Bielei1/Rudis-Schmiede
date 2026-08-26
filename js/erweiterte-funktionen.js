@@ -8,20 +8,6 @@
     function money(v) { return '$' + (Number(v) || 0).toFixed(2); }
     function safe(v) { return typeof escapeHtml === 'function' ? escapeHtml(v) : String(v ?? ''); }
 
-    function renderExtendedDashboard() {
-        const sessionsEl = document.getElementById('dashboard-session-stats');
-        if (!sessionsEl) return;
-
-        const online = typeof getOnlineUsersSnapshot === 'function' ? getOnlineUsersSnapshot() : [];
-        sessionsEl.innerHTML = online.length ? online.map(user => `
-            <div class="dashboard-session-row">
-                <span class="online-dot"></span>
-                ${typeof renderUsernameWithAvatar === 'function' ? renderUsernameWithAvatar(user.username, user, {size:'small'}) : safe(user.username)}
-                <span class="dashboard-session-time">${user.lastSeen ? new Date(user.lastSeen).toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'}) : 'aktiv'}</span>
-            </div>
-        `).join('') : '<div class="dashboard-empty">Keine aktive Sitzung gefunden.</div>';
-    }
-
     const originalRenderUsersTab = window.renderUsersTab;
     window.renderUsersTab = function () {
         if (typeof originalRenderUsersTab === 'function') originalRenderUsersTab();
@@ -40,12 +26,6 @@
                 : '<span class="session-pill session-offline">Offline</span>';
             row.insertBefore(cell, row.lastElementChild);
         });
-    };
-
-    const originalRenderDashboard = window.renderDashboard;
-    window.renderDashboard = function () {
-        if (typeof originalRenderDashboard === 'function') originalRenderDashboard();
-        renderExtendedDashboard();
     };
 
     // ============ BENUTZERAKTIVITÄT ============
@@ -101,13 +81,6 @@
 
     // Sanfte Theme-Übergänge, ohne das Layout zu verändern.
     document.documentElement.classList.add('theme-ready');
-
-    // Aktualisierung der Live-Kennzahlen.
-    setInterval(() => {
-        if (document.getElementById('tab-uebersicht')?.classList.contains('active')) {
-            renderExtendedDashboard();
-        }
-    }, 5000);
 
     // Escape schließt das Benutzeraktivitätsfenster.
     document.addEventListener('keydown', event => {
