@@ -192,9 +192,24 @@
         currentUser.avatarHistory = localProfile.avatarHistory;
         currentUser.theme = chosenTheme;
         currentUser.bio = bioValue;
+        const updateUserList = list => {
+            if (!Array.isArray(list)) return;
+            const user = list.find(item => Number(item.id) === Number(currentUser.id));
+            if (user) {
+                user.avatar = currentUser.avatar;
+                user.avatar_history = currentUser.avatarHistory;
+                user.avatarHistory = currentUser.avatarHistory;
+                user.theme = currentUser.theme;
+                user.bio = currentUser.bio;
+            }
+        };
+        updateUserList(typeof appUsersList !== 'undefined' ? appUsersList : null);
+        updateUserList(typeof memberUsernamesList !== 'undefined' ? memberUsernamesList : null);
         applyTheme(chosenTheme);
         updateSidebarAvatar();
         updateSidebarProfileInfo();
+        if (typeof renderMembersTable === 'function') renderMembersTable();
+        if (currentUser.isAdmin && typeof renderAvatarLogs === 'function') renderAvatarLogs();
         if (typeof presenceChannel !== 'undefined' && presenceChannel) {
             await presenceChannel.track({
                 username: currentUser.username,

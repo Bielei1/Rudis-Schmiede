@@ -212,6 +212,7 @@
     let liveSyncChannel = null;
     let liveSyncDebounceTimer = null;
     let liveDataRefreshInProgress = false;
+    let liveDataRefreshQueued = false;
     let liveSyncStatus = 'Verbinde...';
 
     function updateLiveSyncStatus(status, isError = false) {
@@ -241,8 +242,10 @@
             if (!payload || !LIVE_SYNC_TABLES.includes(payload.table)) return;
             handleRemoteDataChange(payload.table, payload);
         });
-        liveSyncChannel.subscribe();
-        updateLiveSyncStatus('Live');
+        liveSyncChannel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') updateLiveSyncStatus('Live');
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') updateLiveSyncStatus('Sync-Fehler', true);
+        });
     }
 
     function hasPendingFormInput() {
@@ -253,8 +256,16 @@
     }
 
     async function runLiveDataRefresh(force = false) {
-        if (liveDataRefreshInProgress || (!force && document.hidden) || !currentUser || !supabaseClient) return false;
+        if (!currentUser || !supabaseClient) return false;
+        if (liveDataRefreshInProgress) {
+            liveDataRefreshQueued = true;
+            return false;
+        }
+        if (!force && document.hidden) return false;
         if (!force && hasPendingFormInput()) {
+            liveDataRefreshQueued = true;
+            clearTimeout(liveSyncDebounceTimer);
+            liveSyncDebounceTimer = setTimeout(() => runLiveDataRefresh(), 1000);
             return false;
         }
         liveDataRefreshInProgress = true;
@@ -273,6 +284,10 @@
             return false;
         } finally {
             liveDataRefreshInProgress = false;
+            if (liveDataRefreshQueued) {
+                liveDataRefreshQueued = false;
+                setTimeout(() => runLiveDataRefresh(), 0);
+            }
         }
     }
 
@@ -285,7 +300,6 @@
                 payload: { table }
             });
         }
-        await runLiveDataRefresh(true);
     }
 
     function handleRemoteDataChange(table, payload) {
