@@ -432,9 +432,11 @@
             console.warn('Daten konnten nach dem Login nicht vollständig geladen werden:', e);
         }
 
-        if (currentUser.isAdmin) {
+        if (currentUser.isAdmin || canViewTab('benutzer')) {
             try { await loadAppUsers(); } catch (e) { console.warn('Benutzer konnten nicht geladen werden:', e); }
-            try { await loadPasswordResetRequests(); } catch (e) { console.warn('Passwort-Reset-Anfragen konnten nicht geladen werden:', e); }
+            if (currentUser.isAdmin) {
+                try { await loadPasswordResetRequests(); } catch (e) { console.warn('Passwort-Reset-Anfragen konnten nicht geladen werden:', e); }
+            }
         }
 
         if (loadingOverlay) loadingOverlay.classList.remove('visible');
@@ -476,7 +478,11 @@
     function canViewTab(tabName) {
         if (!currentUser) return false;
         if (currentUser.isAdmin) return true;
-        if (ADMIN_ONLY_TABS.has(tabName)) return false;
+        if (tabName === 'benutzer') {
+            return canSpecialAction('benutzer_sperren') || canSpecialAction('benutzer_loeschen');
+        }
+        if (tabName === 'log') return canSpecialAction('log_leeren');
+        if (tabName === 'avatarlogs') return false;
         const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
         return !!(p && p.view);
     }
@@ -563,9 +569,7 @@
     function updateTabVisibility() {
         document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
             const tab = btn.dataset.tab;
-            const allowed = ADMIN_ONLY_TABS.has(tab)
-                ? !!(currentUser && currentUser.isAdmin)
-                : canViewTab(tab);
+            const allowed = canViewTab(tab);
             btn.style.display = allowed ? '' : 'none';
         });
     }
@@ -575,6 +579,15 @@
         const tabContent = el.closest('.tab-content');
         if (!tabContent) return;
         const tabName = tabContent.id.replace(/^tab-/, '');
+        const specialAction = el.dataset.permissionSpecial;
+        if (specialAction && canSpecialAction(specialAction)) {
+            el.classList.remove('view-locked');
+            if (el.dataset.permissionDisabled === 'true') {
+                el.disabled = false;
+                delete el.dataset.permissionDisabled;
+            }
+            return;
+        }
         if (canEditTab(tabName)) {
             el.classList.remove('view-locked');
             if (el.dataset.permissionDisabled === 'true') {
@@ -1048,8 +1061,8 @@
                     <td>
                         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                             ${permissionButton}
-                            <button class="btn ${u.approved ? '' : 'btn-success'}" style="height:34px;font-size:.8rem;${u.approved ? 'background-color:var(--card-bg-raised);color:var(--text-color);border:1px solid var(--border-color);' : ''}" onclick="toggleUserApproval(${u.id}, ${!u.approved})">${u.approved ? 'Sperren' : 'Freischalten'}</button>
-                            <button class="btn btn-danger" onclick="deleteAppUser(${u.id})">Löschen</button>
+                            <button class="btn ${u.approved ? '' : 'btn-success'}" data-permission-special="benutzer_sperren" style="height:34px;font-size:.8rem;${u.approved ? 'background-color:var(--card-bg-raised);color:var(--text-color);border:1px solid var(--border-color);' : ''}" onclick="toggleUserApproval(${u.id}, ${!u.approved})">${u.approved ? 'Sperren' : 'Freischalten'}</button>
+                            <button class="btn btn-danger" data-permission-special="benutzer_loeschen" onclick="deleteAppUser(${u.id})">Löschen</button>
                         </div>
                     </td>
                 </tr>`;

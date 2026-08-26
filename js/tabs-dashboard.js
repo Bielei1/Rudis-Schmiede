@@ -1,6 +1,5 @@
     function switchTab(tabName, forceAllowed = false) {
-        if (typeof ADMIN_ONLY_TABS !== 'undefined' && ADMIN_ONLY_TABS.has(tabName) && !(currentUser && currentUser.isAdmin)) return;
-        if (!forceAllowed && !(typeof ADMIN_ONLY_TABS !== 'undefined' && ADMIN_ONLY_TABS.has(tabName)) && !canViewTab(tabName)) {
+        if (!forceAllowed && !canViewTab(tabName)) {
             showToast('Du hast für diesen Tab keinen Zugriff.', 'danger');
             return;
         }

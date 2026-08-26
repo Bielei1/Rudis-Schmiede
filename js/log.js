@@ -96,13 +96,13 @@
     function updateLogAdminControls() {
         const btn = document.getElementById('log-clear-btn');
         if (!btn) return;
-        btn.style.display = currentUser && currentUser.isAdmin ? '' : 'none';
+        btn.style.display = typeof canSpecialAction === 'function' && canSpecialAction('log_leeren') ? '' : 'none';
     }
 
     async function clearActivityLog() {
         if (typeof canSpecialAction === 'function' && !canSpecialAction('log_leeren')) { showToast('Du hast kein Sonderrecht zum Leeren des Änderungsprotokolls.', 'danger', 'Löschen nicht erlaubt'); return; }
-        if (!currentUser || !currentUser.isAdmin) {
-            showToast('Nur Administratoren können das Änderungsprotokoll leeren.', 'danger');
+        if (!currentUser || !canSpecialAction('log_leeren')) {
+            showToast('Du hast kein Sonderrecht zum Leeren des Änderungsprotokolls.', 'danger');
             return;
         }
 

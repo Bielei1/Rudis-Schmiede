@@ -609,6 +609,10 @@
     }
 
     async function clearArchive() {
+        if (typeof canSpecialAction === 'function' && !canSpecialAction('archiv_loeschen')) {
+            showToast('Du hast kein Sonderrecht zum Löschen von Archiv-Einträgen.', 'danger', 'Löschen nicht erlaubt');
+            return;
+        }
         if (!canDeleteTab('archiv')) {
             showToast('Du hast für diesen Tab keine Löschrechte.', 'danger', 'Löschen nicht erlaubt');
             return;
@@ -656,4 +660,3 @@
         });
         businessFilterSelect.value = businesses.includes(currentSelectedBusiness) ? currentSelectedBusiness : "ALL";
     }
-
