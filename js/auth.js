@@ -705,8 +705,44 @@
         if (event.target && event.target.id === 'permission-modal-backdrop') closePermissionModal();
     }
 
+    function summarizePermissionChanges(previousPermissions, nextPermissions) {
+        const changes = [];
+        TAB_DEFINITIONS.forEach(tab => {
+            const oldp = previousPermissions && previousPermissions[tab.key]
+                ? previousPermissions[tab.key]
+                : { view: false, edit: false, del: false };
+            const newp = nextPermissions && nextPermissions[tab.key]
+                ? nextPermissions[tab.key]
+                : { view: false, edit: false, del: false };
+
+            const changed = [];
+            const compare = [
+                { key: 'view', label: 'ansehen' },
+                { key: 'edit', label: 'bearbeiten' },
+                { key: 'del', label: 'löschen' }
+            ];
+
+            compare.forEach(item => {
+                const oldValue = !!oldp[item.key];
+                const newValue = !!newp[item.key];
+                if (newValue && !oldValue) changed.push(`${item.label} hinzugefügt`);
+                if (!newValue && oldValue) changed.push(`${item.label} entfernt`);
+            });
+
+            if (changed.length) {
+                changes.push(`${tab.label}: ${changed.join(', ')}`);
+            }
+        });
+
+        return changes;
+    }
+
     async function saveCurrentTabPermissions() {
         if (!editingPermissionUser || !currentUser || !currentUser.isAdmin) return;
+
+        const previousPermissions = editingPermissionUser.tabPermissions
+            ? JSON.parse(JSON.stringify(editingPermissionUser.tabPermissions))
+            : normalizeTabPermissions(null);
 
         const permissions = {};
         TAB_DEFINITIONS.forEach(tab => {
@@ -742,20 +778,14 @@
             if (insertError) throw insertError;
 
             const savedUsername = editingPermissionUser.username;
-            const changedTabSummary = TAB_DEFINITIONS.map(tab => {
-                const p = permissions[tab.key] || { view: false, edit: false, del: false };
-                const granted = [];
-                if (p.view) granted.push('ansehen');
-                if (p.edit) granted.push('bearbeiten');
-                if (p.del) granted.push('löschen');
-                return `${tab.label}: ${granted.length ? granted.join(', ') : 'kein Zugriff'}`;
-            }).join('\n');
+            const changedTabSummary = summarizePermissionChanges(previousPermissions, permissions);
+            const detailText = changedTabSummary.length ? `Tab-Rechte für Benutzer „${savedUsername}“ geändert\n\nDetails:\n${changedTabSummary.join('\n')}` : `Tab-Rechte für Benutzer „${savedUsername}“ geändert`;
 
             editingPermissionUser.tabPermissions = permissions;
             closePermissionModal();
             renderUsersTab();
             showToast(`Die Tab-Rechte für „${savedUsername}“ wurden gespeichert.`, 'success', 'Tab-Rechte geändert');
-            await logActivity('Benutzerverwaltung', `Tab-Rechte für Benutzer „${savedUsername}“ geändert\n\nDetails:\n${changedTabSummary}`);
+            await logActivity('Benutzerverwaltung', detailText);
         } catch (e) {
             showToast('Tab-Rechte konnten nicht gespeichert werden: ' + e.message, 'danger');
         }
