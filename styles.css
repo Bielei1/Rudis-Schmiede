@@ -1479,6 +1479,18 @@
             border: 1px solid rgba(148, 148, 148, 0.4);
         }
 
+        .log-badge-mitglieder {
+            background: rgba(82, 155, 204, 0.15);
+            color: #8fc9ef;
+            border: 1px solid rgba(82, 155, 204, 0.4);
+        }
+
+        .log-badge-profil {
+            background: rgba(191, 117, 170, 0.15);
+            color: #dda5d0;
+            border: 1px solid rgba(191, 117, 170, 0.4);
+        }
+
         /* ============ TOASTS ============ */
 
         .toast-container {
