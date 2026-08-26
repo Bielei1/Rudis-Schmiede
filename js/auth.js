@@ -3,9 +3,10 @@
     const AUTH_STORAGE_KEY = 'rs_auth_session';
     const APP_NAME_STORAGE_KEY = 'rs_app_name';
     const DEFAULT_APP_NAME = 'Rudis Schmiede';
+    const AUTH_EMAIL_DOMAIN = 'cobndqlftctyaihzqatt.supabase.co';
     function getAuthEmailForUsername(username) {
         const normalized = String(username || '').trim().toLowerCase();
-        return `${normalized.replace(/[^a-z0-9._-]/g, '-') }@auth.rudis-schmiede.de`;
+        return `${normalized.replace(/[^a-z0-9._-]/g, '-') }@${AUTH_EMAIL_DOMAIN}`;
     }
 
     function getUserProfileStorageKey(username) {
