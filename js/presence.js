@@ -224,7 +224,20 @@
                 (payload) => handleRemoteDataChange(table, payload)
             );
         });
+        liveSyncChannel.on('broadcast', { event: 'data-updated' }, ({ payload }) => {
+            if (!payload || !payload.table) return;
+            handleRemoteDataChange(payload.table, payload);
+        });
         liveSyncChannel.subscribe();
+    }
+
+    async function broadcastDataChange(table) {
+        if (!liveSyncChannel || !table) return;
+        await liveSyncChannel.send({
+            type: 'broadcast',
+            event: 'data-updated',
+            payload: { table }
+        });
     }
 
     function handleRemoteDataChange(table, payload) {

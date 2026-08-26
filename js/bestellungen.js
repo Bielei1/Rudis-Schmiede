@@ -603,6 +603,7 @@
                 archivedOrdersList = archivedOrdersList.filter(o => o.id !== id);
                 renderArchive();
                 if (typeof renderMembersTable === 'function') renderMembersTable();
+                if (typeof broadcastDataChange === 'function') await broadcastDataChange('archive');
                 logActivity('Archiv', `Archivierter Auftrag "${id}" wurde gelöscht.`, `Auftrag: ${id}\nKunde: ${removedOrder ? removedOrder.customerName : '-'}\nGesamt: $${removedOrder ? Number(removedOrder.totalSum || 0).toFixed(2) : '0.00'}`);
             }
         }
@@ -625,6 +626,7 @@
                 archivedOrdersList = [];
                 renderArchive();
                 if (typeof renderMembersTable === 'function') renderMembersTable();
+                if (typeof broadcastDataChange === 'function') await broadcastDataChange('archive');
                 logActivity('Archiv', 'Das komplette Archiv wurde geleert.', `Einträge gelöscht: ${archiveCount}`);
             }
         }
