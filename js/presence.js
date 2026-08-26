@@ -253,9 +253,31 @@
         liveDataRefreshTimer = setInterval(runLiveDataRefresh, 5000);
     }
 
+    function captureFormState() {
+        const state = {};
+        document.querySelectorAll('input[id], select[id], textarea[id]').forEach(element => {
+            if (!element.matches(':focus') && !element.value) return;
+            state[element.id] = {
+                value: element.value,
+                checked: element.type === 'checkbox' ? element.checked : undefined
+            };
+        });
+        return state;
+    }
+
+    function restoreFormState(state) {
+        Object.entries(state).forEach(([id, saved]) => {
+            const element = document.getElementById(id);
+            if (!element || document.activeElement === element) return;
+            element.value = saved.value;
+            if (saved.checked !== undefined) element.checked = saved.checked;
+        });
+    }
+
     async function runLiveDataRefresh() {
         if (liveDataRefreshInProgress || document.hidden || !currentUser || !supabaseClient) return;
         liveDataRefreshInProgress = true;
+        const formState = captureFormState();
         updateLiveSyncStatus('Synchronisiere...');
         try {
             await loadDataFromSupabase();
@@ -263,6 +285,7 @@
                 await loadAppUsers();
             }
             renderOnlineUsers();
+            restoreFormState(formState);
             updateLiveSyncStatus(`Live · ${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
         } catch (error) {
             updateLiveSyncStatus('Sync-Fehler', true);
