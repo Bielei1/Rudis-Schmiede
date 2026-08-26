@@ -786,6 +786,8 @@
 
     async function saveCurrentTabPermissions() {
         if (!editingPermissionUser || !currentUser || !currentUser.isAdmin) return;
+        if (saveCurrentTabPermissions.inProgress) return;
+        saveCurrentTabPermissions.inProgress = true;
 
         const permissionUserId = editingPermissionUser.id;
         const savedUsername = editingPermissionUser.username;
@@ -810,7 +812,7 @@
         permissions.special = collectSpecialPermissions();
 
         const rows = TAB_DEFINITIONS.map(tab => ({
-            user_id: editingPermissionUser.id,
+            user_id: permissionUserId,
             tab_key: tab.key,
             can_view: permissions[tab.key].view,
             can_edit: permissions[tab.key].edit,
@@ -823,13 +825,11 @@
                 .delete()
                 .eq('user_id', permissionUserId);
             if (deleteError) throw deleteError;
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_user_tab_permissions');
 
             const { error: insertError } = await supabaseClient
                 .from('app_user_tab_permissions')
                 .insert(rows);
             if (insertError) throw insertError;
-            if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_user_tab_permissions');
 
             const isAdmin = !!permissions.special.administrator_rechte;
             const { error: userError } = await supabaseClient
@@ -837,10 +837,6 @@
                 .update({ is_admin: isAdmin, special_permissions: permissions.special })
                 .eq('id', permissionUserId);
             if (userError) throw userError;
-            if (typeof broadcastDataChange === 'function') {
-                await broadcastDataChange('app_user_tab_permissions');
-                await broadcastDataChange('app_users');
-            }
 
             const changedTabSummary = summarizePermissionChanges(previousPermissions, permissions);
             const specialChanges = SPECIAL_PERMISSION_DEFINITIONS.map(item => {
@@ -867,6 +863,10 @@
             closePermissionModal();
             renderUsersTab();
             showToast(`Die Tab-Rechte für „${savedUsername}“ wurden gespeichert.`, 'success', 'Tab-Rechte geändert');
+            if (typeof broadcastDataChange === 'function') {
+                await broadcastDataChange('app_user_tab_permissions');
+                await broadcastDataChange('app_users');
+            }
             try {
                 await logActivity('Benutzerverwaltung', detailText);
             } catch (logError) {
@@ -874,6 +874,8 @@
             }
         } catch (e) {
             showToast('Tab-Rechte konnten nicht gespeichert werden: ' + e.message, 'danger');
+        } finally {
+            saveCurrentTabPermissions.inProgress = false;
         }
     }
 
