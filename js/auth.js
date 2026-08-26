@@ -787,9 +787,12 @@
     async function saveCurrentTabPermissions() {
         if (!editingPermissionUser || !currentUser || !currentUser.isAdmin) return;
 
+        const permissionUserId = editingPermissionUser.id;
+        const savedUsername = editingPermissionUser.username;
+
         const previousPermissions = editingPermissionUser.tabPermissions
             ? JSON.parse(JSON.stringify(editingPermissionUser.tabPermissions))
-            : normalizeTabPermissions(await loadPermissionsForAdminUser(editingPermissionUser.id));
+            : normalizeTabPermissions(await loadPermissionsForAdminUser(permissionUserId));
 
         const permissions = {};
         TAB_DEFINITIONS.forEach(tab => {
@@ -818,7 +821,7 @@
             const { error: deleteError } = await supabaseClient
                 .from('app_user_tab_permissions')
                 .delete()
-                .eq('user_id', editingPermissionUser.id);
+                .eq('user_id', permissionUserId);
             if (deleteError) throw deleteError;
             if (typeof broadcastDataChange === 'function') await broadcastDataChange('app_user_tab_permissions');
 
@@ -832,14 +835,13 @@
             const { error: userError } = await supabaseClient
                 .from('app_users')
                 .update({ is_admin: isAdmin, special_permissions: permissions.special })
-                .eq('id', editingPermissionUser.id);
+                .eq('id', permissionUserId);
             if (userError) throw userError;
             if (typeof broadcastDataChange === 'function') {
                 await broadcastDataChange('app_user_tab_permissions');
                 await broadcastDataChange('app_users');
             }
 
-            const savedUsername = editingPermissionUser.username;
             const changedTabSummary = summarizePermissionChanges(previousPermissions, permissions);
             const specialChanges = SPECIAL_PERMISSION_DEFINITIONS.map(item => {
                 const oldValue = !!(previousPermissions.special && previousPermissions.special[item.key]);
@@ -849,17 +851,27 @@
             changedTabSummary.push(...specialChanges);
             const detailText = changedTabSummary.length ? `Tab-Rechte für Benutzer „${savedUsername}“ geändert\n\nDetails:\n${changedTabSummary.join('\n')}` : `Tab-Rechte für Benutzer „${savedUsername}“ geändert`;
 
-            editingPermissionUser.tabPermissions = permissions;
-            editingPermissionUser.is_admin = isAdmin;
-            editingPermissionUser.special_permissions = permissions.special;
-            editingPermissionUser.specialPermissions = permissions.special;
+            if (editingPermissionUser && String(editingPermissionUser.id) === String(permissionUserId)) {
+                editingPermissionUser.tabPermissions = permissions;
+                editingPermissionUser.is_admin = isAdmin;
+                editingPermissionUser.special_permissions = permissions.special;
+                editingPermissionUser.specialPermissions = permissions.special;
+            }
             if (typeof broadcastPermissionsUpdated === 'function') {
-                await broadcastPermissionsUpdated(editingPermissionUser.id);
+                try {
+                    await broadcastPermissionsUpdated(permissionUserId);
+                } catch (broadcastError) {
+                    console.warn('Berechtigungsänderung konnte nicht live verteilt werden:', broadcastError);
+                }
             }
             closePermissionModal();
             renderUsersTab();
             showToast(`Die Tab-Rechte für „${savedUsername}“ wurden gespeichert.`, 'success', 'Tab-Rechte geändert');
-            await logActivity('Benutzerverwaltung', detailText);
+            try {
+                await logActivity('Benutzerverwaltung', detailText);
+            } catch (logError) {
+                console.warn('Berechtigungsänderung konnte nicht protokolliert werden:', logError);
+            }
         } catch (e) {
             showToast('Tab-Rechte konnten nicht gespeichert werden: ' + e.message, 'danger');
         }
