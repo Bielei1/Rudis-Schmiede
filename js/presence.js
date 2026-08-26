@@ -89,7 +89,14 @@
                 renderOnlineUsers();
                 if (table === 'app_users' && currentUser && currentUser.isAdmin) {
                     await loadAppUsers();
-                    renderOnlineUsers();
+                }
+                if (table === 'app_users') {
+                    await loadMemberUsernames();
+                    renderMembersTable();
+                    if (currentUser && currentUser.isAdmin) {
+                        renderUsersTab();
+                        if (typeof renderAvatarLogs === 'function') renderAvatarLogs();
+                    }
                 }
                 if (table === 'app_user_tab_permissions' && currentUser && !currentUser.isAdmin) {
                     await loadUserTabPermissions();
