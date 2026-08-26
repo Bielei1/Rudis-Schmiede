@@ -348,7 +348,7 @@
             let adminProfile = {};
             try { adminProfile = JSON.parse(localStorage.getItem('rs_admin_profile') || '{}'); } catch (e) {}
             const localAdminProfile = readStoredUserProfile(ADMIN_USERNAME, adminProfile);
-            currentUser = { username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar || adminProfile.avatar || null, theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '' };
+            currentUser = { username: ADMIN_USERNAME, isAdmin: true, permission: 'edit', tabPermissions: getAdminTabPermissions(), avatar: localAdminProfile.avatar || adminProfile.avatar || null, avatarHistory: localAdminProfile.avatarHistory || [], theme: localAdminProfile.theme || adminProfile.theme || 'dark', bio: localAdminProfile.bio || adminProfile.bio || '' };
             await enterApp();
             return true;
         }
@@ -363,7 +363,7 @@
             const user = data[0];
             if (user.password_hash !== stored.passwordHash || !user.approved) return false;
             const localProfile = readStoredUserProfile(user.username, {});
-            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar || localProfile.avatar || null, theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '' };
+            currentUser = { username: user.username, id: user.id, isAdmin: !!user.is_admin, permission: user.permission || 'view', avatar: user.avatar || localProfile.avatar || null, avatarHistory: Array.isArray(user.avatar_history) ? user.avatar_history : (localProfile.avatarHistory || []), theme: user.theme || localProfile.theme || 'dark', bio: user.bio || localProfile.bio || '' };
             await enterApp();
             return true;
         } catch (e) {
