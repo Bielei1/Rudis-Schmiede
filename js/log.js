@@ -94,7 +94,7 @@
             return;
         }
 
-        const confirmed = window.confirm('Möchtest du das gesamte Änderungsprotokoll wirklich löschen?');
+        const confirmed = await customConfirm('Möchtest du das gesamte Änderungsprotokoll wirklich löschen?');
         if (!confirmed) return;
 
         try {
