@@ -165,6 +165,22 @@
         </div>
     </div>
 
+    <div id="log-detail-backdrop" class="confirm-modal-backdrop log-detail-backdrop" onclick="handleLogDetailBackdropClick(event)">
+        <div class="confirm-modal log-detail-modal" role="dialog" aria-modal="true" aria-labelledby="log-detail-title">
+            <div class="confirm-modal-icon">i</div>
+            <h2 id="log-detail-title" style="margin: 0 0 16px;">Änderungsdetails</h2>
+            <div class="log-detail-meta">
+                <div><strong>Benutzer:</strong> <span id="log-detail-user">-</span></div>
+                <div><strong>Kategorie:</strong> <span id="log-detail-category">-</span></div>
+                <div><strong>Aktion:</strong> <span id="log-detail-action">-</span></div>
+            </div>
+            <div id="log-detail-message" class="log-detail-message"></div>
+            <div class="confirm-modal-actions" style="margin-top: 16px;">
+                <button type="button" class="btn btn-secondary" onclick="closeLogDetailModal()">Schließen</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ============ PASSWORT-ZURÜCKSETZEN-MODAL ============ -->
     <div id="reset-password-modal-backdrop" class="confirm-modal-backdrop" onclick="handleResetPasswordBackdropClick(event)">
         <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="reset-password-modal-title">
@@ -1041,6 +1057,7 @@
                         <th style="width: 140px;">Benutzer</th>
                         <th style="width: 150px;">Kategorie</th>
                         <th>Änderung</th>
+                        <th style="width: 170px;">Details</th>
                     </tr>
                 </thead>
                 <tbody id="log-table-body"></tbody>

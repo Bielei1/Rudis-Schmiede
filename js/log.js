@@ -130,6 +130,44 @@
         renderActivityLog();
     }
 
+    function getActivityActionLabel(message) {
+        const text = String(message || '').trim().toLowerCase();
+        if (!text) return 'Änderung';
+        if (text.includes('angelegt') || text.includes('neu') || text.includes('erfasst') || text.includes('gespeichert')) return 'Erstellt';
+        if (text.includes('gelöscht') || text.includes('entfernt')) return 'Gelöscht';
+        if (text.includes('bearbeitet') || text.includes('geändert') || text.includes('aktualisiert') || text.includes('angepasst') || text.includes('freigeschaltet') || text.includes('gesperrt')) return 'Bearbeitet';
+        return 'Änderung';
+    }
+
+    function openLogDetailModal(entry) {
+        const detail = entry || {};
+        const user = detail.username || 'Unbekannt';
+        const category = detail.category || 'Allgemein';
+        const message = detail.message || 'Keine weiteren Details verfügbar.';
+        const action = getActivityActionLabel(message);
+
+        const userEl = document.getElementById('log-detail-user');
+        const categoryEl = document.getElementById('log-detail-category');
+        const actionEl = document.getElementById('log-detail-action');
+        const messageEl = document.getElementById('log-detail-message');
+        const backdrop = document.getElementById('log-detail-backdrop');
+
+        if (userEl) userEl.innerText = user;
+        if (categoryEl) categoryEl.innerText = category;
+        if (actionEl) actionEl.innerText = action;
+        if (messageEl) messageEl.innerText = message;
+        if (backdrop) backdrop.classList.add('open');
+    }
+
+    function closeLogDetailModal() {
+        const backdrop = document.getElementById('log-detail-backdrop');
+        if (backdrop) backdrop.classList.remove('open');
+    }
+
+    function handleLogDetailBackdropClick(event) {
+        if (event.target.id === 'log-detail-backdrop') closeLogDetailModal();
+    }
+
     function renderActivityLog() {
         updateLogAdminControls();
 
@@ -155,18 +193,35 @@
         }
 
         if (list.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Noch keine Änderungen protokolliert.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Noch keine Änderungen protokolliert.</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = list.map(entry => `
-            <tr>
-                <td class="time-text" style="white-space: nowrap;">${entry.createdAt}</td>
-                <td>${renderUsernameWithAvatar(entry.username || '–', null, { size: 'small' })}</td>
-                <td><span class="log-badge log-badge-${categorySlug(entry.category)}">${entry.category}</span></td>
-                <td>${entry.message}</td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = list.map(entry => {
+            const encodedEntry = encodeURIComponent(JSON.stringify(entry));
+            return `
+                <tr>
+                    <td class="time-text" style="white-space: nowrap;">${entry.createdAt}</td>
+                    <td>${renderUsernameWithAvatar(entry.username || '–', null, { size: 'small' })}</td>
+                    <td><span class="log-badge log-badge-${categorySlug(entry.category)}">${entry.category}</span></td>
+                    <td>${entry.message}</td>
+                    <td style="text-align: center;">
+                        <button type="button" class="btn log-detail-btn" data-log-entry="${encodedEntry}" aria-label="Änderungsdetails anzeigen">Änderung anzeigen</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        tbody.querySelectorAll('.log-detail-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                try {
+                    const entry = JSON.parse(decodeURIComponent(btn.dataset.logEntry));
+                    openLogDetailModal(entry);
+                } catch (e) {
+                    console.error('Log-Eintrag konnte nicht geöffnet werden.', e);
+                }
+            });
+        });
     }
 
     function capitalizeText(text) {
