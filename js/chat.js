@@ -166,27 +166,18 @@
     async function loadGroupMembers(groupId) {
         const membersEl = document.getElementById('chat-group-members');
         if (!membersEl) return;
-        const { data: memberships, error } = await supabaseClient
-            .from('chat_group_members')
-            .select('user_id')
-            .eq('group_id', groupId);
+        const { data: users, error } = await supabaseClient.rpc('get_chat_group_members', {
+            target_group_id: groupId
+        });
         if (error) {
             membersEl.hidden = true;
             showToast('Gruppenmitglieder konnten nicht geladen werden: ' + error.message, 'danger');
             return;
         }
-        const userIds = (memberships || []).map(item => item.user_id).filter(Boolean);
-        const { data: users, error: usersError } = userIds.length
-            ? await supabaseClient.from('app_users').select('id, username, avatar').in('id', userIds)
-            : { data: [], error: null };
-        if (usersError) {
-            membersEl.hidden = true;
-            showToast('Gruppenmitglieder konnten nicht geladen werden: ' + usersError.message, 'danger');
-            return;
-        }
         const names = (users || []).map(user => user.username).join(', ');
         membersEl.textContent = `Mitglieder: ${names || 'Keine Mitglieder'}`;
         membersEl.hidden = false;
+        return users || [];
     }
 
     function openGroupCreateModal() {
@@ -268,19 +259,14 @@
             return;
         }
 
-        const senderIds = [...new Set((data || []).map(item => item.sender_id).filter(Boolean))];
-        let senderNames = new Map();
-        if (senderIds.length) {
-            const { data: senders, error: senderError } = await supabaseClient
-                .from('app_users')
-                .select('id, username')
-                .in('id', senderIds);
-            if (senderError) {
-                showToast('Absender der Gruppennachrichten konnten nicht geladen werden: ' + senderError.message, 'danger');
-                return;
-            }
-            senderNames = new Map((senders || []).map(sender => [String(sender.id), sender.username]));
+        const { data: groupUsers, error: usersError } = await supabaseClient.rpc('get_chat_group_users', {
+            target_group_id: selectedChatGroup.id
+        });
+        if (usersError) {
+            showToast('Absender der Gruppennachrichten konnten nicht geladen werden: ' + usersError.message, 'danger');
+            return;
         }
+        const senderNames = new Map((groupUsers || []).map(user => [String(user.id), user.username]));
 
         const visibleData = (data || []).filter(item =>
             !(item.chat_group_message_deletions || []).some(read => String(read.user_id) === String(currentUser.id))
