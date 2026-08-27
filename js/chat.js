@@ -55,7 +55,11 @@
     async function renderChatUserPicker() {
         const picker = document.getElementById('chat-user-picker');
         if (!picker) return;
-        const { data: groups } = await supabaseClient.rpc('get_my_chat_groups');
+        const { data: groups, error } = await supabaseClient.rpc('get_my_chat_groups');
+        if (error) {
+            showToast('Gruppenchats konnten nicht geladen werden: ' + error.message, 'danger');
+            return;
+        }
         chatGroups = groups || [];
         const directHtml = chatUsers.length ? chatUsers.map(user => `
             <button type="button" class="chat-user-option" data-chat-user-id="${Number(user.id)}">
@@ -148,6 +152,7 @@
         closeGroupCreateModal();
         document.getElementById('group-name-input').value = '';
         showToast(`Gruppe „${name}“ wurde erstellt.`, 'success');
+        openChatPicker();
     }
 
     function openChatWithUserId(userId) {
@@ -234,7 +239,7 @@
             return;
         }
         input.value = '';
-        await loadConversation();
+        await (selectedChatGroup ? loadGroupConversation() : loadConversation());
     }
 
     function toggleChatEmojiPicker(event) {
