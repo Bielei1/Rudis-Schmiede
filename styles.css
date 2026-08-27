@@ -2165,6 +2165,68 @@
             border: 1px solid rgba(111, 174, 99, 0.35);
         }
 
+        .forgot-guide {
+            margin: 4px 0 16px;
+            padding: 12px 14px;
+            border: 1px solid var(--border-color-soft);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.025);
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            line-height: 1.45;
+        }
+
+        .forgot-guide strong {
+            color: var(--text-color);
+        }
+
+        .forgot-guide ol {
+            margin: 8px 0 0 20px;
+            padding: 0;
+        }
+
+        .forgot-guide li + li {
+            margin-top: 3px;
+        }
+
+        .forgot-step-heading {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 2px 0 16px;
+            padding: 11px 12px;
+            border-left: 3px solid var(--success-color);
+            background: rgba(111, 174, 99, 0.09);
+            color: var(--text-color);
+            font-size: 0.84rem;
+            line-height: 1.4;
+        }
+
+        .forgot-step-heading strong,
+        .forgot-step-heading span {
+            display: block;
+        }
+
+        .forgot-step-heading span {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            margin-top: 2px;
+        }
+
+        .forgot-step-number {
+            display: grid !important;
+            place-items: center;
+            flex: 0 0 22px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--success-color);
+            color: #14210f !important;
+            font-size: 0.75rem !important;
+            font-weight: 700;
+            margin-top: 1px;
+        }
+
         .login-switch {
             text-align: center;
             margin-top: 16px;
