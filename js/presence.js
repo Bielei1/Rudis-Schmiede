@@ -129,6 +129,7 @@
                 <div class="online-user-row" data-chat-user-id="${currentUser && meta.username === currentUser.username ? 0 : Number(getUserByUsername(meta.username)?.id || 0)}">
                     <span class="online-dot"></span>
                     ${renderUsernameWithAvatar(meta.username, meta, { size: 'small', suffix: isYou ? ' (Du)' : '' })}
+                    ${isYou ? '' : '<span class="chat-user-unread-badge" hidden>0</span>'}
                 </div>
                 `;
             }).join('')
@@ -139,6 +140,7 @@
                     <span class="offline-dot"></span>
                     <div>
                         ${renderUsernameWithAvatar(user.username, user, { size: 'small' })}
+                        <span class="chat-user-unread-badge" hidden>0</span>
                         <div class="offline-last-seen">${formatLastSeen(user.last_seen)}</div>
                     </div>
                 </div>
@@ -157,6 +159,7 @@
                 row.addEventListener('click', () => openChatWithUserId(userId));
             }
         });
+        if (typeof refreshChatUserBadges === 'function') refreshChatUserBadges();
     }
 
     function formatLastSeen(value) {

@@ -19,6 +19,7 @@
         selectedChatUser = null;
         document.getElementById('chat-user-picker').hidden = false;
         document.getElementById('chat-conversation').hidden = true;
+        document.querySelector('.chat-delete-button').hidden = true;
         document.getElementById('chat-modal-title').textContent = 'Nachrichten';
         document.getElementById('chat-modal-subtitle').textContent = 'Wähle einen Benutzer aus.';
         renderChatUserPicker();
@@ -87,15 +88,18 @@
         if (!selectedChatUser || !currentUser) return;
         const { data, error } = await supabaseClient
             .from('user_messages')
-            .select('id, sender_id, recipient_id, message, created_at, read_at')
+            .select('id, sender_id, recipient_id, message, created_at, read_at, deleted_by_sender, deleted_by_recipient')
             .or(`and(sender_id.eq.${currentUser.id},recipient_id.eq.${selectedChatUser.id}),and(sender_id.eq.${selectedChatUser.id},recipient_id.eq.${currentUser.id})`)
             .order('created_at', { ascending: true });
         if (error) {
             showToast('Nachrichten konnten nicht geladen werden: ' + error.message, 'danger');
             return;
         }
-        renderConversation(data || []);
-        const unreadIds = (data || []).filter(item => String(item.recipient_id) === String(currentUser.id) && !item.read_at).map(item => item.id);
+        const visibleMessages = (data || []).filter(item => String(item.sender_id) === String(currentUser.id)
+            ? !item.deleted_by_sender
+            : !item.deleted_by_recipient);
+        renderConversation(visibleMessages);
+        const unreadIds = visibleMessages.filter(item => String(item.recipient_id) === String(currentUser.id) && !item.read_at).map(item => item.id);
         if (unreadIds.length) {
             await supabaseClient.from('user_messages').update({ read_at: new Date().toISOString() }).in('id', unreadIds);
             loadUnreadChatCount();
@@ -132,6 +136,18 @@
         await loadConversation();
     }
 
+    async function deleteCurrentChat() {
+        if (!selectedChatUser || !currentUser) return;
+        if (!window.confirm(`Diesen Chat nur für dich mit ${selectedChatUser.username} löschen?`)) return;
+        const { error } = await supabaseClient.rpc('delete_user_chat', { other_user_id: selectedChatUser.id });
+        if (error) {
+            showToast('Chat konnte nicht gelöscht werden: ' + error.message, 'danger');
+            return;
+        }
+        await loadConversation();
+        showToast('Der Chat wurde nur für dich gelöscht.', 'success');
+    }
+
     async function loadUnreadChatCount() {
         if (!currentUser) return;
         const { count, error } = await supabaseClient
@@ -149,6 +165,27 @@
             showToast(`${unreadCount - previousUnreadCount} neue Nachricht${unreadCount - previousUnreadCount === 1 ? '' : 'en'} erhalten.`, 'info', 'Neue Nachricht');
         }
         previousUnreadCount = unreadCount;
+        await refreshChatUserBadges();
+    }
+
+    async function refreshChatUserBadges() {
+        if (!currentUser) return;
+        const { data, error } = await supabaseClient
+            .from('user_messages')
+            .select('sender_id')
+            .eq('recipient_id', currentUser.id)
+            .is('read_at', null);
+        if (error) return;
+        const counts = {};
+        (data || []).forEach(item => { counts[item.sender_id] = (counts[item.sender_id] || 0) + 1; });
+        document.querySelectorAll('[data-chat-user-id]').forEach(row => {
+            const badge = row.querySelector('.chat-user-unread-badge');
+            if (!badge) return;
+            const count = counts[row.dataset.chatUserId] || 0;
+            badge.textContent = count > 99 ? '99+' : String(count);
+            badge.hidden = count === 0;
+            badge.title = `${count} ungelesene Nachricht${count === 1 ? '' : 'en'} von diesem Benutzer`;
+        });
     }
 
     window.openChatPicker = openChatPicker;
@@ -156,7 +193,9 @@
     window.closeChatModal = closeChatModal;
     window.handleChatBackdropClick = handleChatBackdropClick;
     window.sendChatMessage = sendChatMessage;
+    window.deleteCurrentChat = deleteCurrentChat;
     window.loadUnreadChatCount = loadUnreadChatCount;
+    window.refreshChatUserBadges = refreshChatUserBadges;
     setInterval(() => {
         if (currentUser) loadUnreadChatCount();
     }, 10000);

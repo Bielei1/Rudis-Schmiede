@@ -419,6 +419,46 @@
             font-size: 0.78rem;
         }
 
+        .chat-user-unread-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            margin-left: auto;
+            padding: 0 5px;
+            border-radius: 9px;
+            background: var(--danger-color);
+            color: #fff;
+            font-size: 0.68rem;
+            font-weight: 700;
+        }
+
+        .chat-user-unread-badge[hidden] {
+            display: none;
+        }
+
+        .chat-modal-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-delete-button {
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 6px 9px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            cursor: pointer;
+        }
+
+        .chat-delete-button:hover {
+            border-color: var(--danger-color);
+            color: var(--danger-color);
+        }
+
         .chat-conversation {
             min-height: 0;
         }

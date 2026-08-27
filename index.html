@@ -1228,7 +1228,10 @@
                 <h2 id="chat-modal-title">Nachrichten</h2>
                 <div id="chat-modal-subtitle" class="chat-modal-subtitle">Wähle einen Benutzer aus.</div>
             </div>
-            <button type="button" class="permission-modal-close" onclick="closeChatModal()" aria-label="Schließen">×</button>
+            <div class="chat-modal-actions">
+                <button type="button" class="chat-delete-button" onclick="deleteCurrentChat()">Chat für mich löschen</button>
+                <button type="button" class="permission-modal-close" onclick="closeChatModal()" aria-label="Schließen">×</button>
+            </div>
         </div>
         <div id="chat-user-picker" class="chat-user-picker"></div>
         <div id="chat-conversation" class="chat-conversation" hidden>
