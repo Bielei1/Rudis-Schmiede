@@ -219,17 +219,32 @@
         if (!selectedChatGroup || !currentUser) return;
         const { data, error } = await supabaseClient
             .from('chat_group_messages')
-            .select('id, group_id, sender_id, message, created_at, sender:app_users(username), chat_group_message_reads(user_id, read_at)')
+            .select('id, group_id, sender_id, message, created_at, chat_group_message_reads(user_id, read_at)')
             .eq('group_id', selectedChatGroup.id)
             .order('created_at', { ascending: true });
         if (error) {
             showToast('Gruppennachrichten konnten nicht geladen werden: ' + error.message, 'danger');
             return;
         }
+
+        const senderIds = [...new Set((data || []).map(item => item.sender_id).filter(Boolean))];
+        let senderNames = new Map();
+        if (senderIds.length) {
+            const { data: senders, error: senderError } = await supabaseClient
+                .from('app_users')
+                .select('id, username')
+                .in('id', senderIds);
+            if (senderError) {
+                showToast('Absender der Gruppennachrichten konnten nicht geladen werden: ' + senderError.message, 'danger');
+                return;
+            }
+            senderNames = new Map((senders || []).map(sender => [String(sender.id), sender.username]));
+        }
+
         renderConversation((data || []).map(item => ({
             ...item,
             read_at: (item.chat_group_message_reads || []).find(read => String(read.user_id) === String(currentUser.id))?.read_at,
-            sender_name: item.sender?.username || 'Unbekannt'
+            sender_name: senderNames.get(String(item.sender_id)) || 'Unbekannt'
         })));
         const unread = (data || []).filter(item => String(item.sender_id) !== String(currentUser.id)
             && !(item.chat_group_message_reads || []).some(read => String(read.user_id) === String(currentUser.id)));
