@@ -4,6 +4,7 @@
     let chatRefreshTimer = null;
     let chatUsers = [];
     let previousUnreadCount = null;
+    const chatEmojis = ['😀', '😊', '😂', '😉', '😍', '😢', '😡', '😮', '👍', '❤️', '🎉', '🔥', '🙏', '✅', '💪', '👋'];
 
     function getUsers() {
         const users = typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList)
@@ -136,6 +137,37 @@
         await loadConversation();
     }
 
+    function toggleChatEmojiPicker(event) {
+        event.stopPropagation();
+        const picker = document.getElementById('chat-emoji-picker');
+        if (!picker) return;
+        if (!picker.innerHTML) {
+            picker.innerHTML = chatEmojis.map(emoji => `<button type="button" class="chat-emoji" aria-label="${emoji}">${emoji}</button>`).join('');
+            picker.querySelectorAll('.chat-emoji').forEach(button => {
+                button.addEventListener('click', () => insertChatEmoji(button.textContent));
+            });
+        }
+        picker.hidden = !picker.hidden;
+    }
+
+    function insertChatEmoji(emoji) {
+        const input = document.getElementById('chat-message-input');
+        const picker = document.getElementById('chat-emoji-picker');
+        if (!input) return;
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? start;
+        input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
+        input.focus();
+        input.selectionStart = input.selectionEnd = start + emoji.length;
+        if (picker) picker.hidden = true;
+    }
+
+    document.addEventListener('click', event => {
+        const picker = document.getElementById('chat-emoji-picker');
+        const toggle = document.getElementById('chat-emoji-toggle');
+        if (picker && !picker.hidden && event.target !== picker && !picker.contains(event.target) && event.target !== toggle) picker.hidden = true;
+    });
+
     document.addEventListener('keydown', event => {
         if (event.target && event.target.id === 'chat-message-input' && event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
@@ -195,6 +227,7 @@
     window.handleChatBackdropClick = handleChatBackdropClick;
     window.sendChatMessage = sendChatMessage;
     window.deleteCurrentChat = deleteCurrentChat;
+    window.toggleChatEmojiPicker = toggleChatEmojiPicker;
     window.loadUnreadChatCount = loadUnreadChatCount;
     window.refreshChatUserBadges = refreshChatUserBadges;
     setInterval(() => {

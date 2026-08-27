@@ -516,6 +516,74 @@
             padding-top: 12px;
         }
 
+        .chat-input-tools {
+            position: relative;
+            display: flex;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .chat-input-tools textarea {
+            width: 100%;
+            padding-left: 42px;
+        }
+
+        .chat-emoji-toggle {
+            position: absolute;
+            z-index: 2;
+            top: 10px;
+            left: 10px;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .chat-emoji-toggle:hover {
+            color: var(--primary-color);
+        }
+
+        .chat-emoji-picker {
+            position: absolute;
+            z-index: 5;
+            bottom: calc(100% + 8px);
+            left: 0;
+            display: grid;
+            grid-template-columns: repeat(8, 34px);
+            gap: 4px;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--card-bg);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+        }
+
+        .chat-emoji-picker[hidden] {
+            display: none;
+        }
+
+        .chat-emoji {
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border: 0;
+            border-radius: 5px;
+            background: transparent;
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
+
+        .chat-emoji:hover,
+        .chat-emoji:focus-visible {
+            background: rgba(255, 106, 26, 0.14);
+            outline: none;
+        }
+
         .chat-message-form textarea {
             min-width: 0;
             flex: 1;
