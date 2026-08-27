@@ -251,10 +251,9 @@
 
                 if (existing) {
                     activePasswordResetRequestId = existing.id;
-                    document.getElementById('forgot-code').value = existing.request_code || '';
                     if (existing.status === 'approved') {
                         requestStep.style.display='none'; codeStep.style.display='block';
-                        showAuthMsg('forgot-info','Deine Anfrage wurde vom Admin freigegeben. Du kannst jetzt ein neues Passwort festlegen.');
+                        showAuthMsg('forgot-info','Deine Anfrage wurde freigegeben. Bitte gib den Reset-Code ein, den dir der Admin mitgeteilt hat.');
                     } else {
                         requestStep.style.display='block'; codeStep.style.display='none';
                         showAuthMsg('forgot-info','Deine Reset-Anfrage wartet noch auf die Bestätigung durch einen Admin.');
@@ -269,7 +268,6 @@
                 if (requestError) return showAuthMsg('forgot-error','Reset-Anfrage konnte nicht erstellt werden: '+requestError.message);
                 if (typeof broadcastDataChange === 'function') await broadcastDataChange('password_reset_requests');
                 activePasswordResetRequestId = request.id;
-                document.getElementById('forgot-code').value = request.request_code;
                 showAuthMsg('forgot-info','Reset-Anfrage wurde an den Admin gesendet. Bitte warte auf die Freigabe.');
                 return;
             }
