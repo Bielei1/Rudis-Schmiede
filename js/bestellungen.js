@@ -246,6 +246,8 @@
 
     function renderOrders() {
         const tbody = document.getElementById('orders-table-body');
+        updateOrdersBadge();
+        if (!tbody) return;
         tbody.innerHTML = '';
         if (ordersList.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" class="empty-state-cell">Keine aktiven Bestellungen.</td></tr>`;
@@ -333,6 +335,14 @@
             `;
             tbody.appendChild(tr);
         });
+    }
+
+    function updateOrdersBadge() {
+        const badge = document.getElementById('orders-nav-badge');
+        if (!badge) return;
+        const orderCount = Array.isArray(ordersList) ? ordersList.length : 0;
+        badge.textContent = orderCount > 99 ? '99+' : String(orderCount);
+        badge.hidden = orderCount === 0;
     }
 
     function splitDateTimeDisplay(value) {
