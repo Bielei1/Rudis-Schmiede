@@ -311,15 +311,6 @@
             display: none;
         }
 
-        .chat-sidebar-action {
-            padding-top: 12px;
-            border-top: 1px solid var(--border-color-soft);
-        }
-
-        .chat-sidebar-action .btn {
-            width: 100%;
-        }
-
         .chat-unread-badge {
             display: inline-flex;
             align-items: center;
@@ -333,6 +324,11 @@
             color: #fff;
             font-size: 0.7rem;
             font-weight: 700;
+        }
+
+        .online-sidebar-title .chat-unread-badge {
+            margin-left: 6px;
+            vertical-align: middle;
         }
 
         .chat-unread-badge[hidden] {

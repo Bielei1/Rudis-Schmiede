@@ -126,7 +126,7 @@
             ? onlineUsers.map(meta => {
                 const isYou = currentUser && meta.username === currentUser.username;
                 return `
-                <div class="online-user-row" data-chat-user-id="${Number(getUserByUsername(meta.username)?.id || 0)}">
+                <div class="online-user-row" data-chat-user-id="${currentUser && meta.username === currentUser.username ? 0 : Number(getUserByUsername(meta.username)?.id || 0)}">
                     <span class="online-dot"></span>
                     ${renderUsernameWithAvatar(meta.username, meta, { size: 'small', suffix: isYou ? ' (Du)' : '' })}
                 </div>
