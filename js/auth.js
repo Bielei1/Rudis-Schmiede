@@ -279,16 +279,21 @@
             if (newPassword.length < 6) return showAuthMsg('forgot-error','Das neue Passwort muss mindestens 6 Zeichen lang sein.');
             if (newPassword !== newPassword2) return showAuthMsg('forgot-error','Die neuen Passwörter stimmen nicht überein.');
 
-            let query = supabaseClient.from('password_reset_requests')
-                .select('id,user_id,username,request_code,status')
-                .eq('status','approved').eq('request_code',code).ilike('username',username);
-            if (activePasswordResetRequestId) query=query.eq('id',activePasswordResetRequestId);
-            const { data: requests, error: requestError } = await query.limit(1);
-            if (requestError) return showAuthMsg('forgot-error','Reset konnte nicht geprüft werden: '+requestError.message);
-            const request=requests && requests[0];
-            if (!request) return showAuthMsg('forgot-error','Reset-Code ist ungültig oder wurde noch nicht vom Admin freigegeben.');
+            const { data: resetResult, error: resetError } = await supabaseClient.rpc('complete_password_reset', {
+                requested_username: username,
+                requested_code: code,
+                new_password: newPassword,
+                requested_id: activePasswordResetRequestId
+            });
+            if (resetError) return showAuthMsg('forgot-error', 'Passwort konnte nicht geändert werden: ' + resetError.message);
+            const result = Array.isArray(resetResult) ? resetResult[0] : resetResult;
+            if (!result || !result.success) return showAuthMsg('forgot-error', 'Reset-Code ist ungültig oder wurde noch nicht vom Admin freigegeben.');
 
-            showAuthMsg('forgot-error', 'Die sichere Passwort-Reset-Funktion wird nach Einrichtung der serverseitigen Reset-Funktion aktiviert.');
+            event.target.reset();
+            codeStep.style.display = 'none';
+            requestStep.style.display = 'block';
+            activePasswordResetRequestId = null;
+            showAuthMsg('forgot-info', 'Dein Passwort wurde erfolgreich geändert. Du kannst dich jetzt einloggen.');
             return;
         } finally { if (submitBtn) submitBtn.disabled=false; }
     }
