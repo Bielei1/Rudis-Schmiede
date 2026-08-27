@@ -641,6 +641,21 @@
             color: var(--danger-color);
         }
 
+        .chat-add-user-button {
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 6px 9px;
+            background: transparent;
+            color: var(--text-color);
+            font-size: 0.72rem;
+            cursor: pointer;
+        }
+
+        .chat-add-user-button:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
         .chat-conversation {
             display: flex;
             flex-direction: column;

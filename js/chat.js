@@ -32,6 +32,7 @@
         document.getElementById('chat-user-picker').hidden = false;
         document.getElementById('chat-conversation').hidden = true;
         document.querySelector('.chat-delete-button').hidden = true;
+        document.querySelector('.chat-add-user-button').hidden = true;
         document.querySelector('.chat-leave-button').hidden = true;
         document.getElementById('chat-group-members').hidden = true;
         document.getElementById('chat-modal-title').textContent = 'Nachrichten';
@@ -139,6 +140,7 @@
         document.getElementById('chat-modal-title').textContent = `Chatverlauf mit ${user.username}`;
         document.getElementById('chat-modal-subtitle').textContent = 'Private Unterhaltung';
         document.querySelector('.chat-delete-button').hidden = false;
+        document.querySelector('.chat-add-user-button').hidden = true;
         document.querySelector('.chat-leave-button').hidden = true;
         document.getElementById('chat-group-members').hidden = true;
         await loadConversation();
@@ -155,6 +157,7 @@
         document.getElementById('chat-modal-title').textContent = `Chatverlauf in ${group.name}`;
         document.getElementById('chat-modal-subtitle').textContent = 'Gruppenunterhaltung';
         document.querySelector('.chat-delete-button').hidden = false;
+        document.querySelector('.chat-add-user-button').hidden = false;
         document.querySelector('.chat-leave-button').hidden = false;
         await loadGroupMembers(group.id);
         await loadGroupConversation();
@@ -178,6 +181,50 @@
         membersEl.textContent = `Mitglieder: ${names || 'Keine Mitglieder'}`;
         membersEl.hidden = false;
         return users || [];
+    }
+
+    async function openGroupAddUserModal() {
+        if (!selectedChatGroup) return;
+        const modal = document.getElementById('group-add-user-modal-backdrop');
+        const picker = document.getElementById('group-add-user-picker');
+        if (!modal || !picker) return;
+        const members = await loadGroupMembers(selectedChatGroup.id) || [];
+        const memberIds = new Set(members.map(user => String(user.id)));
+        const availableUsers = getUsers().filter(user => !memberIds.has(String(user.id)));
+        picker.innerHTML = availableUsers.map(user => `
+            <label class="group-member-option"><input type="radio" name="group-add-user" value="${Number(user.id)}" required><span>${renderUsernameWithAvatar(user.username, user, { size: 'small' })}</span></label>
+        `).join('') || '<div class="chat-empty">Alle Benutzer sind bereits Mitglied.</div>';
+        modal.classList.add('open');
+    }
+
+    function closeGroupAddUserModal() {
+        const modal = document.getElementById('group-add-user-modal-backdrop');
+        if (modal) modal.classList.remove('open');
+    }
+
+    function handleGroupAddUserBackdropClick(event) {
+        if (event.target && event.target.id === 'group-add-user-modal-backdrop') closeGroupAddUserModal();
+    }
+
+    async function addUserToCurrentGroup(event) {
+        event.preventDefault();
+        if (!selectedChatGroup || !currentUser) return;
+        const selected = document.querySelector('input[name="group-add-user"]:checked');
+        if (!selected) return;
+        const user = getUsers().find(item => String(item.id) === String(selected.value));
+        if (!user) return;
+        const { error } = await supabaseClient.rpc('add_chat_group_member', {
+            target_group_id: selectedChatGroup.id,
+            target_user_id: Number(selected.value)
+        });
+        if (error) {
+            showToast('Benutzer konnte nicht hinzugefügt werden: ' + error.message, 'danger');
+            return;
+        }
+        closeGroupAddUserModal();
+        await loadGroupMembers(selectedChatGroup.id);
+        await loadGroupConversation();
+        showToast(`${user.username} wurde zur Gruppe hinzugefügt.`, 'success');
     }
 
     function openGroupCreateModal() {
@@ -435,6 +482,10 @@
     window.sendChatMessage = sendChatMessage;
     window.deleteCurrentChat = deleteCurrentChat;
     window.leaveCurrentGroup = leaveCurrentGroup;
+    window.openGroupAddUserModal = openGroupAddUserModal;
+    window.closeGroupAddUserModal = closeGroupAddUserModal;
+    window.handleGroupAddUserBackdropClick = handleGroupAddUserBackdropClick;
+    window.addUserToCurrentGroup = addUserToCurrentGroup;
     window.toggleChatEmojiPicker = toggleChatEmojiPicker;
     window.loadUnreadChatCount = loadUnreadChatCount;
     window.refreshChatUserBadges = refreshChatUserBadges;
