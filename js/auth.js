@@ -461,6 +461,7 @@
             try { await loadAppUsers(); } catch (e) { console.warn('Benutzer konnten nicht geladen werden:', e); }
             if (currentUser.isAdmin) {
                 try { await loadPasswordResetRequests(); } catch (e) { console.warn('Passwort-Reset-Anfragen konnten nicht geladen werden:', e); }
+                try { await notifyPendingPasswordResetRequests(); } catch (e) { console.warn('Offene Passwort-Reset-Anfragen konnten nicht geprüft werden:', e); }
             }
         }
 
@@ -1049,10 +1050,32 @@
         const { data, error } = await supabaseClient.from('password_reset_requests').select('*').order('created_at', { ascending: false });
         const body = document.getElementById('password-reset-requests-body');
         if (error) {
+            updatePasswordResetBadge(0);
             if (body) body.innerHTML = `<tr><td colspan="5" style="color:var(--danger-color);padding:16px;">Die Tabelle "password_reset_requests" fehlt oder ist nicht erreichbar.</td></tr>`;
             return;
         }
+        updatePasswordResetBadge((data || []).filter(request => request.status === 'pending').length);
         renderPasswordResetRequests(data || []);
+    }
+
+    function updatePasswordResetBadge(count) {
+        const badge = document.getElementById('password-reset-nav-badge');
+        if (!badge) return;
+        const pendingCount = Math.max(0, Number(count) || 0);
+        badge.textContent = pendingCount > 99 ? '99+' : String(pendingCount);
+        badge.hidden = pendingCount === 0;
+    }
+
+    async function notifyPendingPasswordResetRequests() {
+        if (!currentUser || !currentUser.isAdmin) return;
+        const { data, error } = await supabaseClient
+            .from('password_reset_requests')
+            .select('id')
+            .eq('status', 'pending');
+        if (error) return;
+        const count = (data || []).length;
+        updatePasswordResetBadge(count);
+        if (count) showToast(`${count} offene Passwort-Reset-Anfrage${count === 1 ? '' : 'n'} wartet auf deine Freigabe.`, 'info', 'Neue Admin-Aufgabe');
     }
 
     function renderPasswordResetRequests(requests) {

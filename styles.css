@@ -291,6 +291,26 @@
             opacity: 0.4;
         }
 
+        .admin-alert-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            margin-left: auto;
+            padding: 0 5px;
+            border-radius: 10px;
+            background: var(--danger-color);
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .admin-alert-badge[hidden] {
+            display: none;
+        }
+
         /* ============ MAIN CONTENT ============ */
 
         .content-area {
