@@ -4,7 +4,14 @@
     let chatRefreshTimer = null;
     let chatUsers = [];
     let previousUnreadCount = null;
-    const chatEmojis = ['😀', '😊', '😂', '😉', '😍', '😢', '😡', '😮', '👍', '❤️', '🎉', '🔥', '🙏', '✅', '💪', '👋'];
+    const chatEmojis = [
+        '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
+        '😉', '😊', '🙂', '🙃', '😌', '😍', '🥰', '😘',
+        '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪',
+        '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒',
+        '👍', '👋', '🫶',
+        '❤️', '💔', '💥', '🔥', '✨', '🎉'
+    ];
 
     function getUsers() {
         const users = typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList)
