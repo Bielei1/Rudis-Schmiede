@@ -234,8 +234,10 @@
         if (onlineList) onlineList.dataset.syncStatus = status;
         const statusEl = document.getElementById('live-sync-status');
         if (statusEl) {
-            statusEl.textContent = status;
-            statusEl.classList.toggle('is-error', isError);
+            const isSyncing = status.startsWith('Synchronisiere');
+            statusEl.textContent = isSyncing ? 'Synchronisiere ...' : '';
+            statusEl.classList.toggle('is-syncing', isSyncing);
+            statusEl.classList.toggle('is-error', isError && isSyncing);
         }
     }
 
