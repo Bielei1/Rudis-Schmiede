@@ -138,7 +138,10 @@
 
     async function deleteCurrentChat() {
         if (!selectedChatUser || !currentUser) return;
-        if (!window.confirm(`Diesen Chat nur für dich mit ${selectedChatUser.username} löschen?`)) return;
+        const confirmed = await customConfirm(
+            `Chat mit „${selectedChatUser.username}“ löschen?\n\nDie Nachrichten werden nur bei dir entfernt. Beim anderen Benutzer bleiben sie erhalten.`
+        );
+        if (!confirmed) return;
         const { error } = await supabaseClient.rpc('delete_user_chat', { other_user_id: selectedChatUser.id });
         if (error) {
             showToast('Chat konnte nicht gelöscht werden: ' + error.message, 'danger');
