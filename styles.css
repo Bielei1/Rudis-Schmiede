@@ -311,6 +311,24 @@
             display: none;
         }
 
+        .chat-open-button {
+            width: 100%;
+            margin-top: 12px;
+            padding: 9px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--card-bg-raised);
+            color: var(--text-color);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .chat-open-button:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
         .chat-unread-badge {
             display: inline-flex;
             align-items: center;
