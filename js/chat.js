@@ -92,6 +92,34 @@
         });
     }
 
+    async function renderSidebarGroups() {
+        const container = document.getElementById('chat-groups-sidebar');
+        if (!container || !currentUser || !supabaseClient) return;
+
+        const { data: groups, error } = await supabaseClient.rpc('get_my_chat_groups');
+        if (error) {
+            container.innerHTML = '';
+            console.warn('Gruppenchats konnten nicht geladen werden:', error.message);
+            return;
+        }
+
+        container.innerHTML = (groups || []).map(group => `
+            <button type="button" class="chat-sidebar-group" data-chat-group-id="${Number(group.id)}">
+                <span class="chat-group-name"># ${escapeHtml(group.name)}</span>
+                ${Number(group.unread_count) > 0 ? `<span class="chat-user-unread-badge">${Number(group.unread_count) > 99 ? '99+' : Number(group.unread_count)}</span>` : ''}
+            </button>
+        `).join('');
+        container.querySelectorAll('[data-chat-group-id]').forEach(button => {
+            button.addEventListener('click', () => {
+                const group = (groups || []).find(item => String(item.id) === button.dataset.chatGroupId);
+                if (!group) return;
+                const modal = document.getElementById('chat-modal-backdrop');
+                if (modal) modal.classList.add('open');
+                openGroupConversation(group);
+            });
+        });
+    }
+
     async function openConversation(user) {
         selectedChatUser = user;
         selectedChatGroup = null;
@@ -152,7 +180,7 @@
         closeGroupCreateModal();
         document.getElementById('group-name-input').value = '';
         showToast(`Gruppe „${name}“ wurde erstellt.`, 'success');
-        openChatPicker();
+        await renderSidebarGroups();
     }
 
     function openChatWithUserId(userId) {
@@ -327,6 +355,7 @@
     }
 
     window.openChatPicker = openChatPicker;
+    window.renderSidebarGroups = renderSidebarGroups;
     window.openGroupCreateModal = openGroupCreateModal;
     window.closeGroupCreateModal = closeGroupCreateModal;
     window.handleGroupCreateBackdropClick = handleGroupCreateBackdropClick;

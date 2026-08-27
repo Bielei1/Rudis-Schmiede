@@ -160,6 +160,7 @@
             }
         });
         if (typeof refreshChatUserBadges === 'function') refreshChatUserBadges();
+        if (typeof renderSidebarGroups === 'function') renderSidebarGroups();
     }
 
     function formatLastSeen(value) {
