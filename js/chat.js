@@ -136,6 +136,13 @@
         await loadConversation();
     }
 
+    document.addEventListener('keydown', event => {
+        if (event.target && event.target.id === 'chat-message-input' && event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            document.getElementById('chat-message-form').requestSubmit();
+        }
+    });
+
     async function deleteCurrentChat() {
         if (!selectedChatUser || !currentUser) return;
         const confirmed = await customConfirm('Dein Chatverlauf wird gelöscht.');

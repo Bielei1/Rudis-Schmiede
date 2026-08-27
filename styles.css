@@ -510,9 +510,13 @@
             padding-top: 12px;
         }
 
-        .chat-message-form input {
+        .chat-message-form textarea {
             min-width: 0;
             flex: 1;
+            min-height: 72px;
+            max-height: 220px;
+            resize: vertical;
+            line-height: 1.4;
         }
 
         .chat-empty {
