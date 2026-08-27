@@ -126,7 +126,7 @@
             ? onlineUsers.map(meta => {
                 const isYou = currentUser && meta.username === currentUser.username;
                 return `
-                <div class="online-user-row">
+                <div class="online-user-row" data-chat-user-id="${Number(getUserByUsername(meta.username)?.id || 0)}">
                     <span class="online-dot"></span>
                     ${renderUsernameWithAvatar(meta.username, meta, { size: 'small', suffix: isYou ? ' (Du)' : '' })}
                 </div>
@@ -135,7 +135,7 @@
             : `<div class="dashboard-empty" style="padding: 8px 4px;">Niemand online</div>`;
         const offlineHtml = offlineUsers.length
             ? offlineUsers.map(user => `
-                <div class="offline-user-row">
+                <div class="offline-user-row" data-chat-user-id="${Number(user.id || 0)}">
                     <span class="offline-dot"></span>
                     <div>
                         ${renderUsernameWithAvatar(user.username, user, { size: 'small' })}
@@ -150,6 +150,13 @@
             <div class="presence-section-title presence-section-title-offline">Offline</div>
             ${offlineHtml}
         `;
+        container.querySelectorAll('[data-chat-user-id]').forEach(row => {
+            const userId = row.dataset.chatUserId;
+            if (userId && userId !== '0' && typeof openChatWithUserId === 'function') {
+                row.title = 'Nachricht schreiben';
+                row.addEventListener('click', () => openChatWithUserId(userId));
+            }
+        });
     }
 
     function formatLastSeen(value) {

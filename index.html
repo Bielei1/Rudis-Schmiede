@@ -1216,10 +1216,35 @@
         <div id="online-users-list" class="online-users-list">
             <div class="dashboard-empty" style="padding: 12px 4px;">Verbinde...</div>
         </div>
+        <div class="chat-sidebar-action">
+            <button type="button" class="btn" onclick="openChatPicker()">
+                Nachrichten <span class="chat-unread-badge" id="chat-unread-badge" hidden>0</span>
+            </button>
+        </div>
     </aside>
 </div>
 
     </div><!-- /#app-content -->
+
+<div id="chat-modal-backdrop" class="chat-modal-backdrop" onclick="handleChatBackdropClick(event)">
+    <section class="chat-modal" role="dialog" aria-modal="true" aria-labelledby="chat-modal-title">
+        <div class="chat-modal-header">
+            <div>
+                <h2 id="chat-modal-title">Nachrichten</h2>
+                <div id="chat-modal-subtitle" class="chat-modal-subtitle">Wähle einen Benutzer aus.</div>
+            </div>
+            <button type="button" class="permission-modal-close" onclick="closeChatModal()" aria-label="Schließen">×</button>
+        </div>
+        <div id="chat-user-picker" class="chat-user-picker"></div>
+        <div id="chat-conversation" class="chat-conversation" hidden>
+            <div id="chat-messages" class="chat-messages"></div>
+            <form id="chat-message-form" class="chat-message-form" onsubmit="sendChatMessage(event)">
+                <input id="chat-message-input" type="text" maxlength="1000" placeholder="Nachricht schreiben ..." autocomplete="off" required>
+                <button type="submit" class="btn">Senden</button>
+            </form>
+        </div>
+    </section>
+</div>
 
 <script src="js/config.js?v=20260826-3"></script>
 <script src="js/auth.js?v=20260826-8"></script>
@@ -1241,5 +1266,6 @@
 <script src="js/profile.js?v=20260826-3"></script>
 <script src="js/main.js"></script>
 <script src="js/erweiterte-funktionen.js"></script>
+<script src="js/chat.js"></script>
 </body>
 </html>
