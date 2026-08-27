@@ -1236,7 +1236,12 @@
                 <button type="button" class="permission-modal-close" onclick="closeChatModal()" aria-label="Schließen">×</button>
             </div>
         </div>
+        <div class="chat-mode-switch" role="tablist" aria-label="Chat-Auswahl">
+            <button type="button" class="chat-mode-button active" id="chat-mode-direct" onclick="showDirectChatList()">Direktchat</button>
+            <button type="button" class="chat-mode-button" id="chat-mode-groups" onclick="showGroupChatList()">Gruppenchat</button>
+        </div>
         <div id="chat-user-picker" class="chat-user-picker"></div>
+        <div id="chat-group-picker" class="chat-user-picker" hidden></div>
         <div id="chat-conversation" class="chat-conversation" hidden>
             <div id="chat-messages" class="chat-messages"></div>
             <form id="chat-message-form" class="chat-message-form" onsubmit="sendChatMessage(event)">

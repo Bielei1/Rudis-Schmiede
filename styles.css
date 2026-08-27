@@ -383,6 +383,36 @@
             font-size: 0.8rem;
         }
 
+        .chat-mode-switch {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 14px;
+            padding: 3px;
+            border-radius: 7px;
+            background: var(--card-bg-raised);
+        }
+
+        .chat-mode-button {
+            flex: 1;
+            padding: 8px 10px;
+            border: 0;
+            border-radius: 5px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .chat-mode-button.active {
+            background: var(--primary-color);
+            color: #17100b;
+            font-weight: 700;
+        }
+
+        .chat-group-name {
+            font-weight: 600;
+        }
+
         .chat-user-picker {
             display: flex;
             flex-direction: column;

@@ -3,6 +3,8 @@
     let selectedChatUser = null;
     let chatRefreshTimer = null;
     let chatUsers = [];
+    let chatGroups = [];
+    let selectedChatGroup = null;
     let previousUnreadCount = null;
     const chatEmojis = [
         '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
@@ -25,7 +27,10 @@
         if (!modal) return;
         chatUsers = getUsers();
         selectedChatUser = null;
+        selectedChatGroup = null;
+        setChatMode('direct');
         document.getElementById('chat-user-picker').hidden = false;
+        document.getElementById('chat-group-picker').hidden = true;
         document.getElementById('chat-conversation').hidden = true;
         document.querySelector('.chat-delete-button').hidden = true;
         document.getElementById('chat-modal-title').textContent = 'Nachrichten';
@@ -33,6 +38,49 @@
         renderChatUserPicker();
         modal.classList.add('open');
         loadUnreadChatCount();
+    }
+
+    function setChatMode(mode) {
+        document.getElementById('chat-mode-direct').classList.toggle('active', mode === 'direct');
+        document.getElementById('chat-mode-groups').classList.toggle('active', mode === 'groups');
+    }
+
+    function showDirectChatList() {
+        setChatMode('direct');
+        document.getElementById('chat-user-picker').hidden = false;
+        document.getElementById('chat-group-picker').hidden = true;
+        document.getElementById('chat-conversation').hidden = true;
+        document.getElementById('chat-modal-title').textContent = 'Nachrichten';
+        document.getElementById('chat-modal-subtitle').textContent = 'Wähle einen Benutzer aus.';
+        renderChatUserPicker();
+    }
+
+    async function showGroupChatList() {
+        setChatMode('groups');
+        document.getElementById('chat-user-picker').hidden = true;
+        document.getElementById('chat-group-picker').hidden = false;
+        document.getElementById('chat-conversation').hidden = true;
+        document.getElementById('chat-modal-title').textContent = 'Gruppenchat';
+        document.getElementById('chat-modal-subtitle').textContent = 'Wähle eine Gruppe aus.';
+        const picker = document.getElementById('chat-group-picker');
+        const { data, error } = await supabaseClient.rpc('get_my_chat_groups');
+        chatGroups = data || [];
+        if (error || !chatGroups.length) {
+            picker.innerHTML = '<div class="chat-empty">Du bist noch keiner Gruppe zugeordnet.</div>';
+            return;
+        }
+        picker.innerHTML = chatGroups.map(group => `
+            <button type="button" class="chat-user-option" data-chat-group-id="${Number(group.id)}">
+                <span class="chat-group-name"># ${escapeHtml(group.name)}</span>
+                <span class="chat-user-option-arrow">Öffnen</span>
+            </button>
+        `).join('');
+        picker.querySelectorAll('[data-chat-group-id]').forEach(button => {
+            button.addEventListener('click', () => {
+                const group = chatGroups.find(item => String(item.id) === button.dataset.chatGroupId);
+                if (group) openGroupConversation(group);
+            });
+        });
     }
 
     function closeChatModal() {
@@ -72,13 +120,32 @@
 
     async function openConversation(user) {
         selectedChatUser = user;
+        selectedChatGroup = null;
         document.getElementById('chat-user-picker').hidden = true;
         document.getElementById('chat-conversation').hidden = false;
+        document.getElementById('chat-user-picker').hidden = true;
+        document.getElementById('chat-group-picker').hidden = true;
+        setChatMode('direct');
         document.getElementById('chat-modal-title').textContent = `Chatverlauf mit ${user.username}`;
         document.getElementById('chat-modal-subtitle').textContent = 'Private Unterhaltung';
         await loadConversation();
         if (chatRefreshTimer) clearInterval(chatRefreshTimer);
         chatRefreshTimer = setInterval(loadConversation, 5000);
+        document.getElementById('chat-message-input').focus();
+    }
+
+    async function openGroupConversation(group) {
+        selectedChatGroup = group;
+        selectedChatUser = null;
+        document.getElementById('chat-user-picker').hidden = true;
+        document.getElementById('chat-group-picker').hidden = true;
+        document.getElementById('chat-conversation').hidden = false;
+        document.getElementById('chat-modal-title').textContent = `Chatverlauf in # ${group.name}`;
+        document.getElementById('chat-modal-subtitle').textContent = 'Gruppenunterhaltung';
+        document.querySelector('.chat-delete-button').hidden = true;
+        await loadGroupConversation();
+        if (chatRefreshTimer) clearInterval(chatRefreshTimer);
+        chatRefreshTimer = setInterval(loadGroupConversation, 5000);
         document.getElementById('chat-message-input').focus();
     }
 
@@ -114,28 +181,53 @@
         }
     }
 
+    async function loadGroupConversation() {
+        if (!selectedChatGroup || !currentUser) return;
+        const { data, error } = await supabaseClient
+            .from('chat_group_messages')
+            .select('id, group_id, sender_id, message, created_at, sender:app_users(username), chat_group_message_reads(user_id, read_at)')
+            .eq('group_id', selectedChatGroup.id)
+            .order('created_at', { ascending: true });
+        if (error) {
+            showToast('Gruppennachrichten konnten nicht geladen werden: ' + error.message, 'danger');
+            return;
+        }
+        renderConversation((data || []).map(item => ({
+            ...item,
+            read_at: (item.chat_group_message_reads || []).find(read => String(read.user_id) === String(currentUser.id))?.read_at,
+            sender_name: item.sender?.username || 'Unbekannt'
+        })));
+        const unread = (data || []).filter(item => String(item.sender_id) !== String(currentUser.id)
+            && !(item.chat_group_message_reads || []).some(read => String(read.user_id) === String(currentUser.id)));
+        if (unread.length) {
+            await supabaseClient.from('chat_group_message_reads').upsert(
+                unread.map(item => ({ message_id: item.id, user_id: currentUser.id, read_at: new Date().toISOString() })),
+                { onConflict: 'message_id,user_id' }
+            );
+        }
+    }
+
     function renderConversation(messages) {
         const container = document.getElementById('chat-messages');
         if (!container) return;
         container.innerHTML = messages.length ? messages.map(item => {
             const own = String(item.sender_id) === String(currentUser.id);
             const date = item.created_at ? new Date(item.created_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '';
-            return `<div class="chat-message ${own ? 'chat-message-own' : 'chat-message-other'}"><div class="chat-message-text">${escapeHtml(item.message)}</div><div class="chat-message-meta">${date}${own ? (item.read_at ? ' · Gelesen' : ' · Gesendet') : ''}</div></div>`;
+            const sender = !own && item.sender_name ? `${escapeHtml(item.sender_name)} · ` : '';
+            return `<div class="chat-message ${own ? 'chat-message-own' : 'chat-message-other'}"><div class="chat-message-text">${sender}${escapeHtml(item.message)}</div><div class="chat-message-meta">${date}${own ? (item.read_at ? ' · Gelesen' : ' · Gesendet') : ''}</div></div>`;
         }).join('') : '<div class="chat-empty">Noch keine Nachrichten.</div>';
         container.scrollTop = container.scrollHeight;
     }
 
     async function sendChatMessage(event) {
         event.preventDefault();
-        if (!selectedChatUser || !currentUser) return;
+        if ((!selectedChatUser && !selectedChatGroup) || !currentUser) return;
         const input = document.getElementById('chat-message-input');
         const message = input.value.trim();
         if (!message) return;
-        const { error } = await supabaseClient.from('user_messages').insert([{
-            sender_id: currentUser.id,
-            recipient_id: selectedChatUser.id,
-            message
-        }]);
+        const { error } = selectedChatGroup
+            ? await supabaseClient.from('chat_group_messages').insert([{ group_id: selectedChatGroup.id, sender_id: currentUser.id, message }])
+            : await supabaseClient.from('user_messages').insert([{ sender_id: currentUser.id, recipient_id: selectedChatUser.id, message }]);
         if (error) {
             showToast('Nachricht konnte nicht gesendet werden: ' + error.message, 'danger');
             return;
@@ -229,6 +321,8 @@
     }
 
     window.openChatPicker = openChatPicker;
+    window.showDirectChatList = showDirectChatList;
+    window.showGroupChatList = showGroupChatList;
     window.openChatWithUserId = openChatWithUserId;
     window.closeChatModal = closeChatModal;
     window.handleChatBackdropClick = handleChatBackdropClick;
