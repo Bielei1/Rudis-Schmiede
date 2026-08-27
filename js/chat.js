@@ -75,7 +75,7 @@
             <div class="chat-list-heading">Gruppenchats</div>
             ${chatGroups.length ? chatGroups.map(group => `
                 <button type="button" class="chat-user-option chat-group-option" data-chat-group-id="${Number(group.id)}">
-                    <span class="chat-group-name"># ${escapeHtml(group.name)}</span>
+                    <span class="chat-group-name">${escapeHtml(group.name)}</span>
                     ${Number(group.unread_count) > 0 ? `<span class="chat-user-unread-badge">${Number(group.unread_count) > 99 ? '99+' : Number(group.unread_count)}</span>` : ''}
                 </button>
             `).join('') : '<div class="chat-empty">Noch keine Gruppenchats.</div>'}
@@ -115,7 +115,7 @@
 
         container.innerHTML = (groups || []).map(group => `
             <button type="button" class="chat-sidebar-group" data-chat-group-id="${Number(group.id)}">
-                <span class="chat-group-name"># ${escapeHtml(group.name)}</span>
+                <span class="chat-group-name">${escapeHtml(group.name)}</span>
                 ${Number(group.unread_count) > 0 ? `<span class="chat-user-unread-badge">${Number(group.unread_count) > 99 ? '99+' : Number(group.unread_count)}</span>` : ''}
             </button>
         `).join('');
@@ -152,7 +152,7 @@
         selectedChatUser = null;
         document.getElementById('chat-user-picker').hidden = true;
         document.getElementById('chat-conversation').hidden = false;
-        document.getElementById('chat-modal-title').textContent = `Chatverlauf in # ${group.name}`;
+        document.getElementById('chat-modal-title').textContent = `Chatverlauf in ${group.name}`;
         document.getElementById('chat-modal-subtitle').textContent = 'Gruppenunterhaltung';
         document.querySelector('.chat-delete-button').hidden = false;
         document.querySelector('.chat-leave-button').hidden = false;
