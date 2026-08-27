@@ -2192,7 +2192,7 @@
             box-shadow: 0 6px 20px rgba(0,0,0,0.3);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            pointer-events: none;
+            pointer-events: auto;
             flex-direction: column;
             align-items: flex-end;
             line-height: 1.15;
@@ -2211,10 +2211,13 @@
             font-size: 0.9rem;
         }
 
-        #live-clock::before {
-            content: '◷';
+        #day-night-icon {
+            align-self: flex-end;
+            width: 24px;
+            height: 24px;
             color: var(--primary-color);
-            font-size: 1rem;
+            font-size: 1.05rem;
+            line-height: 1;
         }
 
         @media (max-width: 980px) {

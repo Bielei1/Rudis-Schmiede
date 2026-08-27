@@ -13,6 +13,14 @@
         const now = new Date();
         const dateEl = document.getElementById('live-date');
         const timeEl = document.getElementById('live-time');
+        const dayNightIcon = document.getElementById('day-night-icon');
+
+        if (dayNightIcon) {
+            const isDaytime = now.getHours() >= 6 && now.getHours() < 18;
+            dayNightIcon.textContent = isDaytime ? '☀' : '☾';
+            dayNightIcon.setAttribute('aria-label', isDaytime ? 'Tag' : 'Nacht');
+            dayNightIcon.title = isDaytime ? 'Tag' : 'Nacht';
+        }
 
         if (dateEl) {
             dateEl.textContent = now.toLocaleDateString('de-DE', {
