@@ -413,6 +413,74 @@
             font-weight: 600;
         }
 
+        .chat-list-heading {
+            margin: 8px 2px 5px;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .chat-create-group-button {
+            width: 100%;
+            margin-top: 8px;
+            padding: 9px 10px;
+            border: 1px dashed var(--border-color);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--primary-color);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .chat-create-group-button:hover {
+            background: rgba(255, 106, 26, 0.1);
+        }
+
+        .group-create-modal {
+            width: min(100%, 460px);
+            max-height: min(700px, 90vh);
+            overflow-y: auto;
+            padding: 22px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--card-bg);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        .group-member-label {
+            margin: 4px 0 7px;
+            color: var(--text-muted);
+            font-size: 0.76rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .group-member-picker {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 260px;
+            overflow-y: auto;
+            margin-bottom: 18px;
+        }
+
+        .group-member-option {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 8px 10px;
+            border: 1px solid var(--border-color-soft);
+            border-radius: 6px;
+            color: var(--text-color);
+            cursor: pointer;
+        }
+
+        .group-member-option:hover {
+            border-color: var(--primary-color);
+        }
+
         .chat-user-picker {
             display: flex;
             flex-direction: column;

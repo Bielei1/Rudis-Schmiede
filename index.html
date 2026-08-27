@@ -1236,12 +1236,7 @@
                 <button type="button" class="permission-modal-close" onclick="closeChatModal()" aria-label="Schließen">×</button>
             </div>
         </div>
-        <div class="chat-mode-switch" role="tablist" aria-label="Chat-Auswahl">
-            <button type="button" class="chat-mode-button active" id="chat-mode-direct" onclick="showDirectChatList()">Direktchat</button>
-            <button type="button" class="chat-mode-button" id="chat-mode-groups" onclick="showGroupChatList()">Gruppenchat</button>
-        </div>
         <div id="chat-user-picker" class="chat-user-picker"></div>
-        <div id="chat-group-picker" class="chat-user-picker" hidden></div>
         <div id="chat-conversation" class="chat-conversation" hidden>
             <div id="chat-messages" class="chat-messages"></div>
             <form id="chat-message-form" class="chat-message-form" onsubmit="sendChatMessage(event)">
@@ -1253,6 +1248,21 @@
                 <button type="submit" class="btn">Senden</button>
             </form>
         </div>
+    </section>
+</div>
+
+<div id="group-create-modal-backdrop" class="chat-modal-backdrop" onclick="handleGroupCreateBackdropClick(event)">
+    <section class="group-create-modal" role="dialog" aria-modal="true" aria-labelledby="group-create-title">
+        <div class="chat-modal-header">
+            <div><h2 id="group-create-title">Gruppe erstellen</h2><div class="chat-modal-subtitle">Wähle die Benutzer für den Gruppenchat aus.</div></div>
+            <button type="button" class="permission-modal-close" onclick="closeGroupCreateModal()" aria-label="Schließen">×</button>
+        </div>
+        <form onsubmit="createChatGroup(event)">
+            <div class="login-field"><label for="group-name-input">Gruppenname</label><input id="group-name-input" type="text" maxlength="80" required placeholder="z. B. Verkauf"></div>
+            <div class="group-member-label">Benutzer hinzufügen</div>
+            <div id="group-member-picker" class="group-member-picker"></div>
+            <div class="confirm-modal-actions"><button type="button" class="btn" onclick="closeGroupCreateModal()">Abbrechen</button><button type="submit" class="btn btn-success">Gruppe erstellen</button></div>
+        </form>
     </section>
 </div>
 

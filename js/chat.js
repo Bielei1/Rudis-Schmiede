@@ -28,9 +28,7 @@
         chatUsers = getUsers();
         selectedChatUser = null;
         selectedChatGroup = null;
-        setChatMode('direct');
         document.getElementById('chat-user-picker').hidden = false;
-        document.getElementById('chat-group-picker').hidden = true;
         document.getElementById('chat-conversation').hidden = true;
         document.querySelector('.chat-delete-button').hidden = true;
         document.getElementById('chat-modal-title').textContent = 'Nachrichten';
@@ -38,49 +36,6 @@
         renderChatUserPicker();
         modal.classList.add('open');
         loadUnreadChatCount();
-    }
-
-    function setChatMode(mode) {
-        document.getElementById('chat-mode-direct').classList.toggle('active', mode === 'direct');
-        document.getElementById('chat-mode-groups').classList.toggle('active', mode === 'groups');
-    }
-
-    function showDirectChatList() {
-        setChatMode('direct');
-        document.getElementById('chat-user-picker').hidden = false;
-        document.getElementById('chat-group-picker').hidden = true;
-        document.getElementById('chat-conversation').hidden = true;
-        document.getElementById('chat-modal-title').textContent = 'Nachrichten';
-        document.getElementById('chat-modal-subtitle').textContent = 'Wähle einen Benutzer aus.';
-        renderChatUserPicker();
-    }
-
-    async function showGroupChatList() {
-        setChatMode('groups');
-        document.getElementById('chat-user-picker').hidden = true;
-        document.getElementById('chat-group-picker').hidden = false;
-        document.getElementById('chat-conversation').hidden = true;
-        document.getElementById('chat-modal-title').textContent = 'Gruppenchat';
-        document.getElementById('chat-modal-subtitle').textContent = 'Wähle eine Gruppe aus.';
-        const picker = document.getElementById('chat-group-picker');
-        const { data, error } = await supabaseClient.rpc('get_my_chat_groups');
-        chatGroups = data || [];
-        if (error || !chatGroups.length) {
-            picker.innerHTML = '<div class="chat-empty">Du bist noch keiner Gruppe zugeordnet.</div>';
-            return;
-        }
-        picker.innerHTML = chatGroups.map(group => `
-            <button type="button" class="chat-user-option" data-chat-group-id="${Number(group.id)}">
-                <span class="chat-group-name"># ${escapeHtml(group.name)}</span>
-                <span class="chat-user-option-arrow">Öffnen</span>
-            </button>
-        `).join('');
-        picker.querySelectorAll('[data-chat-group-id]').forEach(button => {
-            button.addEventListener('click', () => {
-                const group = chatGroups.find(item => String(item.id) === button.dataset.chatGroupId);
-                if (group) openGroupConversation(group);
-            });
-        });
     }
 
     function closeChatModal() {
@@ -97,23 +52,38 @@
         if (event.target && event.target.id === 'chat-modal-backdrop') closeChatModal();
     }
 
-    function renderChatUserPicker() {
+    async function renderChatUserPicker() {
         const picker = document.getElementById('chat-user-picker');
         if (!picker) return;
-        if (!chatUsers.length) {
-            picker.innerHTML = '<div class="chat-empty">Keine anderen Benutzer verfügbar.</div>';
-            return;
-        }
-        picker.innerHTML = chatUsers.map(user => `
+        const { data: groups } = await supabaseClient.rpc('get_my_chat_groups');
+        chatGroups = groups || [];
+        const directHtml = chatUsers.length ? chatUsers.map(user => `
             <button type="button" class="chat-user-option" data-chat-user-id="${Number(user.id)}">
                 ${renderUsernameWithAvatar(user.username, user, { size: 'small' })}
                 <span class="chat-user-option-arrow">Öffnen</span>
             </button>
-        `).join('');
+        `).join('') : '<div class="chat-empty">Keine anderen Benutzer verfügbar.</div>';
+        const groupHtml = `
+            <div class="chat-list-heading">Gruppenchats</div>
+            ${chatGroups.length ? chatGroups.map(group => `
+                <button type="button" class="chat-user-option chat-group-option" data-chat-group-id="${Number(group.id)}">
+                    <span class="chat-group-name"># ${escapeHtml(group.name)}</span>
+                    ${Number(group.unread_count) > 0 ? `<span class="chat-user-unread-badge">${Number(group.unread_count) > 99 ? '99+' : Number(group.unread_count)}</span>` : ''}
+                </button>
+            `).join('') : '<div class="chat-empty">Noch keine Gruppenchats.</div>'}
+            <button type="button" class="chat-create-group-button" onclick="openGroupCreateModal()">+ Gruppe erstellen</button>
+        `;
+        picker.innerHTML = `<div class="chat-list-heading">Direktchats</div>${directHtml}${groupHtml}`;
         picker.querySelectorAll('[data-chat-user-id]').forEach(button => {
             button.addEventListener('click', () => {
                 const user = chatUsers.find(item => String(item.id) === button.dataset.chatUserId);
                 if (user) openConversation(user);
+            });
+        });
+        picker.querySelectorAll('[data-chat-group-id]').forEach(button => {
+            button.addEventListener('click', () => {
+                const group = chatGroups.find(item => String(item.id) === button.dataset.chatGroupId);
+                if (group) openGroupConversation(group);
             });
         });
     }
@@ -124,8 +94,6 @@
         document.getElementById('chat-user-picker').hidden = true;
         document.getElementById('chat-conversation').hidden = false;
         document.getElementById('chat-user-picker').hidden = true;
-        document.getElementById('chat-group-picker').hidden = true;
-        setChatMode('direct');
         document.getElementById('chat-modal-title').textContent = `Chatverlauf mit ${user.username}`;
         document.getElementById('chat-modal-subtitle').textContent = 'Private Unterhaltung';
         await loadConversation();
@@ -138,7 +106,6 @@
         selectedChatGroup = group;
         selectedChatUser = null;
         document.getElementById('chat-user-picker').hidden = true;
-        document.getElementById('chat-group-picker').hidden = true;
         document.getElementById('chat-conversation').hidden = false;
         document.getElementById('chat-modal-title').textContent = `Chatverlauf in # ${group.name}`;
         document.getElementById('chat-modal-subtitle').textContent = 'Gruppenunterhaltung';
@@ -147,6 +114,41 @@
         if (chatRefreshTimer) clearInterval(chatRefreshTimer);
         chatRefreshTimer = setInterval(loadGroupConversation, 5000);
         document.getElementById('chat-message-input').focus();
+    }
+
+    function openGroupCreateModal() {
+        const modal = document.getElementById('group-create-modal-backdrop');
+        const picker = document.getElementById('group-member-picker');
+        if (!modal || !picker) return;
+        picker.innerHTML = getUsers().map(user => `
+            <label class="group-member-option"><input type="checkbox" name="group-member" value="${Number(user.id)}"><span>${renderUsernameWithAvatar(user.username, user, { size: 'small' })}</span></label>
+        `).join('') || '<div class="chat-empty">Keine weiteren Benutzer verfügbar.</div>';
+        modal.classList.add('open');
+    }
+
+    function closeGroupCreateModal() {
+        const modal = document.getElementById('group-create-modal-backdrop');
+        if (modal) modal.classList.remove('open');
+    }
+
+    function handleGroupCreateBackdropClick(event) {
+        if (event.target && event.target.id === 'group-create-modal-backdrop') closeGroupCreateModal();
+    }
+
+    async function createChatGroup(event) {
+        event.preventDefault();
+        const name = document.getElementById('group-name-input').value.trim();
+        const memberIds = [...document.querySelectorAll('input[name="group-member"]:checked')].map(input => Number(input.value));
+        if (!name) return;
+        const { error } = await supabaseClient.rpc('create_chat_group', { group_name: name, member_ids: memberIds });
+        if (error) {
+            showToast('Gruppe konnte nicht erstellt werden: ' + error.message, 'danger');
+            return;
+        }
+        closeGroupCreateModal();
+        document.getElementById('group-name-input').value = '';
+        await renderChatUserPicker();
+        showToast(`Gruppe „${name}“ wurde erstellt.`, 'success');
     }
 
     function openChatWithUserId(userId) {
@@ -321,8 +323,10 @@
     }
 
     window.openChatPicker = openChatPicker;
-    window.showDirectChatList = showDirectChatList;
-    window.showGroupChatList = showGroupChatList;
+    window.openGroupCreateModal = openGroupCreateModal;
+    window.closeGroupCreateModal = closeGroupCreateModal;
+    window.handleGroupCreateBackdropClick = handleGroupCreateBackdropClick;
+    window.createChatGroup = createChatGroup;
     window.openChatWithUserId = openChatWithUserId;
     window.closeChatModal = closeChatModal;
     window.handleChatBackdropClick = handleChatBackdropClick;
