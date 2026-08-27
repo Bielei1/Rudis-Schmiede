@@ -32,6 +32,7 @@
         document.getElementById('chat-user-picker').hidden = false;
         document.getElementById('chat-conversation').hidden = true;
         document.querySelector('.chat-delete-button').hidden = true;
+        document.querySelector('.chat-leave-button').hidden = true;
         document.getElementById('chat-group-members').hidden = true;
         document.getElementById('chat-modal-title').textContent = 'Nachrichten';
         document.getElementById('chat-modal-subtitle').textContent = 'Wähle einen Benutzer aus.';
@@ -44,6 +45,7 @@
         const modal = document.getElementById('chat-modal-backdrop');
         if (modal) modal.classList.remove('open');
         selectedChatUser = null;
+        selectedChatGroup = null;
         if (chatRefreshTimer) {
             clearInterval(chatRefreshTimer);
             chatRefreshTimer = null;
@@ -137,6 +139,7 @@
         document.getElementById('chat-modal-title').textContent = `Chatverlauf mit ${user.username}`;
         document.getElementById('chat-modal-subtitle').textContent = 'Private Unterhaltung';
         document.querySelector('.chat-delete-button').hidden = false;
+        document.querySelector('.chat-leave-button').hidden = true;
         document.getElementById('chat-group-members').hidden = true;
         await loadConversation();
         if (chatRefreshTimer) clearInterval(chatRefreshTimer);
@@ -152,6 +155,7 @@
         document.getElementById('chat-modal-title').textContent = `Chatverlauf in # ${group.name}`;
         document.getElementById('chat-modal-subtitle').textContent = 'Gruppenunterhaltung';
         document.querySelector('.chat-delete-button').hidden = false;
+        document.querySelector('.chat-leave-button').hidden = false;
         await loadGroupMembers(group.id);
         await loadGroupConversation();
         if (chatRefreshTimer) clearInterval(chatRefreshTimer);
@@ -379,6 +383,26 @@
         showToast('Der Chat wurde nur für dich gelöscht.', 'success');
     }
 
+    async function leaveCurrentGroup() {
+        if (!selectedChatGroup || !currentUser) return;
+        const groupId = selectedChatGroup.id;
+        const groupName = selectedChatGroup.name;
+        const confirmed = await customConfirm(`Möchtest du die Gruppe „${groupName}“ wirklich verlassen?`);
+        if (!confirmed) return;
+
+        const { error } = await supabaseClient.rpc('leave_chat_group', {
+            target_group_id: groupId
+        });
+        if (error) {
+            showToast('Gruppe konnte nicht verlassen werden: ' + error.message, 'danger');
+            return;
+        }
+
+        closeChatModal();
+        await renderSidebarGroups();
+        showToast(`Du hast die Gruppe „${groupName}“ verlassen.`, 'success');
+    }
+
     async function loadUnreadChatCount() {
         if (!currentUser) return;
         const { count, error } = await supabaseClient
@@ -424,6 +448,7 @@
     window.handleChatBackdropClick = handleChatBackdropClick;
     window.sendChatMessage = sendChatMessage;
     window.deleteCurrentChat = deleteCurrentChat;
+    window.leaveCurrentGroup = leaveCurrentGroup;
     window.toggleChatEmojiPicker = toggleChatEmojiPicker;
     window.loadUnreadChatCount = loadUnreadChatCount;
     window.refreshChatUserBadges = refreshChatUserBadges;

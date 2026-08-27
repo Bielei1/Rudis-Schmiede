@@ -625,6 +625,21 @@
             color: var(--danger-color);
         }
 
+        .chat-leave-button {
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 6px 9px;
+            background: transparent;
+            color: var(--text-color);
+            font-size: 0.72rem;
+            cursor: pointer;
+        }
+
+        .chat-leave-button:hover {
+            border-color: var(--danger-color);
+            color: var(--danger-color);
+        }
+
         .chat-conversation {
             display: flex;
             flex-direction: column;
