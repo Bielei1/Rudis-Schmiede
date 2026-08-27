@@ -66,7 +66,7 @@
         selectedChatUser = user;
         document.getElementById('chat-user-picker').hidden = true;
         document.getElementById('chat-conversation').hidden = false;
-        document.getElementById('chat-modal-title').textContent = `Nachrichten mit ${user.username}`;
+        document.getElementById('chat-modal-title').textContent = `Chatverlauf mit ${user.username}`;
         document.getElementById('chat-modal-subtitle').textContent = 'Private Unterhaltung';
         await loadConversation();
         if (chatRefreshTimer) clearInterval(chatRefreshTimer);
@@ -138,9 +138,7 @@
 
     async function deleteCurrentChat() {
         if (!selectedChatUser || !currentUser) return;
-        const confirmed = await customConfirm(
-            `Chat mit „${selectedChatUser.username}“ löschen?\n\nDie Nachrichten werden nur bei dir entfernt. Beim anderen Benutzer bleiben sie erhalten.`
-        );
+        const confirmed = await customConfirm('Dein Chatverlauf wird gelöscht.');
         if (!confirmed) return;
         const { error } = await supabaseClient.rpc('delete_user_chat', { other_user_id: selectedChatUser.id });
         if (error) {
@@ -159,14 +157,7 @@
             .eq('recipient_id', currentUser.id)
             .is('read_at', null);
         if (error) return;
-        const badge = document.getElementById('chat-unread-badge');
-        if (!badge) return;
         const unreadCount = count || 0;
-        badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
-        badge.hidden = unreadCount === 0;
-        if (previousUnreadCount !== null && unreadCount > previousUnreadCount) {
-            showToast(`${unreadCount - previousUnreadCount} neue Nachricht${unreadCount - previousUnreadCount === 1 ? '' : 'en'} erhalten.`, 'info', 'Neue Nachricht');
-        }
         previousUnreadCount = unreadCount;
         await refreshChatUserBadges();
     }
