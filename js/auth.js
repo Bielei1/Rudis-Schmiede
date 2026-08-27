@@ -237,17 +237,17 @@
                     showAuthMsg('forgot-error', 'Für den fest eingebauten Admin kann kein Passwort-Reset angefordert werden.');
                     return;
                 }
-                const { data: users, error: userError } = await supabaseClient
-                    .from('app_users').select('id, username').ilike('username', username).limit(1);
-                if (userError) return showAuthMsg('forgot-error', 'Benutzer konnte nicht geprüft werden: ' + userError.message);
-                const user = users && users[0];
-                if (!user) return showAuthMsg('forgot-error', 'Benutzername wurde nicht gefunden.');
-
-                const { data: existing, error: existingError } = await supabaseClient
-                    .from('password_reset_requests').select('id,status,request_code')
-                    .eq('user_id', user.id).in('status',['pending','approved'])
-                    .order('created_at',{ascending:false}).limit(1).maybeSingle();
-                if (existingError) return showAuthMsg('forgot-error', 'Die Reset-Funktion ist noch nicht mit Supabase verbunden. Bitte die Tabelle "password_reset_requests" anlegen.');
+                const { data: resetState, error: stateError } = await supabaseClient
+                    .rpc('get_password_reset_state', { requested_username: username });
+                if (stateError) return showAuthMsg('forgot-error', 'Benutzer konnte nicht geprüft werden: ' + stateError.message);
+                const state = Array.isArray(resetState) ? resetState[0] : resetState;
+                if (!state || !state.user_id) return showAuthMsg('forgot-error', 'Benutzername wurde nicht gefunden.');
+                const user = { id: state.user_id, username: state.username };
+                const existing = state.request_id ? {
+                    id: state.request_id,
+                    status: state.status,
+                    request_code: state.request_code
+                } : null;
 
                 if (existing) {
                     activePasswordResetRequestId = existing.id;
@@ -262,11 +262,10 @@
                     return;
                 }
 
-                const requestCode = generateResetCode();
-                const { data: request, error: requestError } = await supabaseClient
-                    .from('password_reset_requests')
-                    .insert([{user_id:user.id,username:user.username,request_code:requestCode,status:'pending'}])
-                    .select('id,request_code').single();
+                const { data: requestData, error: requestError } = await supabaseClient.rpc('create_password_reset_request', {
+                    requested_username: user.username
+                });
+                const request = Array.isArray(requestData) ? requestData[0] : requestData;
                 if (requestError) return showAuthMsg('forgot-error','Reset-Anfrage konnte nicht erstellt werden: '+requestError.message);
                 if (typeof broadcastDataChange === 'function') await broadcastDataChange('password_reset_requests');
                 activePasswordResetRequestId = request.id;
