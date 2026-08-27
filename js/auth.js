@@ -107,8 +107,13 @@
     let appUsersList = [];    // nur für Admin geladen
     let editingPermissionUser = null;
     let editingPermissionDraft = null;
+    let passwordResetStatusTimer = null;
 
     function showLoginForm() {
+        if (passwordResetStatusTimer) {
+            clearInterval(passwordResetStatusTimer);
+            passwordResetStatusTimer = null;
+        }
         document.getElementById('register-form').style.display = 'none';
         document.getElementById('forgot-password-form').style.display = 'none';
         document.getElementById('login-form').style.display = 'block';
@@ -124,16 +129,43 @@
     }
 
     function showForgotPasswordForm() {
+        if (passwordResetStatusTimer) {
+            clearInterval(passwordResetStatusTimer);
+            passwordResetStatusTimer = null;
+        }
         document.getElementById('login-form').style.display = 'none';
         document.getElementById('register-form').style.display = 'none';
         document.getElementById('forgot-password-form').style.display = 'block';
         hideAuthMsg('forgot-error');
         hideAuthMsg('forgot-info');
         document.getElementById('forgot-request-step').style.display = 'block';
+        document.getElementById('forgot-waiting-step').style.display = 'none';
         document.getElementById('forgot-code-step').style.display = 'none';
         document.getElementById('forgot-code').value = '';
         document.getElementById('forgot-new-password').value = '';
         document.getElementById('forgot-new-password2').value = '';
+    }
+
+    function showPasswordResetWaiting(username, requestId) {
+        document.getElementById('forgot-request-step').style.display = 'none';
+        document.getElementById('forgot-waiting-step').style.display = 'block';
+        document.getElementById('forgot-code-step').style.display = 'none';
+        if (passwordResetStatusTimer) clearInterval(passwordResetStatusTimer);
+        passwordResetStatusTimer = setInterval(() => checkPasswordResetApproval(username, requestId), 5000);
+    }
+
+    async function checkPasswordResetApproval(username, requestId) {
+        const { data, error } = await supabaseClient.rpc('get_password_reset_state', {
+            requested_username: username
+        });
+        if (error) return;
+        const state = Array.isArray(data) ? data[0] : data;
+        if (!state || String(state.request_id) !== String(requestId) || state.status !== 'approved') return;
+        clearInterval(passwordResetStatusTimer);
+        passwordResetStatusTimer = null;
+        document.getElementById('forgot-waiting-step').style.display = 'none';
+        document.getElementById('forgot-code-step').style.display = 'block';
+        showAuthMsg('forgot-info', 'Deine Anfrage wurde freigegeben. Bitte gib den Reset-Code ein, den dir der Admin mitgeteilt hat.');
     }
 
     function showAuthMsg(id, message) {
@@ -255,7 +287,7 @@
                         requestStep.style.display='none'; codeStep.style.display='block';
                         showAuthMsg('forgot-info','Deine Anfrage wurde freigegeben. Bitte gib den Reset-Code ein, den dir der Admin mitgeteilt hat.');
                     } else {
-                        requestStep.style.display='block'; codeStep.style.display='none';
+                        showPasswordResetWaiting(username, existing.id);
                         showAuthMsg('forgot-info','Deine Reset-Anfrage wartet noch auf die Bestätigung durch einen Admin.');
                     }
                     return;
@@ -268,6 +300,7 @@
                 if (requestError) return showAuthMsg('forgot-error','Reset-Anfrage konnte nicht erstellt werden: '+requestError.message);
                 if (typeof broadcastDataChange === 'function') await broadcastDataChange('password_reset_requests');
                 activePasswordResetRequestId = request.id;
+                showPasswordResetWaiting(username, request.id);
                 showAuthMsg('forgot-info','Reset-Anfrage wurde an den Admin gesendet. Bitte warte auf die Freigabe.');
                 return;
             }
@@ -288,10 +321,15 @@
             if (!result || !result.success) return showAuthMsg('forgot-error', 'Reset-Code ist ungültig oder wurde noch nicht vom Admin freigegeben.');
 
             event.target.reset();
+            if (passwordResetStatusTimer) {
+                clearInterval(passwordResetStatusTimer);
+                passwordResetStatusTimer = null;
+            }
             codeStep.style.display = 'none';
             requestStep.style.display = 'block';
             activePasswordResetRequestId = null;
             showAuthMsg('forgot-info', 'Dein Passwort wurde erfolgreich geändert. Du kannst dich jetzt einloggen.');
+            setTimeout(showLoginForm, 1800);
             return;
         } finally { if (submitBtn) submitBtn.disabled=false; }
     }

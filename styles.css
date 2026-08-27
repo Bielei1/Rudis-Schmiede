@@ -2227,6 +2227,30 @@
             margin-top: 1px;
         }
 
+        .forgot-waiting {
+            margin: 4px 0 16px;
+            padding: 18px 14px;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            border-radius: 8px;
+            background: rgba(245, 158, 11, 0.08);
+            text-align: center;
+            color: var(--text-color);
+        }
+
+        .forgot-waiting-icon {
+            color: #f59e0b;
+            font-size: 1.1rem;
+            letter-spacing: 3px;
+            margin-bottom: 6px;
+        }
+
+        .forgot-waiting p {
+            margin: 6px 0 0;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            line-height: 1.45;
+        }
+
         .login-switch {
             text-align: center;
             margin-top: 16px;
