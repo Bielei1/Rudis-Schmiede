@@ -49,7 +49,7 @@ async function loadMemberUsernames() {
     if (error || !Array.isArray(data) || data.length === 0) {
         const fallbackResponse = await supabaseClient
             .from('app_users')
-            .select('id, username, created_at, avatar, bio')
+            .select('id, username, created_at, avatar, bio, last_seen')
             .order('username', { ascending: true });
         data = fallbackResponse.data;
         error = fallbackResponse.error;
