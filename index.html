@@ -105,9 +105,25 @@
                         <div class="login-input-wrap"><input type="text" id="forgot-username" autocomplete="username" required></div>
                     </div>
                     <div id="forgot-request-step">
+                        <div class="forgot-guide">
+                            <strong>So funktioniert es:</strong>
+                            <ol>
+                                <li>Reset-Anfrage senden</li>
+                                <li>Auf die Freigabe durch den Admin warten</li>
+                                <li>Den Reset-Code vom Admin erhalten</li>
+                                <li>Neues Passwort festlegen</li>
+                            </ol>
+                        </div>
                         <button type="submit" class="btn">Reset-Anfrage senden</button>
                     </div>
                     <div id="forgot-code-step" style="display:none;">
+                        <div class="forgot-step-heading">
+                            <span class="forgot-step-number">2</span>
+                            <div>
+                                <strong>Passwort zurücksetzen</strong>
+                                <span>Deine Anfrage wurde freigegeben. Bitte trage den Code ein, den dir der Admin mitgeteilt hat.</span>
+                            </div>
+                        </div>
                         <div class="login-field">
                             <label for="forgot-code">Reset-Code</label>
                             <div class="login-input-wrap"><input type="text" id="forgot-code" inputmode="numeric" maxlength="8" autocomplete="one-time-code" placeholder="8-stelliger Code"></div>
