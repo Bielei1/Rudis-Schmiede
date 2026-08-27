@@ -147,6 +147,7 @@
         }
         closeGroupCreateModal();
         document.getElementById('group-name-input').value = '';
+        openChatPicker();
         await renderChatUserPicker();
         showToast(`Gruppe „${name}“ wurde erstellt.`, 'success');
     }
