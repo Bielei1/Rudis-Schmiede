@@ -443,6 +443,13 @@
             font-size: 0.8rem;
         }
 
+        .chat-group-members {
+            margin-top: 6px;
+            color: var(--text-muted);
+            font-size: 0.74rem;
+            line-height: 1.35;
+        }
+
         .chat-mode-switch {
             display: flex;
             gap: 4px;

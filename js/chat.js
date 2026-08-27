@@ -31,6 +31,7 @@
         document.getElementById('chat-user-picker').hidden = false;
         document.getElementById('chat-conversation').hidden = true;
         document.querySelector('.chat-delete-button').hidden = true;
+        document.getElementById('chat-group-members').hidden = true;
         document.getElementById('chat-modal-title').textContent = 'Nachrichten';
         document.getElementById('chat-modal-subtitle').textContent = 'Wähle einen Benutzer aus.';
         renderChatUserPicker();
@@ -128,6 +129,8 @@
         document.getElementById('chat-user-picker').hidden = true;
         document.getElementById('chat-modal-title').textContent = `Chatverlauf mit ${user.username}`;
         document.getElementById('chat-modal-subtitle').textContent = 'Private Unterhaltung';
+        document.querySelector('.chat-delete-button').hidden = false;
+        document.getElementById('chat-group-members').hidden = true;
         await loadConversation();
         if (chatRefreshTimer) clearInterval(chatRefreshTimer);
         chatRefreshTimer = setInterval(loadConversation, 5000);
@@ -141,11 +144,38 @@
         document.getElementById('chat-conversation').hidden = false;
         document.getElementById('chat-modal-title').textContent = `Chatverlauf in # ${group.name}`;
         document.getElementById('chat-modal-subtitle').textContent = 'Gruppenunterhaltung';
-        document.querySelector('.chat-delete-button').hidden = true;
+        document.querySelector('.chat-delete-button').hidden = false;
+        await loadGroupMembers(group.id);
         await loadGroupConversation();
         if (chatRefreshTimer) clearInterval(chatRefreshTimer);
         chatRefreshTimer = setInterval(loadGroupConversation, 5000);
         document.getElementById('chat-message-input').focus();
+    }
+
+    async function loadGroupMembers(groupId) {
+        const membersEl = document.getElementById('chat-group-members');
+        if (!membersEl) return;
+        const { data: memberships, error } = await supabaseClient
+            .from('chat_group_members')
+            .select('user_id')
+            .eq('group_id', groupId);
+        if (error) {
+            membersEl.hidden = true;
+            showToast('Gruppenmitglieder konnten nicht geladen werden: ' + error.message, 'danger');
+            return;
+        }
+        const userIds = (memberships || []).map(item => item.user_id).filter(Boolean);
+        const { data: users, error: usersError } = userIds.length
+            ? await supabaseClient.from('app_users').select('id, username, avatar').in('id', userIds)
+            : { data: [], error: null };
+        if (usersError) {
+            membersEl.hidden = true;
+            showToast('Gruppenmitglieder konnten nicht geladen werden: ' + usersError.message, 'danger');
+            return;
+        }
+        const names = (users || []).map(user => user.username).join(', ');
+        membersEl.textContent = `Mitglieder: ${names || 'Keine Mitglieder'}`;
+        membersEl.hidden = false;
     }
 
     function openGroupCreateModal() {
@@ -219,7 +249,7 @@
         if (!selectedChatGroup || !currentUser) return;
         const { data, error } = await supabaseClient
             .from('chat_group_messages')
-            .select('id, group_id, sender_id, message, created_at, chat_group_message_reads(user_id, read_at)')
+            .select('id, group_id, sender_id, message, created_at, chat_group_message_reads(user_id, read_at), chat_group_message_deletions(user_id)')
             .eq('group_id', selectedChatGroup.id)
             .order('created_at', { ascending: true });
         if (error) {
@@ -241,12 +271,15 @@
             senderNames = new Map((senders || []).map(sender => [String(sender.id), sender.username]));
         }
 
-        renderConversation((data || []).map(item => ({
+        const visibleData = (data || []).filter(item =>
+            !(item.chat_group_message_deletions || []).some(read => String(read.user_id) === String(currentUser.id))
+        );
+        renderConversation(visibleData.map(item => ({
             ...item,
             read_at: (item.chat_group_message_reads || []).find(read => String(read.user_id) === String(currentUser.id))?.read_at,
             sender_name: senderNames.get(String(item.sender_id)) || 'Unbekannt'
         })));
-        const unread = (data || []).filter(item => String(item.sender_id) !== String(currentUser.id)
+        const unread = visibleData.filter(item => String(item.sender_id) !== String(currentUser.id)
             && !(item.chat_group_message_reads || []).some(read => String(read.user_id) === String(currentUser.id)));
         if (unread.length) {
             await supabaseClient.from('chat_group_message_reads').upsert(
@@ -324,15 +357,17 @@
     });
 
     async function deleteCurrentChat() {
-        if (!selectedChatUser || !currentUser) return;
+        if ((!selectedChatUser && !selectedChatGroup) || !currentUser) return;
         const confirmed = await customConfirm('Dein Chatverlauf wird gelöscht.');
         if (!confirmed) return;
-        const { error } = await supabaseClient.rpc('delete_user_chat', { other_user_id: selectedChatUser.id });
+        const { error } = selectedChatGroup
+            ? await supabaseClient.rpc('delete_my_chat_group_history', { target_group_id: selectedChatGroup.id })
+            : await supabaseClient.rpc('delete_user_chat', { other_user_id: selectedChatUser.id });
         if (error) {
             showToast('Chat konnte nicht gelöscht werden: ' + error.message, 'danger');
             return;
         }
-        await loadConversation();
+        await (selectedChatGroup ? loadGroupConversation() : loadConversation());
         showToast('Der Chat wurde nur für dich gelöscht.', 'success');
     }
 
