@@ -1,3 +1,16 @@
+                .chat-sidebar-title-button {
+                    width: 100%;
+                    border: 0;
+                    padding: 0;
+                    background: transparent;
+                    color: inherit;
+                    text-align: left;
+                    cursor: pointer;
+                }
+
+                .chat-sidebar-title-button:hover {
+                    color: var(--primary-color);
+                }
         :root {
             /* Schmiede-Palette: verfeinertes kaltes Eisen + Glut */
             --bg-color: #120e0a;
