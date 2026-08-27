@@ -6,6 +6,7 @@
     let chatGroups = [];
     let selectedChatGroup = null;
     let previousUnreadCount = null;
+    let previousGroupUnreadCount = null;
     const chatEmojis = [
         '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
         '😉', '😊', '🙂', '🙃', '😌', '😍', '🥰', '😘',
@@ -103,6 +104,12 @@
             console.warn('Gruppenchats konnten nicht geladen werden:', error.message);
             return;
         }
+
+        const groupUnreadCount = (groups || []).reduce((total, group) => total + Number(group.unread_count || 0), 0);
+        if (previousGroupUnreadCount !== null && groupUnreadCount > previousGroupUnreadCount) {
+            showToast('Neue Nachricht in einem Gruppenchat.', 'info');
+        }
+        previousGroupUnreadCount = groupUnreadCount;
 
         container.innerHTML = (groups || []).map(group => `
             <button type="button" class="chat-sidebar-group" data-chat-group-id="${Number(group.id)}">
@@ -287,6 +294,7 @@
                 { onConflict: 'message_id,user_id' }
             );
         }
+        await renderSidebarGroups();
     }
 
     function renderConversation(messages) {
@@ -382,6 +390,7 @@
         const unreadCount = count || 0;
         previousUnreadCount = unreadCount;
         await refreshChatUserBadges();
+        await renderSidebarGroups();
     }
 
     async function refreshChatUserBadges() {
