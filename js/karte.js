@@ -83,7 +83,7 @@
             if (empty) empty.hidden = true;
             const button = getElement('map-add-mode-button');
             if (button) button.disabled = !canEditTab('karte');
-            updateMapZoom();
+            applyMapZoom(zoom);
             updateAddModeButton();
             renderMapMarkers();
         };
@@ -216,13 +216,34 @@
     }
 
     function setMapZoom(change) {
-        zoom = Math.min(2.5, Math.max(0.5, zoom + change));
-        updateMapZoom();
+        applyMapZoom(zoom + change);
     }
 
-    function updateMapZoom() {
+    function applyMapZoom(nextZoom, anchorX, anchorY) {
+        const viewport = getElement('map-viewport');
         const stage = getElement('map-stage');
-        if (stage) stage.style.width = `${zoom * 100}%`;
+        if (!stage || !viewport) return;
+
+        const oldWidth = stage.getBoundingClientRect().width;
+        const oldHeight = stage.getBoundingClientRect().height;
+        const viewportRect = viewport.getBoundingClientRect();
+        const pointerX = anchorX ?? viewportRect.left + viewport.clientWidth / 2;
+        const pointerY = anchorY ?? viewportRect.top + viewport.clientHeight / 2;
+        const mapX = oldWidth ? (viewport.scrollLeft + pointerX - viewportRect.left) / oldWidth : 0;
+        const mapY = oldHeight ? (viewport.scrollTop + pointerY - viewportRect.top) / oldHeight : 0;
+
+        zoom = Math.min(2.5, Math.max(0.5, nextZoom));
+        stage.style.width = `${zoom * 100}%`;
+        viewport.scrollLeft = mapX * stage.getBoundingClientRect().width - (pointerX - viewportRect.left);
+        viewport.scrollTop = mapY * stage.getBoundingClientRect().height - (pointerY - viewportRect.top);
+    }
+
+    function handleMapWheel(event) {
+        if (addMode) return;
+        event.preventDefault();
+        const direction = event.deltaY < 0 ? 1 : -1;
+        const step = event.deltaMode === 0 ? 0.12 : 0.2;
+        applyMapZoom(zoom + direction * step, event.clientX, event.clientY);
     }
 
     function renderMapMarkers() {
@@ -309,6 +330,8 @@
         const stage = getElement('map-stage');
         if (stage && stage.contains(event.target)) handleMapClick(event);
     });
+    const mapViewport = getElement('map-viewport');
+    if (mapViewport) mapViewport.addEventListener('wheel', handleMapWheel, { passive: false });
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && addMode) {
             addMode = false;
