@@ -831,6 +831,12 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             background: var(--card-bg-raised);
+            cursor: grab;
+            user-select: none;
+        }
+
+        .map-viewport.map-dragging {
+            cursor: grabbing;
         }
 
         .map-stage {
@@ -861,6 +867,7 @@
             height: auto;
             user-select: none;
             pointer-events: none;
+            -webkit-user-drag: none;
         }
 
         .map-empty-state {
