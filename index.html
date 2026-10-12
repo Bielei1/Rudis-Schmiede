@@ -390,6 +390,10 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20c0-3.3 2.9-5.8 6.5-5.8s6.5 2.5 6.5 5.8"/><path d="M17 8a2.6 2.6 0 110-5"/><path d="M20 20c0-2.4-1.7-4.4-4-5.2"/></svg>
                 <span>Mitglieder</span>
             </button>
+            <button class="tab-btn" draggable="true" data-tab="karte" onclick="switchTab('karte')">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/><path d="M12 8.5a2.5 2.5 0 00-5 0c0 2 2.5 4.5 2.5 4.5S12 10.5 12 8.5z"/></svg>
+                <span>Karte</span>
+            </button>
             <button class="tab-btn" draggable="true" data-tab="log" data-admin-only onclick="switchTab('log')">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
                 <span>Änderungsprotokoll</span>
@@ -1065,6 +1069,70 @@
         </div>
     </div>
 
+    <div id="tab-karte" class="tab-content">
+        <div class="map-tab-header">
+            <div>
+                <h2>Gemeinsame Karte</h2>
+                <p>Markiere Orte für alle Benutzer. Klicke auf einen Ort, um Details zu sehen.</p>
+            </div>
+            <div class="map-toolbar">
+                <label class="btn btn-secondary map-upload-button" for="map-image-upload">Kartenbild festlegen</label>
+                <input id="map-image-upload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onchange="uploadSharedMapImage(event)">
+                <div class="map-zoom-controls" aria-label="Kartenzoom">
+                    <button type="button" onclick="zoomMapOut()" aria-label="Karte verkleinern">−</button>
+                    <button type="button" onclick="zoomMapIn()" aria-label="Karte vergrößern">+</button>
+                </div>
+                <button type="button" class="btn" id="map-add-mode-button" onclick="toggleMapAddMode()" disabled>＋ Ort markieren</button>
+            </div>
+        </div>
+        <div id="map-status" class="map-status" role="status">Lade Karte ...</div>
+        <div class="map-workspace">
+            <aside class="map-place-list">
+                <label for="map-place-search">Markierte Orte</label>
+                <input id="map-place-search" type="search" placeholder="Orte oder Notizen suchen ..." oninput="renderMapMarkers()">
+                <select id="map-category-filter" aria-label="Kategorie filtern" onchange="renderMapMarkers()">
+                    <option value="">Alle Kategorien</option>
+                    <option>Händler</option>
+                    <option>Rohstoffe</option>
+                    <option>Gefahren</option>
+                    <option>Kontakte</option>
+                    <option>Sonstiges</option>
+                </select>
+                <div id="map-place-count" class="map-place-count">0 Orte</div>
+                <div id="map-place-items" class="map-place-items"></div>
+            </aside>
+            <div class="map-viewport" id="map-viewport">
+                <div class="map-stage" id="map-stage">
+                    <img id="map-background-image" alt="Gemeinsame Karte" hidden>
+                    <div id="map-empty-state" class="map-empty-state">
+                        <strong>Noch kein Kartenbild festgelegt</strong>
+                        <span>Lade ein Kartenbild hoch, für das du die Nutzungsrechte hast.</span>
+                    </div>
+                    <div id="map-markers-layer" class="map-markers-layer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map-marker-modal" class="chat-modal-backdrop" onclick="handleMapMarkerBackdropClick(event)">
+        <section class="group-create-modal map-marker-modal" role="dialog" aria-modal="true" aria-labelledby="map-marker-title">
+            <div class="chat-modal-header">
+                <div><h2 id="map-marker-title">Ort markieren</h2><div class="chat-modal-subtitle">Der Ort wird mit allen Benutzern geteilt.</div></div>
+                <button type="button" class="permission-modal-close" onclick="closeMapMarkerModal()" aria-label="Schließen">×</button>
+            </div>
+            <form onsubmit="saveMapMarker(event)">
+                <div class="login-field"><label for="map-marker-name">Name</label><input id="map-marker-name" type="text" maxlength="100" required></div>
+                <div class="login-field"><label for="map-marker-category">Kategorie</label>
+                    <select id="map-marker-category">
+                        <option>Sonstiges</option><option>Händler</option><option>Rohstoffe</option><option>Gefahren</option><option>Kontakte</option>
+                    </select>
+                </div>
+                <div class="login-field"><label for="map-marker-notes">Notiz</label><textarea id="map-marker-notes" rows="3" maxlength="1000"></textarea></div>
+                <div class="confirm-modal-actions"><button type="button" class="btn" onclick="closeMapMarkerModal()">Abbrechen</button><button type="submit" class="btn btn-success">Markierung speichern</button></div>
+            </form>
+        </section>
+    </div>
+
     <!-- TAB 10: ÄNDERUNGSPROTOKOLL -->
     <div id="tab-log" class="tab-content">
         <h2 style="margin-bottom: 8px;">Änderungsprotokoll</h2>
@@ -1285,7 +1353,7 @@
 </div>
 
 <script src="js/config.js?v=20260826-3"></script>
-<script src="js/auth.js?v=20260826-8"></script>
+<script src="js/auth.js?v=20261013-1"></script>
 <script src="js/presence.js?v=20260826-6"></script>
 <script src="js/ui-helpers.js"></script>
 <script src="js/log.js"></script>
@@ -1305,5 +1373,6 @@
 <script src="js/main.js"></script>
 <script src="js/erweiterte-funktionen.js"></script>
 <script src="js/chat.js"></script>
+<script src="js/karte.js?v=20261013-1"></script>
 </body>
 </html>

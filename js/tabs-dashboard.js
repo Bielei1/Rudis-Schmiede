@@ -13,6 +13,7 @@
         if (targetBtn && targetContent) {
             targetBtn.classList.add('active');
             targetContent.classList.add('active');
+            if (tabName === 'karte' && typeof loadMapTab === 'function') loadMapTab();
         }
 
         applyPermissionUI();

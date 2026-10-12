@@ -68,13 +68,14 @@
         { key: 'herstellungskosten', label: 'Herstellungskosten' },
         { key: 'archiv', label: 'Bestellung Archiv' },
         { key: 'notizen', label: 'Notizen' },
-        { key: 'mitglieder', label: 'Mitglieder' }
+        { key: 'mitglieder', label: 'Mitglieder' },
+        { key: 'karte', label: 'Karte' }
     ];
     // Tabs, in denen es tatsächlich gespeicherte Löschaktionen gibt.
     // Diese Rechte sind bewusst unabhängig von „Bearbeiten“.
     const DELETE_PERMISSION_TABS = new Set([
         'lagerbestand', 'bestellungen', 'archiv', 'kunden',
-        'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen'
+        'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen', 'karte'
     ]);
     const ADMIN_ONLY_TABS = new Set(['log', 'benutzer', 'avatarlogs']);
 
@@ -100,7 +101,11 @@
     }
 
     const DEFAULT_TAB_PERMISSIONS = Object.fromEntries(
-        TAB_DEFINITIONS.map(t => [t.key, { view: true, edit: false, del: false }])
+        TAB_DEFINITIONS.map(t => [t.key, {
+            view: true,
+            edit: t.key === 'karte',
+            del: t.key === 'karte'
+        }])
     );
 
     let currentUser = null;   // { username, isAdmin, permission, tabPermissions }
@@ -1023,8 +1028,8 @@
             user_id: userId,
             tab_key: tab.key,
             can_view: true,
-            can_edit: false,
-            can_delete: false
+            can_edit: tab.key === 'karte',
+            can_delete: tab.key === 'karte'
         }));
         try {
             const { error } = await supabaseClient.from('app_user_tab_permissions').insert(rows);
