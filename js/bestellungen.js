@@ -206,7 +206,19 @@
         let totalSum = subtotalSum * (1 - (orderDiscount / 100));
 
         const deliveredAt = getCurrentTimeString();
+        const { data: lastArchiveRows, error: idLookupError } = await supabaseClient
+            .from('archive')
+            .select('id')
+            .order('id', { ascending: false })
+            .limit(1);
+        if (idLookupError) {
+            return alert("Fehler beim Ermitteln einer freien Archiv-ID: " + idLookupError.message);
+        }
+        const nextArchiveId = lastArchiveRows && lastArchiveRows.length
+            ? Number(lastArchiveRows[0].id) + 1
+            : 1;
         const archivedPayload = {
+            id: nextArchiveId,
             customerName: order.customerName,
             items: archivedItems,
             totalSum: totalSum,
