@@ -50,7 +50,10 @@
         if (!body) return;
         const canDelete = canDeleteCashbookEntries();
         const actionsHeader = document.getElementById('cashbook-actions-header');
-        if (actionsHeader) actionsHeader.hidden = !canDelete;
+        if (actionsHeader) {
+            actionsHeader.hidden = !canDelete;
+            actionsHeader.style.display = canDelete ? 'table-cell' : 'none';
+        }
         body.innerHTML = entries.length
             ? entries.map(entry => {
                 const isDeposit = entry.transaction_type === 'deposit';
@@ -75,7 +78,11 @@
         const allowedToEdit = canDeposit || canWithdraw;
         const clearButton = document.getElementById('cashbook-clear-history');
         if (form) form.hidden = !allowedToEdit;
-        if (clearButton) clearButton.hidden = !canDeleteCashbookEntries();
+        if (clearButton) {
+            const canDelete = canDeleteCashbookEntries();
+            clearButton.hidden = !canDelete;
+            clearButton.style.display = canDelete ? 'inline-flex' : 'none';
+        }
         const depositOption = document.querySelector('#cashbook-transaction-type option[value="deposit"]');
         const withdrawOption = document.querySelector('#cashbook-transaction-type option[value="withdrawal"]');
         if (depositOption) depositOption.disabled = !canDeposit;
