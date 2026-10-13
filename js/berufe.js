@@ -1,7 +1,6 @@
 (function () {
-    const templateTabId = 'template';
     let berufeTabs = [];
-    let activeBerufeTabId = templateTabId;
+    let activeBerufeTabId = null;
 
     function canManageBerufe() {
         return typeof window.canManageBerufe === 'function' && window.canManageBerufe();
@@ -23,7 +22,8 @@
         const panel = document.getElementById('berufe-panel');
         if (!nav || !title || !description || !panel) return;
 
-        const isTemplate = activeBerufeTabId === templateTabId;
+        const selectedTab = berufeTabs.find(tab => String(tab.id) === String(activeBerufeTabId));
+        const isTemplate = !selectedTab;
         if (form) {
             const canManage = isTemplate && canManageBerufe();
             form.hidden = !canManage;
@@ -65,12 +65,6 @@
             nav.appendChild(row);
         });
 
-        const templateTab = document.getElementById('berufe-template-tab');
-        if (templateTab) {
-            templateTab.classList.toggle('active', isTemplate);
-            templateTab.setAttribute('aria-selected', String(isTemplate));
-            nav.appendChild(templateTab);
-        }
         nav.querySelectorAll('[data-berufe-tab]').forEach(button => {
             button.classList.toggle('active', button.dataset.berufeTab === String(activeBerufeTabId));
         });
@@ -81,16 +75,10 @@
             nav.hidden = !expanded;
         }
 
-        const selectedTab = berufeTabs.find(tab => String(tab.id) === String(activeBerufeTabId));
-        const selectedIsTemplate = isTemplate || !selectedTab;
-        if (form && selectedIsTemplate && canManageBerufe()) {
-            form.hidden = false;
-            form.style.display = 'flex';
-        }
-        const activeTitle = selectedIsTemplate ? 'Vorlage' : selectedTab.name;
+        const activeTitle = isTemplate ? 'Vorlage' : selectedTab.name;
         title.textContent = activeTitle;
-        panel.setAttribute('aria-labelledby', selectedIsTemplate ? 'berufe-template-tab' : `berufe-tab-${selectedTab.id}`);
-        description.textContent = selectedIsTemplate
+        panel.setAttribute('aria-labelledby', isTemplate ? 'berufe-nav-button' : `berufe-tab-${selectedTab.id}`);
+        description.textContent = isTemplate
             ? 'Die Vorlage ist vorbereitet. Ihr Inhalt wird später ergänzt.'
             : 'Dieser Berufs-Untertab ist angelegt. Sein Inhalt wird später aus der Vorlage übernommen.';
     }
@@ -103,8 +91,7 @@
     }
 
     function selectBerufeTab(tabId) {
-        const exists = tabId === templateTabId || berufeTabs.some(tab => String(tab.id) === String(tabId));
-        if (!exists) return;
+        if (!berufeTabs.some(tab => String(tab.id) === String(tabId))) return;
         if (!document.getElementById('tab-berufe').classList.contains('active')) {
             if (typeof window.switchTab === 'function') window.switchTab('berufe');
         }
@@ -114,7 +101,7 @@
 
     function openBerufeNavigation() {
         if (typeof window.switchTab === 'function') window.switchTab('berufe');
-        activeBerufeTabId = templateTabId;
+        activeBerufeTabId = null;
         renderBerufeTabs();
     }
 
@@ -132,8 +119,8 @@
         }
 
         berufeTabs = Array.isArray(data) ? data : [];
-        if (activeBerufeTabId !== templateTabId && !berufeTabs.some(tab => String(tab.id) === String(activeBerufeTabId))) {
-            activeBerufeTabId = templateTabId;
+        if (activeBerufeTabId !== null && !berufeTabs.some(tab => String(tab.id) === String(activeBerufeTabId))) {
+            activeBerufeTabId = null;
         }
         setStatus('', false);
         renderBerufeTabs();
@@ -213,7 +200,7 @@
                 return;
             }
 
-            if (String(activeBerufeTabId) === String(tabId)) activeBerufeTabId = templateTabId;
+            if (String(activeBerufeTabId) === String(tabId)) activeBerufeTabId = null;
             await loadBerufeTab();
             if (typeof window.logActivity === 'function') {
                 const logged = await window.logActivity('Berufe', `Berufe-Untertab „${tab.name}“ gelöscht`);
