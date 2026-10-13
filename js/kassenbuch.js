@@ -32,6 +32,10 @@
         status.classList.toggle('cashbook-status-error', !!isError);
     }
 
+    function canDeleteCashbookEntries() {
+        return typeof window.canCashbookDelete === 'function' && window.canCashbookDelete();
+    }
+
     async function fetchEntries() {
         const { data, error } = await window.supabaseClient
             .from('cashbook_entries')
@@ -44,6 +48,9 @@
     function renderEntries(entries) {
         const body = document.getElementById('cashbook-entries-body');
         if (!body) return;
+        const canDelete = canDeleteCashbookEntries();
+        const actionsHeader = document.getElementById('cashbook-actions-header');
+        if (actionsHeader) actionsHeader.hidden = !canDelete;
         body.innerHTML = entries.length
             ? entries.map(entry => {
                 const isDeposit = entry.transaction_type === 'deposit';
@@ -55,9 +62,10 @@
                     <td class="${isDeposit ? 'cashbook-positive' : 'cashbook-negative'}">${isDeposit ? '+' : '−'}${escapeHtml(currencyFormatter.format(amount))}</td>
                     <td>${escapeHtml(entry.description)}</td>
                     <td>${escapeHtml(entry.created_by_username || 'Unbekannt')}</td>
+                    ${canDelete ? `<td><button type="button" class="btn cashbook-delete-button" onclick="deleteCashbookEntry('${escapeHtml(entry.id)}')" aria-label="Buchung löschen">Löschen</button></td>` : ''}
                 </tr>`;
             }).join('')
-            : '<tr><td colspan="5" class="cashbook-empty">Noch keine Buchungen vorhanden.</td></tr>';
+            : `<tr><td colspan="${canDelete ? 6 : 5}" class="cashbook-empty">Noch keine Buchungen vorhanden.</td></tr>`;
     }
 
     async function loadCashbook() {
@@ -65,7 +73,9 @@
         const canDeposit = typeof window.canCashbookTransaction === 'function' && window.canCashbookTransaction('deposit');
         const canWithdraw = typeof window.canCashbookTransaction === 'function' && window.canCashbookTransaction('withdrawal');
         const allowedToEdit = canDeposit || canWithdraw;
+        const clearButton = document.getElementById('cashbook-clear-history');
         if (form) form.hidden = !allowedToEdit;
+        if (clearButton) clearButton.hidden = !canDeleteCashbookEntries();
         const depositOption = document.querySelector('#cashbook-transaction-type option[value="deposit"]');
         const withdrawOption = document.querySelector('#cashbook-transaction-type option[value="withdrawal"]');
         if (depositOption) depositOption.disabled = !canDeposit;
@@ -93,6 +103,55 @@
             if (typeof window.showToast === 'function') {
                 window.showToast('Kassenbuch konnte nicht geladen werden.', 'danger');
             }
+        }
+    }
+
+    async function deleteCashbookEntry(entryId) {
+        if (!canDeleteCashbookEntries()) {
+            setStatus('Nur Administratoren dürfen Buchungen löschen.', true);
+            return;
+        }
+        if (typeof window.customConfirm !== 'function' || !await window.customConfirm('Möchtest du diese Kassenbuch-Buchung wirklich löschen?')) return;
+
+        try {
+            const { error } = await window.supabaseClient.rpc('cashbook_delete_entry', {
+                p_entry_id: entryId
+            });
+            if (error) throw error;
+            await loadCashbook();
+            if (typeof window.loadCashbookDashboardBalance === 'function') await window.loadCashbookDashboardBalance();
+            if (typeof window.showToast === 'function') window.showToast('Buchung wurde gelöscht.', 'success');
+        } catch (error) {
+            console.error('Kassenbuch-Buchung konnte nicht gelöscht werden:', error);
+            setStatus('Buchung konnte nicht gelöscht werden.', true);
+            if (typeof window.showToast === 'function') window.showToast('Buchung konnte nicht gelöscht werden.', 'danger');
+        }
+    }
+
+    async function clearCashbookHistory() {
+        if (!canDeleteCashbookEntries()) {
+            setStatus('Nur Administratoren dürfen den Buchungsverlauf leeren.', true);
+            return;
+        }
+        if (typeof window.customConfirm !== 'function' || !await window.customConfirm('Möchtest du wirklich den gesamten Kassenbuch-Verlauf leeren? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
+
+        const button = document.getElementById('cashbook-clear-history');
+        if (button) button.disabled = true;
+        try {
+            const { data, error } = await window.supabaseClient.rpc('cashbook_clear_history');
+            if (error) throw error;
+            await loadCashbook();
+            if (typeof window.loadCashbookDashboardBalance === 'function') await window.loadCashbookDashboardBalance();
+            const deletedCount = Number(data) || 0;
+            if (typeof window.showToast === 'function') {
+                window.showToast(`${deletedCount} Buchung${deletedCount === 1 ? '' : 'en'} gelöscht.`, 'success');
+            }
+        } catch (error) {
+            console.error('Kassenbuch-Verlauf konnte nicht geleert werden:', error);
+            setStatus('Der Buchungsverlauf konnte nicht geleert werden.', true);
+            if (typeof window.showToast === 'function') window.showToast('Der Buchungsverlauf konnte nicht geleert werden.', 'danger');
+        } finally {
+            if (button) button.disabled = false;
         }
     }
 
@@ -165,4 +224,6 @@
     window.loadCashbook = loadCashbook;
     window.loadCashbookDashboardBalance = loadCashbookDashboardBalance;
     window.recordCashbookTransaction = recordCashbookTransaction;
+    window.deleteCashbookEntry = deleteCashbookEntry;
+    window.clearCashbookHistory = clearCashbookHistory;
 })();

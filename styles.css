@@ -2222,6 +2222,12 @@
             text-align: center;
         }
 
+        .cashbook-delete-button {
+            padding: 5px 9px;
+            font-size: 0.8rem;
+            background: var(--danger-color);
+        }
+
         @media (max-width: 700px) {
             .cashbook-header {
                 align-items: stretch;

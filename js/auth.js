@@ -549,6 +549,14 @@
             : transactionType === 'withdrawal' && !!permissions.canWithdraw;
     }
 
+    function canCashbookDelete() {
+        return !!(currentUser && (
+            currentUser.isSystemAdmin
+            || currentUser.isAdmin
+            || canSpecialAction('administrator_rechte')
+        ));
+    }
+
     function canDeleteTab(tabName) {
         if (!currentUser) return false;
         if (currentUser.isSystemAdmin || canSpecialAction('administrator_rechte')) return true;

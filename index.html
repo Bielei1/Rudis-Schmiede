@@ -469,6 +469,9 @@
                 <span>Aktueller Kassenstand</span>
                 <strong id="cashbook-current-balance">$0.00</strong>
             </div>
+            <button type="button" id="cashbook-clear-history" class="btn btn-danger" onclick="clearCashbookHistory()" hidden>
+                Buchungsverlauf leeren
+            </button>
         </div>
         <form id="cashbook-transaction-form" class="cashbook-form" onsubmit="recordCashbookTransaction(event)" hidden>
             <div class="form-group">
@@ -498,6 +501,7 @@
                         <th>Betrag</th>
                         <th>Verwendungszweck</th>
                         <th>Benutzer</th>
+                        <th id="cashbook-actions-header" hidden>Aktionen</th>
                     </tr>
                 </thead>
                 <tbody id="cashbook-entries-body"></tbody>
@@ -1417,7 +1421,7 @@
 </div>
 
 <script src="js/config.js?v=20260826-3"></script>
-<script src="js/auth.js?v=20261013-3"></script>
+<script src="js/auth.js?v=20261013-4"></script>
 <script src="js/presence.js?v=20260826-6"></script>
 <script src="js/ui-helpers.js"></script>
 <script src="js/log.js"></script>
@@ -1438,6 +1442,6 @@
 <script src="js/erweiterte-funktionen.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/karte.js?v=20261013-27"></script>
-<script src="js/kassenbuch.js?v=20261013-2"></script>
+<script src="js/kassenbuch.js?v=20261013-3"></script>
 </body>
 </html>
