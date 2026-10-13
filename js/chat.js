@@ -337,6 +337,8 @@
     function renderConversation(messages) {
         const container = document.getElementById('chat-messages');
         if (!container) return;
+        const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= 48;
+        const previousScrollTop = container.scrollTop;
         container.innerHTML = messages.length ? messages.map(item => {
             const own = String(item.sender_id) === String(currentUser.id);
             const date = item.created_at ? new Date(item.created_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '';
@@ -346,7 +348,9 @@
             const sender = !own && item.sender_name && !isSystemMessage ? `${escapeHtml(item.sender_name)} · ` : '';
             return `<div class="chat-message ${own ? 'chat-message-own' : 'chat-message-other'}"><div class="chat-message-text">${sender}${escapeHtml(item.message)}</div><div class="chat-message-meta">${date}${own ? (item.read_at ? ' · Gelesen' : ' · Gesendet') : ''}</div></div>`;
         }).join('') : '<div class="chat-empty">Noch keine Nachrichten.</div>';
-        container.scrollTop = container.scrollHeight;
+        container.scrollTop = wasAtBottom
+            ? container.scrollHeight
+            : Math.min(previousScrollTop, container.scrollHeight - container.clientHeight);
     }
 
     async function sendChatMessage(event) {

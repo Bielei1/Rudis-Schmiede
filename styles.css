@@ -399,7 +399,7 @@
         .chat-modal-backdrop {
             position: fixed;
             inset: 0;
-            z-index: 1000;
+            z-index: 2000;
             display: none;
             align-items: center;
             justify-content: center;
@@ -554,6 +554,11 @@
             flex-direction: column;
             gap: 6px;
             overflow-y: auto;
+        }
+
+        #chat-user-picker[hidden],
+        #chat-conversation[hidden] {
+            display: none;
         }
 
         .chat-user-option {
