@@ -119,7 +119,7 @@
         if (activeBerufeTabId === null) {
             const row = document.createElement('tr');
             const cell = document.createElement('td');
-            cell.colSpan = 4;
+            cell.colSpan = 3;
             cell.style.cssText = 'text-align: center; color: var(--text-muted); padding: 20px;';
             cell.textContent = berufeTabs.length
                 ? 'Wähle oben den Ziel-Untertab aus, in dem das Rezept angezeigt werden soll.'
@@ -135,7 +135,7 @@
         if (!recipes.length) {
             const row = document.createElement('tr');
             const cell = document.createElement('td');
-            cell.colSpan = 4;
+            cell.colSpan = 3;
             cell.style.cssText = 'text-align: center; color: var(--text-muted); padding: 20px;';
             cell.textContent = 'Keine Rezepte gefunden.';
             row.appendChild(cell);
@@ -144,31 +144,15 @@
         }
 
         recipes.forEach(recipe => {
-            const multiplier = 1;
-            const actualProduced = recipe.output_qty;
             const ingredientCell = document.createElement('td');
             const ingredientBox = document.createElement('div');
             ingredientBox.style.cssText = 'font-size: 0.9rem; line-height: 1.4; background: var(--panel-bg-blue); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);';
-            let allIngredientsOk = true;
             (recipe.ingredients || []).forEach(ingredient => {
-                const stock = inventoryList.find(item => item.name.toLowerCase() === ingredient.name.toLowerCase())?.quantity || 0;
-                const enough = stock >= ingredient.qty * multiplier;
-                if (!enough) allIngredientsOk = false;
                 const line = document.createElement('div');
-                line.style.cssText = 'margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; gap: 8px;';
-
-                const required = document.createElement('span');
-                required.append('• ');
-                const requiredAmount = document.createElement('strong');
-                requiredAmount.textContent = `${ingredient.qty * multiplier}x`;
-                required.append(requiredAmount, ` ${ingredient.name}`);
-                const stockInfo = document.createElement('span');
-                stockInfo.style.cssText = 'font-size: 0.85rem; color: var(--text-muted);';
-                const stockValue = document.createElement('span');
-                stockValue.style.cssText = `color: ${stock === 0 ? 'var(--danger-color)' : (enough ? 'var(--accent-green)' : 'var(--accent-red)')}; font-weight: 600;`;
-                stockValue.textContent = stock;
-                stockInfo.append('(Lager: ', stockValue, ')');
-                line.append(required, stockInfo);
+                line.style.marginBottom = '4px';
+                const amount = document.createElement('strong');
+                amount.textContent = `${ingredient.qty}x`;
+                line.append('• ', amount, ` ${ingredient.name}`);
                 ingredientBox.appendChild(line);
             });
             if (!recipe.ingredients?.length) {
@@ -195,17 +179,8 @@
             recipeYieldAmount.textContent = `${recipe.output_qty} Stk.`;
             recipeYield.appendChild(recipeYieldAmount);
             yieldInfo.appendChild(recipeYield);
-            const result = document.createElement('div');
-            result.style.cssText = 'font-size: 0.9rem; color: var(--accent-green); font-weight: 600;';
-            result.textContent = `→ Daraus resultierender Ertrag: ${actualProduced} Stk. (${multiplier} Durchgänge)`;
-            outputInfo.append(name, yieldInfo, result);
+            outputInfo.append(name, yieldInfo);
             outputCell.appendChild(outputInfo);
-
-            const statusCell = document.createElement('td');
-            const status = document.createElement('span');
-            status.className = allIngredientsOk ? 'req-status status-ok' : 'req-status status-missing';
-            status.textContent = allIngredientsOk ? '✓ Rohstoffe vorhanden' : '✕ Rohstoffe fehlen';
-            statusCell.appendChild(status);
 
             const actionsCell = document.createElement('td');
             const actions = document.createElement('div');
@@ -225,7 +200,7 @@
             actions.append(editButton, deleteButton);
             actionsCell.appendChild(actions);
 
-            row.append(outputCell, ingredientCell, statusCell, actionsCell);
+            row.append(outputCell, ingredientCell, actionsCell);
             list.appendChild(row);
         });
     }
