@@ -476,6 +476,18 @@
         const recipe = berufeRecipes.find(item => String(item.id) === String(recipeId));
         if (!recipe) return;
 
+        activeBerufeTabId = null;
+        if (!document.getElementById('tab-berufe').classList.contains('active')) {
+            if (typeof window.openBerufeNavigation === 'function') {
+                window.openBerufeNavigation();
+            } else if (typeof window.switchTab === 'function') {
+                window.switchTab('berufe');
+            }
+        }
+        renderBerufeTabs();
+
+        const templateDetails = document.getElementById('berufe-template-details');
+        if (templateDetails) templateDetails.open = true;
         const form = document.getElementById('berufe-recipe-add-form');
         document.getElementById('berufe-recipe-edit-id').value = recipe.id;
         document.getElementById('berufe-recipe-destination').value = String(recipe.berufe_tab_id);
@@ -655,6 +667,8 @@
     function openBerufeNavigation() {
         if (typeof window.switchTab === 'function') window.switchTab('berufe');
         activeBerufeTabId = null;
+        const templateDetails = document.getElementById('berufe-template-details');
+        if (templateDetails) templateDetails.open = false;
         renderBerufeTabs();
     }
 
