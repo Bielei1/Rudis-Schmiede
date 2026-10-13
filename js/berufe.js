@@ -24,6 +24,7 @@
         const title = document.getElementById('berufe-panel-title');
         const description = document.getElementById('berufe-panel-description');
         const panel = document.getElementById('berufe-panel');
+        const workspace = document.querySelector('.berufe-workspace');
         const templateDetails = document.getElementById('berufe-template-details');
         const recipeCreateArea = document.getElementById('berufe-recipe-create-area');
         const recipesTableArea = document.getElementById('berufe-recipes-table-area');
@@ -31,6 +32,7 @@
 
         const selectedTab = berufeTabs.find(tab => String(tab.id) === String(activeBerufeTabId));
         const isTemplate = !selectedTab;
+        if (workspace) workspace.classList.toggle('berufe-search-first', !isTemplate);
         if (form) {
             const canManage = isTemplate && canManageBerufe();
             form.hidden = !canManage;
