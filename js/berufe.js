@@ -117,9 +117,10 @@
         list.replaceChildren();
 
         if (activeBerufeTabId === null) {
+            hideBerufeCraftingPanel();
             const row = document.createElement('tr');
             const cell = document.createElement('td');
-            cell.colSpan = 3;
+            cell.colSpan = 4;
             cell.style.cssText = 'text-align: center; color: var(--text-muted); padding: 20px;';
             cell.textContent = berufeTabs.length
                 ? 'Wähle oben den Ziel-Untertab aus, in dem das Rezept angezeigt werden soll.'
@@ -133,9 +134,10 @@
             .filter(recipe => String(recipe.berufe_tab_id) === String(activeBerufeTabId))
             .sort((first, second) => String(first.output_name).localeCompare(String(second.output_name), 'de'));
         if (!recipes.length) {
+            hideBerufeCraftingPanel();
             const row = document.createElement('tr');
             const cell = document.createElement('td');
-            cell.colSpan = 3;
+            cell.colSpan = 4;
             cell.style.cssText = 'text-align: center; color: var(--text-muted); padding: 20px;';
             cell.textContent = 'Keine Rezepte gefunden.';
             row.appendChild(cell);
@@ -182,6 +184,14 @@
             outputInfo.append(name, yieldInfo);
             outputCell.appendChild(outputInfo);
 
+            const showRecipeCell = document.createElement('td');
+            const showRecipeButton = document.createElement('button');
+            showRecipeButton.type = 'button';
+            showRecipeButton.className = 'btn btn-secondary';
+            showRecipeButton.textContent = 'Rezept anzeigen';
+            showRecipeButton.addEventListener('click', () => showBerufeCraftingPanel(recipe));
+            showRecipeCell.appendChild(showRecipeButton);
+
             const actionsCell = document.createElement('td');
             const actions = document.createElement('div');
             actions.style.cssText = 'display: flex; gap: 8px;';
@@ -200,9 +210,142 @@
             actions.append(editButton, deleteButton);
             actionsCell.appendChild(actions);
 
-            row.append(outputCell, ingredientCell, actionsCell);
+            row.append(outputCell, ingredientCell, showRecipeCell, actionsCell);
             list.appendChild(row);
         });
+    }
+
+    function getBerufeRecipeStockAmount(name) {
+        const item = inventoryList.find(entry => entry.name.toLowerCase() === name.toLowerCase());
+        return item ? item.quantity : 0;
+    }
+
+    function showBerufeCraftingPanel(recipe) {
+        const panel = document.getElementById('berufe-crafting-action-box');
+        const content = document.getElementById('berufe-crafting-action-content');
+        if (!panel || !content) return;
+        const targetAmount = recipe.output_qty;
+        const productionSteps = [];
+        const rawMaterials = {};
+
+        function getRecipe(name) {
+            return berufeRecipes.find(item => item.output_name.toLowerCase() === name.toLowerCase());
+        }
+
+        function resolveMaterials(itemName, neededQty, currentPath = []) {
+            const matchedRecipe = getRecipe(itemName);
+            const isCircular = currentPath.some(name => name.toLowerCase() === itemName.toLowerCase());
+            if (!matchedRecipe || !matchedRecipe.ingredients?.length || matchedRecipe.output_qty <= 0 || isCircular) {
+                rawMaterials[itemName] = (rawMaterials[itemName] || 0) + neededQty;
+                return;
+            }
+
+            const multiplier = Math.ceil(neededQty / matchedRecipe.output_qty);
+            const actualProduced = multiplier * matchedRecipe.output_qty;
+            matchedRecipe.ingredients.forEach(ingredient => {
+                resolveMaterials(ingredient.name, ingredient.qty * multiplier, [...currentPath, itemName]);
+            });
+            if (!productionSteps.some(step => step.itemName.toLowerCase() === matchedRecipe.output_name.toLowerCase())) {
+                productionSteps.push({
+                    itemName: matchedRecipe.output_name,
+                    multiplier,
+                    actualProduced,
+                    ingredients: matchedRecipe.ingredients
+                });
+            }
+        }
+
+        resolveMaterials(recipe.output_name, targetAmount);
+        content.replaceChildren();
+
+        if (productionSteps.length <= 1) {
+            const intro = document.createElement('div');
+            intro.style.cssText = 'color: var(--text-muted); margin-bottom: 12px; font-size: 1rem;';
+            intro.textContent = 'Dieses Produkt benötigt keine Zwischenschritte. Es setzt sich direkt aus Rohmaterialien zusammen:';
+            content.appendChild(intro);
+        } else {
+            const heading = document.createElement('div');
+            heading.style.cssText = 'font-size: 1rem; font-weight: 700; color: #f8fafc; margin-bottom: 12px;';
+            heading.textContent = 'Zwischenschritte (von links nach rechts):';
+            content.appendChild(heading);
+
+            const stepsContainer = document.createElement('div');
+            stepsContainer.style.cssText = 'display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;';
+            productionSteps
+                .filter(step => step.itemName.toLowerCase() !== recipe.output_name.toLowerCase())
+                .forEach((step, index) => {
+                    const card = document.createElement('div');
+                    card.style.cssText = 'background: var(--card-bg-raised); border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; flex: 1; min-width: 240px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
+                    const title = document.createElement('div');
+                    title.style.cssText = 'font-weight: 700; color: var(--accent-blue); font-size: 0.95rem; margin-bottom: 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;';
+                    title.textContent = `Schritt ${index + 1}: ${step.actualProduced}x ${step.itemName}`;
+                    const materialsTitle = document.createElement('div');
+                    materialsTitle.style.cssText = 'font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;';
+                    materialsTitle.textContent = 'Benötigte Materialien:';
+                    card.append(title, materialsTitle);
+
+                    step.ingredients.forEach(ingredient => {
+                        const needed = ingredient.qty * step.multiplier;
+                        const stock = getBerufeRecipeStockAmount(ingredient.name);
+                        const sufficient = stock >= needed;
+                        const line = document.createElement('div');
+                        line.style.cssText = 'margin-left: 8px; font-size: 0.85rem; margin-bottom: 2px;';
+                        const amount = document.createElement('strong');
+                        amount.textContent = `${needed}x`;
+                        const stockText = document.createElement('span');
+                        stockText.style.cssText = 'font-size: 0.8rem; color: var(--text-muted);';
+                        const stockValue = document.createElement('span');
+                        stockValue.style.cssText = `color: ${sufficient ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 600;`;
+                        stockValue.textContent = stock;
+                        stockText.append(' (Lager: ', stockValue, ')');
+                        line.append('• ', amount, ` ${ingredient.name}`, stockText);
+                        card.appendChild(line);
+                    });
+                    stepsContainer.appendChild(card);
+                });
+            content.appendChild(stepsContainer);
+        }
+
+        const rawBox = document.createElement('div');
+        rawBox.style.cssText = 'background: var(--card-bg-raised); border: 2px solid var(--accent-green); padding: 16px; border-radius: 8px; margin-top: 12px;';
+        const rawTitle = document.createElement('div');
+        rawTitle.style.cssText = 'font-size: 1.1rem; font-weight: 700; color: var(--accent-green); margin-bottom: 10px;';
+        rawTitle.textContent = `📦 Benötigte Rohmaterialien für ${targetAmount}x ${recipe.output_name}:`;
+        rawBox.appendChild(rawTitle);
+
+        let allMaterialsOk = true;
+        Object.entries(rawMaterials).forEach(([materialName, quantity]) => {
+            const stock = getBerufeRecipeStockAmount(materialName);
+            const enough = stock >= quantity;
+            if (!enough) allMaterialsOk = false;
+            const line = document.createElement('div');
+            line.style.cssText = 'margin-bottom: 4px; font-size: 0.95rem;';
+            const amount = document.createElement('strong');
+            amount.textContent = `${quantity}x`;
+            const stockText = document.createElement('span');
+            stockText.style.color = 'var(--text-muted)';
+            const stockValue = document.createElement('span');
+            stockValue.style.cssText = `color: ${stock === 0 ? 'var(--danger-color)' : (enough ? 'var(--accent-green)' : 'var(--accent-red)')}; font-weight: 600;`;
+            stockValue.textContent = stock;
+            stockText.append(' (Lagerbestand: ', stockValue, ')');
+            line.append('• ', amount, ` ${materialName}`, stockText);
+            rawBox.appendChild(line);
+        });
+
+        const summary = document.createElement('div');
+        summary.style.cssText = `margin-top: 12px; font-weight: 700; color: ${allMaterialsOk ? 'var(--accent-green)' : 'var(--accent-red)'};`;
+        summary.textContent = allMaterialsOk
+            ? '✓ Du hast alle benötigten Rohmaterialien auf Lager!'
+            : '✕ Dir fehlen einige Rohmaterialien im Lager!';
+        rawBox.appendChild(summary);
+        content.appendChild(rawBox);
+        panel.style.display = 'block';
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function hideBerufeCraftingPanel() {
+        const panel = document.getElementById('berufe-crafting-action-box');
+        if (panel) panel.style.display = 'none';
     }
 
     function isValidBerufeTabId(tabId) {
@@ -419,6 +562,7 @@
             if (typeof window.switchTab === 'function') window.switchTab('berufe');
         }
         activeBerufeTabId = tabId;
+        hideBerufeCraftingPanel();
         renderBerufeTabs();
         loadBerufeRecipes(tabId);
     }
