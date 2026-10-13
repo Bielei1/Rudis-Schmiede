@@ -918,6 +918,7 @@
         .map-tile-layer {
             position: absolute;
             inset: 0 auto auto 0;
+            z-index: 1;
             pointer-events: none;
         }
 
@@ -964,6 +965,7 @@
             position: absolute;
             top: 0;
             left: 0;
+            z-index: 2;
             pointer-events: none;
         }
 
