@@ -527,6 +527,11 @@
                 <button type="submit" id="berufe-create-button" class="btn btn-success">Untertab hinzufügen</button>
             </form>
             <div id="berufe-status" class="map-status" role="status" hidden></div>
+            <div class="berufe-recipe-search">
+                <label for="berufe-recipe-search-input">Rezepte in allen Berufe-Untertabs suchen</label>
+                <input id="berufe-recipe-search-input" type="search" data-permission-view="true" placeholder="Rezept oder Zutat suchen..." autocomplete="off">
+                <div id="berufe-recipe-search-results" aria-live="polite" hidden></div>
+            </div>
             <section id="berufe-panel" class="berufe-panel" role="tabpanel" aria-labelledby="berufe-nav-button">
                 <h3 id="berufe-panel-title">Vorlage</h3>
                 <p id="berufe-panel-description">Die Vorlage ist vorbereitet. Ihr Inhalt wird später ergänzt.</p>
@@ -1500,7 +1505,7 @@
 </div>
 
 <script src="js/config.js?v=20260826-3"></script>
-<script src="js/auth.js?v=20261013-7"></script>
+<script src="js/auth.js?v=20261013-8"></script>
 <script src="js/presence.js?v=20260826-6"></script>
 <script src="js/ui-helpers.js"></script>
 <script src="js/log.js"></script>
@@ -1522,6 +1527,6 @@
 <script src="js/chat.js"></script>
 <script src="js/karte.js?v=20261013-27"></script>
 <script src="js/kassenbuch.js?v=20261013-8"></script>
-<script src="js/berufe.js?v=20261013-10"></script>
+<script src="js/berufe.js?v=20261013-13"></script>
 </body>
 </html>

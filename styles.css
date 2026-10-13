@@ -2359,6 +2359,39 @@
             margin: 0 0 14px;
         }
 
+        .berufe-recipe-search {
+            margin-bottom: 16px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--card-bg);
+        }
+
+        .berufe-recipe-search label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .berufe-recipe-search input {
+            width: 100%;
+            min-height: 42px;
+        }
+
+        #berufe-recipe-search-results {
+            margin-top: 12px;
+        }
+
+        #berufe-recipe-search-results[hidden] {
+            display: none;
+        }
+
+        .berufe-recipe-search-empty {
+            margin: 0;
+            padding: 12px;
+            color: var(--text-muted);
+        }
+
         #berufe-recipe-cancel-btn[hidden] {
             display: none !important;
         }

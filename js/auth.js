@@ -667,6 +667,15 @@
         const tabName = permissionOverride
             ? permissionOverride.dataset.permissionTab
             : tabContent.id.replace(/^tab-/, '');
+        if (el.dataset.permissionView === 'true' && canViewTab(tabName)) {
+            el.classList.remove('view-locked');
+            if (el.dataset.permissionDisabled === 'true') {
+                el.disabled = false;
+                delete el.dataset.permissionDisabled;
+            }
+            el.removeAttribute('title');
+            return;
+        }
         const specialAction = el.dataset.permissionSpecial;
         if (specialAction && canSpecialAction(specialAction)) {
             el.classList.remove('view-locked');

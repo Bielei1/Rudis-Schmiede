@@ -1,6 +1,9 @@
 (function () {
     let berufeTabs = [];
     let berufeRecipes = [];
+    let allBerufeRecipes = [];
+    let berufeSearchRecipesLoaded = false;
+    let berufeSearchLoadPromise = null;
     let activeBerufeTabId = null;
 
     function canManageBerufe() {
@@ -213,6 +216,105 @@
             row.append(outputCell, ingredientCell, showRecipeCell, actionsCell);
             list.appendChild(row);
         });
+    }
+
+    async function ensureBerufeSearchRecipesLoaded() {
+        if (berufeSearchRecipesLoaded) return;
+        if (berufeSearchLoadPromise) return berufeSearchLoadPromise;
+
+        berufeSearchLoadPromise = (async () => {
+            const { data, error } = await window.supabaseClient
+                .from('berufe_recipes')
+                .select('id, berufe_tab_id, output_name, output_qty, ingredients')
+                .order('output_name', { ascending: true });
+            if (error) throw error;
+            allBerufeRecipes = Array.isArray(data) ? data : [];
+            berufeSearchRecipesLoaded = true;
+        })();
+
+        try {
+            await berufeSearchLoadPromise;
+        } finally {
+            berufeSearchLoadPromise = null;
+        }
+    }
+
+    async function searchBerufeRecipes() {
+        const input = document.getElementById('berufe-recipe-search-input');
+        const results = document.getElementById('berufe-recipe-search-results');
+        if (!input || !results) return;
+        const query = input.value.trim().toLocaleLowerCase('de');
+        results.replaceChildren();
+        results.hidden = !query;
+        if (!query) return;
+
+        try {
+            await ensureBerufeSearchRecipesLoaded();
+            if (input.value.trim().toLocaleLowerCase('de') !== query) return;
+            const matchingRecipes = allBerufeRecipes.filter(recipe => {
+                const ingredientNames = (recipe.ingredients || []).map(item => item.name).join(' ');
+                return `${recipe.output_name} ${ingredientNames}`.toLocaleLowerCase('de').includes(query);
+            });
+            if (!matchingRecipes.length) {
+                const empty = document.createElement('p');
+                empty.className = 'berufe-recipe-search-empty';
+                empty.textContent = 'Keine passenden Rezepte gefunden.';
+                results.appendChild(empty);
+                return;
+            }
+
+            const table = document.createElement('table');
+            const header = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['Rezept', 'Beruf', 'Zutaten', 'Aktion'].forEach(label => {
+                const heading = document.createElement('th');
+                heading.textContent = label;
+                headerRow.appendChild(heading);
+            });
+            header.appendChild(headerRow);
+            table.appendChild(header);
+
+            const body = document.createElement('tbody');
+            matchingRecipes.forEach(recipe => {
+                const tab = berufeTabs.find(item => String(item.id) === String(recipe.berufe_tab_id));
+                if (!tab) return;
+                const row = document.createElement('tr');
+                const recipeName = document.createElement('td');
+                recipeName.textContent = recipe.output_name;
+                const profession = document.createElement('td');
+                profession.textContent = tab.name;
+                const ingredients = document.createElement('td');
+                ingredients.textContent = (recipe.ingredients || [])
+                    .map(item => `${item.qty}x ${item.name}`)
+                    .join(', ') || 'Keine Zutaten';
+                const action = document.createElement('td');
+                const openButton = document.createElement('button');
+                openButton.type = 'button';
+                openButton.className = 'btn btn-secondary';
+                openButton.dataset.permissionView = 'true';
+                openButton.textContent = 'Untertab öffnen';
+                openButton.addEventListener('click', () => selectBerufeTab(String(tab.id)));
+                action.appendChild(openButton);
+                row.append(recipeName, profession, ingredients, action);
+                body.appendChild(row);
+            });
+
+            if (!body.childElementCount) {
+                const empty = document.createElement('p');
+                empty.className = 'berufe-recipe-search-empty';
+                empty.textContent = 'Keine passenden Rezepte gefunden.';
+                results.appendChild(empty);
+                return;
+            }
+            table.appendChild(body);
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'table-container-scrollable';
+            tableContainer.appendChild(table);
+            results.appendChild(tableContainer);
+        } catch (error) {
+            console.error('Berufe-Rezeptsuche konnte nicht geladen werden:', error);
+            setStatus('Die Rezeptsuche konnte nicht geladen werden. Bitte Supabase-Verbindung und Tabellenrechte prüfen.', true);
+        }
     }
 
     function showBerufeCraftingPanel(recipe) {
@@ -453,7 +555,12 @@
 
             berufeRecipes = berufeRecipes.filter(recipe => String(recipe.id) !== String(data.id));
             if (String(activeBerufeTabId) === String(data.berufe_tab_id)) berufeRecipes.push(data);
+            if (berufeSearchRecipesLoaded) {
+                allBerufeRecipes = allBerufeRecipes.filter(recipe => String(recipe.id) !== String(data.id));
+                allBerufeRecipes.push(data);
+            }
             renderBerufeRecipes();
+            searchBerufeRecipes();
             cancelBerufeRecipeEdit();
             if (typeof window.logActivity === 'function') {
                 const destination = berufeTabs.find(tab => String(tab.id) === String(tabId));
@@ -489,7 +596,9 @@
             return;
         }
         berufeRecipes = berufeRecipes.filter(item => String(item.id) !== String(recipeId));
+        allBerufeRecipes = allBerufeRecipes.filter(item => String(item.id) !== String(recipeId));
         renderBerufeRecipes();
+        searchBerufeRecipes();
         if (typeof window.logActivity === 'function') {
             await window.logActivity('Berufe', `Berufe-Rezept „${recipe.output_name}“ gelöscht`);
         }
@@ -639,8 +748,10 @@
                 return;
             }
 
+            allBerufeRecipes = allBerufeRecipes.filter(recipe => String(recipe.berufe_tab_id) !== String(tabId));
             if (String(activeBerufeTabId) === String(tabId)) activeBerufeTabId = null;
             await loadBerufeTab();
+            searchBerufeRecipes();
             if (typeof window.logActivity === 'function') {
                 const logged = await window.logActivity('Berufe', `Berufe-Untertab „${tab.name}“ gelöscht`);
                 if (!logged && typeof window.showToast === 'function') {
@@ -668,5 +779,9 @@
     window.deleteBerufeRecipe = deleteBerufeRecipe;
     window.cancelBerufeRecipeEdit = cancelBerufeRecipeEdit;
     window.hideBerufeCraftingPanel = hideBerufeCraftingPanel;
-    window.addEventListener('DOMContentLoaded', initBerufeRecipeInputs);
+    window.addEventListener('DOMContentLoaded', () => {
+        initBerufeRecipeInputs();
+        const searchInput = document.getElementById('berufe-recipe-search-input');
+        if (searchInput) searchInput.addEventListener('input', searchBerufeRecipes);
+    });
 })();
