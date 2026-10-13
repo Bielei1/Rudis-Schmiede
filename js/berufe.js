@@ -117,11 +117,15 @@
         list.replaceChildren();
 
         if (activeBerufeTabId === null) {
-            const hint = document.createElement('p');
-            hint.textContent = berufeTabs.length
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.colSpan = 4;
+            cell.style.cssText = 'text-align: center; color: var(--text-muted); padding: 20px;';
+            cell.textContent = berufeTabs.length
                 ? 'Wähle oben den Ziel-Untertab aus, in dem das Rezept angezeigt werden soll.'
                 : 'Erstelle zuerst einen Berufs-Untertab, damit du Rezepte zuordnen kannst.';
-            list.appendChild(hint);
+            row.appendChild(cell);
+            list.appendChild(row);
             return;
         }
 
@@ -129,39 +133,100 @@
             .filter(recipe => String(recipe.berufe_tab_id) === String(activeBerufeTabId))
             .sort((first, second) => String(first.output_name).localeCompare(String(second.output_name), 'de'));
         if (!recipes.length) {
-            const empty = document.createElement('p');
-            empty.textContent = 'Für diesen Beruf wurden noch keine Rezepte angelegt.';
-            list.appendChild(empty);
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.colSpan = 4;
+            cell.style.cssText = 'text-align: center; color: var(--text-muted); padding: 20px;';
+            cell.textContent = 'Keine Rezepte gefunden.';
+            row.appendChild(cell);
+            list.appendChild(row);
             return;
         }
 
         recipes.forEach(recipe => {
-            const card = document.createElement('article');
-            card.className = 'berufe-recipe-card';
-            const heading = document.createElement('h4');
-            heading.textContent = recipe.output_name;
-            card.appendChild(heading);
-
-            const yieldText = document.createElement('p');
-            yieldText.textContent = `Ertrag: ${recipe.output_qty} Stk.`;
-            card.appendChild(yieldText);
-
-            const ingredientTitle = document.createElement('strong');
-            ingredientTitle.textContent = 'Benötigte Zutaten';
-            card.appendChild(ingredientTitle);
-            const ingredients = document.createElement('ul');
+            const multiplier = 1;
+            const actualProduced = recipe.output_qty;
+            const ingredientCell = document.createElement('td');
+            const ingredientBox = document.createElement('div');
+            ingredientBox.style.cssText = 'font-size: 0.9rem; line-height: 1.4; background: var(--panel-bg-blue); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);';
+            let allIngredientsOk = true;
             (recipe.ingredients || []).forEach(ingredient => {
-                const item = document.createElement('li');
-                item.textContent = `${ingredient.qty}x ${ingredient.name}`;
-                ingredients.appendChild(item);
+                const stock = inventoryList.find(item => item.name.toLowerCase() === ingredient.name.toLowerCase())?.quantity || 0;
+                const enough = stock >= ingredient.qty * multiplier;
+                if (!enough) allIngredientsOk = false;
+                const line = document.createElement('div');
+                line.style.cssText = 'margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; gap: 8px;';
+
+                const required = document.createElement('span');
+                required.append('• ');
+                const requiredAmount = document.createElement('strong');
+                requiredAmount.textContent = `${ingredient.qty * multiplier}x`;
+                required.append(requiredAmount, ` ${ingredient.name}`);
+                const stockInfo = document.createElement('span');
+                stockInfo.style.cssText = 'font-size: 0.85rem; color: var(--text-muted);';
+                const stockValue = document.createElement('span');
+                stockValue.style.cssText = `color: ${stock === 0 ? 'var(--danger-color)' : (enough ? 'var(--accent-green)' : 'var(--accent-red)')}; font-weight: 600;`;
+                stockValue.textContent = stock;
+                stockInfo.append('(Lager: ', stockValue, ')');
+                line.append(required, stockInfo);
+                ingredientBox.appendChild(line);
             });
-            if (!ingredients.childElementCount) {
-                const item = document.createElement('li');
-                item.textContent = 'Keine Zutaten definiert';
-                ingredients.appendChild(item);
+            if (!recipe.ingredients?.length) {
+                const empty = document.createElement('span');
+                empty.style.cssText = 'color: var(--text-muted); font-style: italic;';
+                empty.textContent = 'Keine Zutaten definiert';
+                ingredientBox.appendChild(empty);
             }
-            card.appendChild(ingredients);
-            list.appendChild(card);
+            ingredientCell.appendChild(ingredientBox);
+
+            const row = document.createElement('tr');
+            const outputCell = document.createElement('td');
+            const outputInfo = document.createElement('div');
+            outputInfo.style.cssText = 'display: flex; flex-direction: column; gap: 6px;';
+            const name = document.createElement('span');
+            name.className = 'material-name';
+            name.style.cssText = 'color: var(--accent-blue); font-size: 1.05rem;';
+            name.textContent = recipe.output_name;
+            const yieldInfo = document.createElement('div');
+            yieldInfo.style.cssText = 'display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-muted);';
+            const recipeYield = document.createElement('span');
+            recipeYield.append('Rezept-Ertrag: ');
+            const recipeYieldAmount = document.createElement('strong');
+            recipeYieldAmount.textContent = `${recipe.output_qty} Stk.`;
+            recipeYield.appendChild(recipeYieldAmount);
+            yieldInfo.appendChild(recipeYield);
+            const result = document.createElement('div');
+            result.style.cssText = 'font-size: 0.9rem; color: var(--accent-green); font-weight: 600;';
+            result.textContent = `→ Daraus resultierender Ertrag: ${actualProduced} Stk. (${multiplier} Durchgänge)`;
+            outputInfo.append(name, yieldInfo, result);
+            outputCell.appendChild(outputInfo);
+
+            const statusCell = document.createElement('td');
+            const status = document.createElement('span');
+            status.className = allIngredientsOk ? 'req-status status-ok' : 'req-status status-missing';
+            status.textContent = allIngredientsOk ? '✓ Rohstoffe vorhanden' : '✕ Rohstoffe fehlen';
+            statusCell.appendChild(status);
+
+            const actionsCell = document.createElement('td');
+            const actions = document.createElement('div');
+            actions.style.cssText = 'display: flex; gap: 8px;';
+            const editButton = document.createElement('button');
+            editButton.type = 'button';
+            editButton.className = 'btn btn-secondary';
+            editButton.style.cssText = 'height: 38px; font-size: 0.85rem;';
+            editButton.textContent = 'Bearbeiten';
+            editButton.addEventListener('click', () => editBerufeRecipe(recipe.id));
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'btn btn-danger delete-action';
+            deleteButton.dataset.permissionAction = 'delete';
+            deleteButton.textContent = 'Löschen';
+            deleteButton.addEventListener('click', () => deleteBerufeRecipe(recipe.id));
+            actions.append(editButton, deleteButton);
+            actionsCell.appendChild(actions);
+
+            row.append(outputCell, ingredientCell, statusCell, actionsCell);
+            list.appendChild(row);
         });
     }
 
@@ -176,8 +241,7 @@
         addBerufeRecipeIngredientInput();
     }
 
-    function addBerufeRecipeIngredientInput() {
-        const container = document.getElementById('berufe-recipe-ingredients-container');
+    function addBerufeRecipeIngredientInput(container = document.getElementById('berufe-recipe-ingredients-container')) {
         if (!container) return;
         const row = document.createElement('div');
         row.className = 'recipe-ingredient-row';
@@ -211,6 +275,47 @@
         container.appendChild(row);
     }
 
+    function editBerufeRecipe(recipeId) {
+        if (!canEditBerufe()) return;
+        const recipe = berufeRecipes.find(item => String(item.id) === String(recipeId));
+        if (!recipe) return;
+
+        const form = document.getElementById('berufe-recipe-add-form');
+        document.getElementById('berufe-recipe-edit-id').value = recipe.id;
+        document.getElementById('berufe-recipe-destination').value = String(recipe.berufe_tab_id);
+        form.querySelector('.recipe-output-input').value = recipe.output_name;
+        form.querySelector('.recipe-output-qty').value = recipe.output_qty;
+        const ingredients = document.getElementById('berufe-recipe-ingredients-container');
+        ingredients.replaceChildren();
+        (recipe.ingredients || []).forEach(item => {
+            const before = ingredients.childElementCount;
+            addBerufeRecipeIngredientInput(ingredients);
+            const row = ingredients.children[before];
+            row.querySelector('.rec-ing-name').value = item.name;
+            row.querySelector('.rec-ing-qty').value = item.qty;
+        });
+        if (!recipe.ingredients?.length) addBerufeRecipeIngredientInput(ingredients);
+
+        document.getElementById('berufe-recipe-form-title').textContent = `Rezept bearbeiten: ${recipe.output_name}`;
+        document.getElementById('berufe-recipe-form-summary').textContent = `✏️ Rezept bearbeiten: ${recipe.output_name}`;
+        document.getElementById('berufe-recipe-submit-btn').textContent = 'Änderungen speichern';
+        document.getElementById('berufe-recipe-cancel-btn').hidden = false;
+        document.getElementById('berufe-recipe-details').open = true;
+        form.querySelector('.recipe-output-input').focus();
+    }
+
+    function cancelBerufeRecipeEdit() {
+        const form = document.getElementById('berufe-recipe-add-form');
+        document.getElementById('berufe-recipe-edit-id').value = '';
+        form.querySelector('.recipe-output-input').value = '';
+        form.querySelector('.recipe-output-qty').value = '1';
+        initBerufeRecipeInputs();
+        document.getElementById('berufe-recipe-form-title').textContent = '+ Neues Rezept hinzufügen';
+        document.getElementById('berufe-recipe-form-summary').textContent = '+ Neues Rezept hinzufügen';
+        document.getElementById('berufe-recipe-submit-btn').textContent = 'Rezept speichern';
+        document.getElementById('berufe-recipe-cancel-btn').hidden = true;
+    }
+
     async function createBerufeRecipe(event) {
         event.preventDefault();
         if (!canEditBerufe()) {
@@ -219,6 +324,7 @@
         }
 
         const form = event.currentTarget;
+        const editId = document.getElementById('berufe-recipe-edit-id').value;
         const tabId = form.querySelector('#berufe-recipe-destination').value;
         const outputName = capitalizeText(form.querySelector('.recipe-output-input').value.trim());
         const outputQty = Number.parseInt(form.querySelector('.recipe-output-qty').value, 10);
@@ -240,31 +346,33 @@
         saveButton.disabled = true;
         setStatus('', false);
         try {
-            const { data, error } = await window.supabaseClient
-                .from('berufe_recipes')
-                .insert([{
+            const query = editId
+                ? window.supabaseClient.from('berufe_recipes').update({
                     berufe_tab_id: Number(tabId),
                     output_name: outputName,
                     output_qty: outputQty,
                     ingredients
-                }])
-                .select()
-                .single();
+                }).eq('id', editId)
+                : window.supabaseClient.from('berufe_recipes').insert([{
+                    berufe_tab_id: Number(tabId),
+                    output_name: outputName,
+                    output_qty: outputQty,
+                    ingredients
+                }]);
+            const { data, error } = await query.select().single();
             if (error) throw error;
             if (!data) throw new Error('Supabase hat das gespeicherte Rezept nicht zurückgegeben.');
 
-            if (String(activeBerufeTabId) === String(data.berufe_tab_id)) {
-                berufeRecipes.push(data);
-                renderBerufeRecipes();
-            }
-            form.querySelector('.recipe-output-input').value = '';
-            form.querySelector('.recipe-output-qty').value = '1';
-            initBerufeRecipeInputs();
+            berufeRecipes = berufeRecipes.filter(recipe => String(recipe.id) !== String(data.id));
+            if (String(activeBerufeTabId) === String(data.berufe_tab_id)) berufeRecipes.push(data);
+            renderBerufeRecipes();
+            cancelBerufeRecipeEdit();
             if (typeof window.logActivity === 'function') {
-                await window.logActivity('Berufe', `Rezept „${outputName}“ für „${berufeTabs.find(tab => String(tab.id) === String(tabId)).name}“ erstellt`);
+                const destination = berufeTabs.find(tab => String(tab.id) === String(tabId));
+                await window.logActivity('Berufe', `Rezept „${outputName}“ für „${destination.name}“ ${editId ? 'bearbeitet' : 'erstellt'}`);
             }
             if (typeof window.showToast === 'function') {
-                window.showToast(`Rezept „${outputName}“ wurde im ausgewählten Beruf gespeichert.`, 'success');
+                window.showToast(`Rezept „${outputName}“ wurde ${editId ? 'aktualisiert' : 'im ausgewählten Beruf gespeichert'}.`, 'success');
             }
         } catch (error) {
             console.error('Berufe-Rezept konnte nicht gespeichert werden:', error);
@@ -275,6 +383,30 @@
             if (typeof window.showToast === 'function') window.showToast(message, 'danger');
         } finally {
             saveButton.disabled = false;
+        }
+    }
+
+    async function deleteBerufeRecipe(recipeId) {
+        if (!canEditBerufe()) return;
+        const recipe = berufeRecipes.find(item => String(item.id) === String(recipeId));
+        if (!recipe || typeof window.customConfirm !== 'function'
+            || !await window.customConfirm(`Rezept „${recipe.output_name}“ wirklich löschen?`)) return;
+        const { error } = await window.supabaseClient
+            .from('berufe_recipes')
+            .delete()
+            .eq('id', recipeId);
+        if (error) {
+            console.error('Berufe-Rezept konnte nicht gelöscht werden:', error);
+            setStatus(`Rezept konnte nicht gelöscht werden: ${error.message}`, true);
+            return;
+        }
+        berufeRecipes = berufeRecipes.filter(item => String(item.id) !== String(recipeId));
+        renderBerufeRecipes();
+        if (typeof window.logActivity === 'function') {
+            await window.logActivity('Berufe', `Berufe-Rezept „${recipe.output_name}“ gelöscht`);
+        }
+        if (String(document.getElementById('berufe-recipe-edit-id').value) === String(recipeId)) {
+            cancelBerufeRecipeEdit();
         }
     }
 
@@ -443,5 +575,8 @@
     window.deleteBerufeTab = deleteBerufeTab;
     window.addBerufeRecipeIngredientInput = addBerufeRecipeIngredientInput;
     window.createBerufeRecipe = createBerufeRecipe;
+    window.editBerufeRecipe = editBerufeRecipe;
+    window.deleteBerufeRecipe = deleteBerufeRecipe;
+    window.cancelBerufeRecipeEdit = cancelBerufeRecipeEdit;
     window.addEventListener('DOMContentLoaded', initBerufeRecipeInputs);
 })();
