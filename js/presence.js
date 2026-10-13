@@ -288,6 +288,7 @@
         updateLiveSyncStatus('Synchronisiere...');
         try {
             await loadDataFromSupabase();
+            if (!currentUser) return false;
             if (currentUser.isAdmin && typeof loadAppUsers === 'function') {
                 await loadAppUsers();
             }
