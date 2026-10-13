@@ -21,6 +21,8 @@
     let addMode = false;
     let pendingPosition = null;
     let zoom = 1;
+    let mapBaseWidth = 0;
+    let mapBaseHeight = 0;
     let imageLoadId = 0;
     let cachedMapImagePath = null;
     let cachedSignedMapUrl = null;
@@ -28,6 +30,7 @@
     let mapLoadInProgress = false;
     let mapDataLoadedAt = 0;
     let mapDataLoadedForUser = null;
+    let mapResizeFrame = 0;
     let pendingWheelZoom = 0;
     let pendingWheelAnchor = null;
     let wheelZoomFrame = 0;
@@ -44,7 +47,8 @@
             && mapDataLoadedAt && Date.now() - mapDataLoadedAt < 30000) return;
         mapLoadInProgress = true;
         const status = getElement('map-status');
-        if (status) status.textContent = 'Lade gemeinsame Karte ...';
+        const hasVisibleMap = !!(getElement('map-background-image')?.naturalWidth);
+        if (status && !hasVisibleMap) status.textContent = 'Lade gemeinsame Karte ...';
         const currentImage = getElement('map-background-image');
         if (!currentImage || currentImage.hidden || !currentImage.complete || !currentImage.naturalWidth) {
             displayMapImage(DEFAULT_MAP_IMAGE_URL, DEFAULT_MAP_IMAGE_KEY);
@@ -136,14 +140,27 @@
         image.onload = () => {
             if (loadId !== imageLoadId) return;
             const stage = getElement('map-stage');
-            if (stage) stage.style.aspectRatio = `${image.naturalWidth} / ${image.naturalHeight}`;
-            if (stage) stage.classList.add('map-image-ready');
+            const viewport = getElement('map-viewport');
+            if (!stage || !viewport) return;
+            mapBaseWidth = viewport.clientWidth;
+            mapBaseHeight = mapBaseWidth * image.naturalHeight / image.naturalWidth;
+            image.style.width = `${mapBaseWidth}px`;
+            image.style.height = `${mapBaseHeight}px`;
+            const markerLayer = getElement('map-markers-layer');
+            if (markerLayer) {
+                markerLayer.style.width = `${mapBaseWidth}px`;
+                markerLayer.style.height = `${mapBaseHeight}px`;
+            }
+            stage.style.width = `${mapBaseWidth * zoom}px`;
+            stage.style.height = `${mapBaseHeight * zoom}px`;
+            stage.classList.add('map-image-ready');
             image.hidden = false;
             const empty = getElement('map-empty-state');
             if (empty) empty.hidden = true;
             const button = getElement('map-add-mode-button');
             if (button) button.disabled = !canEditTab('karte');
             applyMapZoom(zoom);
+            syncMapSurfaceZoom();
             updateAddModeButton();
             image.dataset.mapPath = imagePath;
         };
@@ -312,9 +329,48 @@
         zoom = Math.min(12, Math.max(0.5, nextZoom));
         if (zoom === previousZoom) return;
         const scale = zoom / previousZoom;
-        stage.style.width = `${zoom * 100}%`;
+        syncMapSurfaceZoom();
         viewport.scrollLeft = mapX * oldWidth * scale - (pointerX - viewportRect.left);
         viewport.scrollTop = mapY * oldHeight * scale - (pointerY - viewportRect.top);
+    }
+
+    function syncMapSurfaceZoom() {
+        const stage = getElement('map-stage');
+        const image = getElement('map-background-image');
+        const markerLayer = getElement('map-markers-layer');
+        if (!stage || !image || !mapBaseWidth || !mapBaseHeight) return;
+        stage.style.width = `${mapBaseWidth * zoom}px`;
+        stage.style.height = `${mapBaseHeight * zoom}px`;
+        image.style.transform = `scale(${zoom})`;
+        if (markerLayer) markerLayer.style.transform = `scale(${zoom})`;
+        stage.style.setProperty('--map-marker-inverse-zoom', String(1 / zoom));
+    }
+
+    function resizeMapSurface() {
+        if (mapResizeFrame) return;
+        mapResizeFrame = requestAnimationFrame(() => {
+            mapResizeFrame = 0;
+            const viewport = getElement('map-viewport');
+            const image = getElement('map-background-image');
+            const markerLayer = getElement('map-markers-layer');
+            if (!viewport || !image || !image.naturalWidth || !mapBaseWidth) return;
+
+            const oldWidth = mapBaseWidth * zoom;
+            const oldHeight = mapBaseHeight * zoom;
+            const centerX = oldWidth ? (viewport.scrollLeft + viewport.clientWidth / 2) / oldWidth : 0;
+            const centerY = oldHeight ? (viewport.scrollTop + viewport.clientHeight / 2) / oldHeight : 0;
+            mapBaseWidth = viewport.clientWidth;
+            mapBaseHeight = mapBaseWidth * image.naturalHeight / image.naturalWidth;
+            image.style.width = `${mapBaseWidth}px`;
+            image.style.height = `${mapBaseHeight}px`;
+            if (markerLayer) {
+                markerLayer.style.width = `${mapBaseWidth}px`;
+                markerLayer.style.height = `${mapBaseHeight}px`;
+            }
+            syncMapSurfaceZoom();
+            viewport.scrollLeft = centerX * mapBaseWidth * zoom - viewport.clientWidth / 2;
+            viewport.scrollTop = centerY * mapBaseHeight * zoom - viewport.clientHeight / 2;
+        });
     }
 
     function handleMapWheel(event) {
@@ -487,6 +543,7 @@
         if (stage && stage.contains(event.target)) handleMapClick(event);
     });
     const mapViewport = getElement('map-viewport');
+    window.addEventListener('resize', resizeMapSurface);
     if (mapViewport) {
         mapViewport.addEventListener('wheel', handleMapWheel, { passive: false });
         mapViewport.addEventListener('mousedown', startMapDrag);
