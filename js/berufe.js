@@ -24,6 +24,7 @@
         const title = document.getElementById('berufe-panel-title');
         const description = document.getElementById('berufe-panel-description');
         const panel = document.getElementById('berufe-panel');
+        const templateDetails = document.getElementById('berufe-template-details');
         const recipeCreateArea = document.getElementById('berufe-recipe-create-area');
         const recipesTableArea = document.getElementById('berufe-recipes-table-area');
         if (!nav || !title || !description || !panel) return;
@@ -83,6 +84,8 @@
 
         const activeTitle = isTemplate ? 'Vorlage' : selectedTab.name;
         title.textContent = activeTitle;
+        title.hidden = isTemplate;
+        description.hidden = isTemplate;
         panel.setAttribute('aria-labelledby', isTemplate ? 'berufe-nav-button' : `berufe-tab-${selectedTab.id}`);
         description.textContent = isTemplate
             ? 'Erstelle hier Rezepte und ordne sie einem Berufs-Untertab zu.'
@@ -90,6 +93,7 @@
         if (recipeCreateArea) {
             recipeCreateArea.hidden = !isTemplate || !canEditBerufe();
         }
+        if (templateDetails) templateDetails.hidden = !isTemplate;
         if (recipesTableArea) recipesTableArea.hidden = isTemplate;
         updateRecipeDestinationOptions();
         renderBerufeRecipes();
@@ -406,9 +410,18 @@
         panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    function hideBerufeCraftingPanel() {
+    function hideBerufeCraftingPanel(resetSearch = true) {
         const panel = document.getElementById('berufe-crafting-action-box');
         if (panel) panel.style.display = 'none';
+        if (resetSearch) {
+            const input = document.getElementById('berufe-recipe-search-input');
+            const results = document.getElementById('berufe-recipe-search-results');
+            if (input) input.value = '';
+            if (results) {
+                results.replaceChildren();
+                results.hidden = true;
+            }
+        }
     }
 
     function isValidBerufeTabId(tabId) {
@@ -632,7 +645,7 @@
             if (typeof window.switchTab === 'function') window.switchTab('berufe');
         }
         activeBerufeTabId = tabId;
-        hideBerufeCraftingPanel();
+        hideBerufeCraftingPanel(false);
         renderBerufeTabs();
         loadBerufeRecipes(tabId);
     }

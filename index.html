@@ -523,54 +523,52 @@
             <section id="berufe-panel" class="berufe-panel" role="tabpanel" aria-labelledby="berufe-nav-button">
                 <h3 id="berufe-panel-title">Vorlage</h3>
                 <p id="berufe-panel-description">Die Vorlage ist vorbereitet. Ihr Inhalt wird später ergänzt.</p>
-                <form id="berufe-create-form" class="berufe-create-form" onsubmit="createBerufeTab(event)" hidden>
-                    <div class="form-group">
-                        <label for="berufe-new-tab-name">Neuen Untertab erstellen</label>
-                        <input id="berufe-new-tab-name" type="text" maxlength="50" placeholder="Name des Berufs" autocomplete="off" required>
-                    </div>
-                    <button type="submit" id="berufe-create-button" class="btn btn-success">Untertab hinzufügen</button>
-                </form>
-                <div id="berufe-recipe-create-area" data-permission-tab="berufe">
-                    <details id="berufe-recipe-details">
-                        <summary id="berufe-recipe-form-summary">+ Neues Rezept hinzufügen</summary>
-                        <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
-                            <h4 id="berufe-recipe-form-title">+ Neues Rezept hinzufügen</h4>
-                            <form id="berufe-recipe-add-form" onsubmit="createBerufeRecipe(event)">
-                                <input type="hidden" id="berufe-recipe-edit-id" value="">
-                                <div class="add-form" style="margin-bottom: 12px;">
-                                    <div class="form-group">
-                                        <label for="berufe-recipe-destination">Rezept speichern unter</label>
-                                        <select id="berufe-recipe-destination" class="recipe-berufe-tab-select" required></select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="berufe-recipe-output-input">Endproduktartikel</label>
-                                        <input type="text" id="berufe-recipe-output-input" class="recipe-output-input" placeholder="Endprodukt eintragen..." required>
-                                    </div>
-                                    <div class="form-group" style="max-width: 180px;">
-                                        <label for="berufe-recipe-output-qty">Ertrag (Stk.)</label>
-                                        <input type="number" id="berufe-recipe-output-qty" class="recipe-output-qty" min="1" value="1" required>
-                                    </div>
+                <details id="berufe-template-details" class="berufe-template-details" open>
+                    <summary>Vorlage</summary>
+                    <div class="berufe-template-content">
+                        <form id="berufe-create-form" class="berufe-create-form" onsubmit="createBerufeTab(event)" hidden>
+                            <div class="form-group">
+                                <label for="berufe-new-tab-name">Neuen Untertab erstellen</label>
+                                <input id="berufe-new-tab-name" type="text" maxlength="50" placeholder="Name des Berufs" autocomplete="off" required>
+                            </div>
+                            <button type="submit" id="berufe-create-button" class="btn btn-success">Untertab hinzufügen</button>
+                        </form>
+                        <div id="berufe-recipe-create-area" data-permission-tab="berufe">
+                            <details id="berufe-recipe-details">
+                                <summary id="berufe-recipe-form-summary">+ Neues Rezept hinzufügen</summary>
+                                <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
+                                    <h4 id="berufe-recipe-form-title">+ Neues Rezept hinzufügen</h4>
+                                    <form id="berufe-recipe-add-form" onsubmit="createBerufeRecipe(event)">
+                                        <input type="hidden" id="berufe-recipe-edit-id" value="">
+                                        <div class="add-form" style="margin-bottom: 12px;">
+                                            <div class="form-group">
+                                                <label for="berufe-recipe-destination">Rezept speichern unter</label>
+                                                <select id="berufe-recipe-destination" class="recipe-berufe-tab-select" required></select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="berufe-recipe-output-input">Endproduktartikel</label>
+                                                <input type="text" id="berufe-recipe-output-input" class="recipe-output-input" placeholder="Endprodukt eintragen..." required>
+                                            </div>
+                                            <div class="form-group" style="max-width: 180px;">
+                                                <label for="berufe-recipe-output-qty">Ertrag (Stk.)</label>
+                                                <input type="number" id="berufe-recipe-output-qty" class="recipe-output-qty" min="1" value="1" required>
+                                            </div>
+                                        </div>
+                                        <div style="margin-bottom: 12px;">
+                                            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Benötigte Zutaten</label>
+                                            <div id="berufe-recipe-ingredients-container"></div>
+                                            <button type="button" class="btn btn-secondary" style="height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addBerufeRecipeIngredientInput()">+ Zutat hinzufügen</button>
+                                        </div>
+                                        <div style="display: flex; gap: 8px;">
+                                            <button type="submit" class="btn btn-success" id="berufe-recipe-submit-btn">Rezept speichern</button>
+                                            <button type="button" class="btn btn-secondary" id="berufe-recipe-cancel-btn" onclick="cancelBerufeRecipeEdit()" hidden>Abbrechen</button>
+                                        </div>
+                                    </form>
                                 </div>
-                                <div style="margin-bottom: 12px;">
-                                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Benötigte Zutaten</label>
-                                    <div id="berufe-recipe-ingredients-container"></div>
-                                    <button type="button" class="btn btn-secondary" style="height: 32px; font-size: 0.8rem; margin-top: 6px;" onclick="addBerufeRecipeIngredientInput()">+ Zutat hinzufügen</button>
-                                </div>
-                                <div style="display: flex; gap: 8px;">
-                                    <button type="submit" class="btn btn-success" id="berufe-recipe-submit-btn">Rezept speichern</button>
-                                    <button type="button" class="btn btn-secondary" id="berufe-recipe-cancel-btn" onclick="cancelBerufeRecipeEdit()" hidden>Abbrechen</button>
-                                </div>
-                            </form>
+                            </details>
                         </div>
-                    </details>
-                </div>
-                <div id="berufe-crafting-action-box" style="display: none; position: sticky; top: 12px; z-index: 10; max-height: 70vh; overflow-y: auto; background: var(--panel-bg-blue); border: 2px solid var(--primary-color); border-radius: 12px; padding: 24px; margin: 18px 0 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.4);">
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 16px;">
-                        <h3 style="font-size: 1.25rem; color: var(--label-blue); margin: 0;">🛠️ Herstellungs-Infopanel (Schritt-für-Schritt &amp; Rohmaterialien)</h3>
-                        <button type="button" class="btn btn-secondary" onclick="hideBerufeCraftingPanel()">Rezept verbergen</button>
                     </div>
-                    <div id="berufe-crafting-action-content" style="font-size: 0.95rem; line-height: 1.5;"></div>
-                </div>
+                </details>
                 <div id="berufe-recipes-table-area" class="table-container-scrollable" style="margin-top: 18px;">
                     <table>
                         <thead>
@@ -590,6 +588,13 @@
                 <label for="berufe-recipe-search-input">Endprodukt suchen</label>
                 <input id="berufe-recipe-search-input" type="search" data-permission-view="true" placeholder="Endprodukt suchen..." autocomplete="off">
                 <div id="berufe-recipe-search-results" aria-live="polite" hidden></div>
+                <div id="berufe-crafting-action-box" style="display: none; position: sticky; top: 12px; z-index: 10; max-height: 70vh; overflow-y: auto; background: var(--panel-bg-blue); border: 2px solid var(--primary-color); border-radius: 12px; padding: 24px; margin: 18px 0 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.4);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 16px;">
+                        <h3 style="font-size: 1.25rem; color: var(--label-blue); margin: 0;">🛠️ Herstellungs-Infopanel (Schritt-für-Schritt &amp; Rohmaterialien)</h3>
+                        <button type="button" class="btn btn-secondary" onclick="hideBerufeCraftingPanel()">Rezept verbergen</button>
+                    </div>
+                    <div id="berufe-crafting-action-content" style="font-size: 0.95rem; line-height: 1.5;"></div>
+                </div>
             </section>
         </div>
     </div>
@@ -1528,6 +1533,6 @@
 <script src="js/chat.js"></script>
 <script src="js/karte.js?v=20261013-27"></script>
 <script src="js/kassenbuch.js?v=20261013-8"></script>
-<script src="js/berufe.js?v=20261013-16"></script>
+<script src="js/berufe.js?v=20261013-17"></script>
 </body>
 </html>

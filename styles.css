@@ -2343,8 +2343,28 @@
             color: var(--text-muted);
         }
 
+        .berufe-template-details {
+            margin-top: 16px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--card-bg-raised);
+        }
+
+        .berufe-template-details[hidden] {
+            display: none !important;
+        }
+
+        .berufe-template-details > summary {
+            font-size: 1.1rem;
+        }
+
+        .berufe-template-content {
+            display: grid;
+            gap: 16px;
+        }
+
         #berufe-recipe-create-area {
-            margin-top: 22px;
             padding: 16px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
