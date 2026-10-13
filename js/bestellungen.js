@@ -207,7 +207,6 @@
 
         const deliveredAt = getCurrentTimeString();
         const archivedPayload = {
-            id: order.id,
             customerName: order.customerName,
             items: archivedItems,
             totalSum: totalSum,
@@ -219,11 +218,16 @@
             discount: orderDiscount
         };
 
+        let archivedRecord;
         try {
-            const { error: archiveError } = await archiveInsertWithDiscountFallback(archivedPayload);
+            const { data, error: archiveError } = await archiveInsertWithDiscountFallback(archivedPayload);
             if (archiveError) {
                 return alert("Fehler beim Archivieren: " + archiveError.message);
             }
+            if (!Array.isArray(data) || !data[0]) {
+                return alert("Fehler beim Archivieren: Der gespeicherte Archiveintrag wurde nicht zurückgegeben.");
+            }
+            archivedRecord = { ...archivedPayload, ...data[0] };
         } catch (archiveError) {
             return alert("Fehler beim Archivieren: " + archiveError.message);
         }
@@ -233,7 +237,7 @@
             return alert("Fehler beim Entfernen der aktiven Bestellung: " + deleteError.message);
         }
 
-        archivedOrdersList.unshift(archivedPayload);
+        archivedOrdersList.unshift(archivedRecord);
         ordersList.splice(orderIndex, 1);
 
         updateOrderCustomerDropdown();
