@@ -20,6 +20,8 @@
 
         if (tabName === 'uebersicht') {
             renderDashboard();
+        } else if (tabName === 'kassenbuch') {
+            if (typeof loadCashbook === 'function') loadCashbook();
         } else if (tabName === 'log') {
             renderActivityLog();
         } else if (tabName === 'benutzer') {
@@ -310,7 +312,16 @@
                 <div class="kpi-value">$${archivedRevenue.toFixed(2)}</div>
                 <div class="kpi-sub">${archivedOrdersList.length} ausgelieferte Bestellung(en)</div>
             </div>
+            ${canViewTab('kassenbuch') ? `
+            <button type="button" class="kpi-card cashbook-kpi-card" style="--kpi-accent: var(--success-color);" onclick="switchTab('kassenbuch')">
+                <div class="kpi-label">Kassenbuch</div>
+                <div class="kpi-value" id="dashboard-cashbook-balance">Lade ...</div>
+                <div class="kpi-sub">Aktueller Kassenstand · zum Kassenbuch</div>
+            </button>` : ''}
         `;
+        if (canViewTab('kassenbuch') && typeof loadCashbookDashboardBalance === 'function') {
+            loadCashbookDashboardBalance();
+        }
 
         const warnItems = inventoryList
             .filter(i => i.quantity < LOW_STOCK_THRESHOLD)

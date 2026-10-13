@@ -69,7 +69,8 @@
         { key: 'archiv', label: 'Bestellung Archiv' },
         { key: 'notizen', label: 'Notizen' },
         { key: 'mitglieder', label: 'Mitglieder' },
-        { key: 'karte', label: 'Karte' }
+        { key: 'karte', label: 'Karte' },
+        { key: 'kassenbuch', label: 'Kassenbuch' }
     ];
     // Tabs, in denen es tatsächlich gespeicherte Löschaktionen gibt.
     // Diese Rechte sind bewusst unabhängig von „Bearbeiten“.
@@ -102,7 +103,7 @@
 
     const DEFAULT_TAB_PERMISSIONS = Object.fromEntries(
         TAB_DEFINITIONS.map(t => [t.key, {
-            view: true,
+            view: t.key !== 'kassenbuch',
             edit: t.key === 'karte',
             del: t.key === 'karte'
         }])
@@ -746,6 +747,7 @@
         TAB_DEFINITIONS.forEach(tab => {
             const p = editingPermissionDraft[tab.key] || { view: false, edit: false, del: false };
             const supportsDelete = DELETE_PERMISSION_TABS.has(tab.key);
+            const editPermissionLabel = tab.key === 'kassenbuch' ? 'Ein-/Auszahlen' : 'Bearbeiten';
             grid.insertAdjacentHTML('beforeend', `
                 <div class="tab-name">${tab.label}</div>
                 <div>
@@ -755,6 +757,7 @@
                 <div>
                     <input type="checkbox" id="perm-edit-${tab.key}" ${p.edit ? 'checked' : ''}
                            onchange="syncPermissionCheckboxes('${tab.key}')">
+                    ${tab.key === 'kassenbuch' ? `<span class="permission-cell-caption">${editPermissionLabel}</span>` : ''}
                 </div>
                 <div>
                     ${supportsDelete ? `<input type="checkbox" id="perm-delete-${tab.key}" ${p.del ? 'checked' : ''}
@@ -823,7 +826,7 @@
             const changed = [];
             const compare = [
                 { key: 'view', label: 'ansehen' },
-                { key: 'edit', label: 'bearbeiten' },
+                { key: 'edit', label: tab.key === 'kassenbuch' ? 'Ein-/Auszahlen' : 'bearbeiten' },
                 { key: 'del', label: 'löschen' }
             ];
 
