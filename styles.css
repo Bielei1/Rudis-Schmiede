@@ -2249,22 +2249,44 @@
             margin: 0;
         }
 
+        .berufe-parent-tab .berufe-nav-chevron {
+            margin-left: auto;
+            font-size: 1.2rem;
+            line-height: 1;
+            transition: transform 0.15s ease;
+        }
+
+        .berufe-parent-tab[aria-expanded="true"] .berufe-nav-chevron {
+            transform: rotate(90deg);
+        }
+
         .berufe-subtabs {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border-color);
+            flex-direction: column;
+            gap: 3px;
+            padding: 3px 0 6px 18px;
+            border-left: 1px solid var(--border-color);
+            margin-left: 20px;
+        }
+
+        .berufe-subtabs[hidden] {
+            display: none !important;
         }
 
         .berufe-subtab {
-            padding: 9px 14px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid transparent;
+            border-radius: 7px;
             background: var(--tab-inactive-bg);
             color: var(--text-muted);
             font: inherit;
+            font-size: 0.82rem;
             font-weight: 600;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
             cursor: pointer;
         }
 

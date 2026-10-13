@@ -15,6 +15,9 @@
             targetContent.classList.add('active');
             if (tabName === 'karte' && typeof loadMapTab === 'function') loadMapTab();
         }
+        if (typeof window.setBerufeNavigationExpanded === 'function') {
+            window.setBerufeNavigationExpanded(tabName === 'berufe');
+        }
 
         applyPermissionUI();
 

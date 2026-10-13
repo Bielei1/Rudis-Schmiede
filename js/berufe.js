@@ -53,6 +53,12 @@
         nav.querySelectorAll('[data-berufe-tab]').forEach(button => {
             button.classList.toggle('active', button.dataset.berufeTab === String(activeBerufeTabId));
         });
+        const parentButton = document.querySelector('.berufe-parent-tab');
+        if (parentButton) {
+            const expanded = document.getElementById('tab-berufe').classList.contains('active');
+            parentButton.setAttribute('aria-expanded', String(expanded));
+            nav.hidden = !expanded;
+        }
 
         const selectedTab = berufeTabs.find(tab => String(tab.id) === String(activeBerufeTabId));
         const isTemplate = activeBerufeTabId === templateTabId || !selectedTab;
@@ -64,10 +70,26 @@
             : 'Dieser Berufs-Untertab ist angelegt. Sein Inhalt wird später aus der Vorlage übernommen.';
     }
 
+    function setBerufeNavigationExpanded(expanded) {
+        const nav = document.getElementById('berufe-subtabs');
+        const parentButton = document.querySelector('.berufe-parent-tab');
+        if (nav) nav.hidden = !expanded;
+        if (parentButton) parentButton.setAttribute('aria-expanded', String(expanded));
+    }
+
     function selectBerufeTab(tabId) {
         const exists = tabId === templateTabId || berufeTabs.some(tab => String(tab.id) === String(tabId));
         if (!exists) return;
+        if (!document.getElementById('tab-berufe').classList.contains('active')) {
+            if (typeof window.switchTab === 'function') window.switchTab('berufe');
+        }
         activeBerufeTabId = tabId;
+        renderBerufeTabs();
+    }
+
+    function openBerufeNavigation() {
+        if (typeof window.switchTab === 'function') window.switchTab('berufe');
+        activeBerufeTabId = templateTabId;
         renderBerufeTabs();
     }
 
@@ -142,5 +164,7 @@
 
     window.loadBerufeTab = loadBerufeTab;
     window.selectBerufeTab = selectBerufeTab;
+    window.openBerufeNavigation = openBerufeNavigation;
+    window.setBerufeNavigationExpanded = setBerufeNavigationExpanded;
     window.createBerufeTab = createBerufeTab;
 })();
