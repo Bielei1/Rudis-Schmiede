@@ -257,6 +257,7 @@
         const grid = document.getElementById('dashboard-kpi-grid');
         const lowStockList = document.getElementById('dashboard-lowstock-list');
         if (!grid || !lowStockList) return;
+        const displayedCashbookBalance = document.getElementById('dashboard-cashbook-balance')?.textContent.trim();
 
         updateUnseenBadges();
 
@@ -320,7 +321,7 @@
             ${canViewTab('kassenbuch') ? `
             <button type="button" class="kpi-card cashbook-kpi-card" style="--kpi-accent: var(--success-color);" onclick="switchTab('kassenbuch')">
                 <div class="kpi-label">Kassenbuch</div>
-                <div class="kpi-value" id="dashboard-cashbook-balance">Lade ...</div>
+                <div class="kpi-value" id="dashboard-cashbook-balance">${displayedCashbookBalance || 'Lade ...'}</div>
                 <div class="kpi-sub">Aktueller Kassenstand · zum Kassenbuch</div>
             </button>` : ''}
         `;
