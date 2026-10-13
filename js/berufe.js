@@ -121,15 +121,6 @@
 
         if (activeBerufeTabId === null) {
             hideBerufeCraftingPanel();
-            const row = document.createElement('tr');
-            const cell = document.createElement('td');
-            cell.colSpan = 4;
-            cell.style.cssText = 'text-align: center; color: var(--text-muted); padding: 20px;';
-            cell.textContent = berufeTabs.length
-                ? 'Wähle oben den Ziel-Untertab aus, in dem das Rezept angezeigt werden soll.'
-                : 'Erstelle zuerst einen Berufs-Untertab, damit du Rezepte zuordnen kannst.';
-            row.appendChild(cell);
-            list.appendChild(row);
             return;
         }
 
