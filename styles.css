@@ -2361,10 +2361,6 @@
 
         .berufe-recipe-search {
             margin-bottom: 16px;
-            padding: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--card-bg);
         }
 
         .berufe-recipe-search label {
@@ -2376,6 +2372,12 @@
         .berufe-recipe-search input {
             width: 100%;
             min-height: 42px;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 7px;
+            background: var(--input-bg);
+            color: var(--text-color);
+            font: inherit;
         }
 
         #berufe-recipe-search-results {

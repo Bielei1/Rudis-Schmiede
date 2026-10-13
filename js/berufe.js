@@ -251,10 +251,9 @@
         try {
             await ensureBerufeSearchRecipesLoaded();
             if (input.value.trim().toLocaleLowerCase('de') !== query) return;
-            const matchingRecipes = allBerufeRecipes.filter(recipe => {
-                const ingredientNames = (recipe.ingredients || []).map(item => item.name).join(' ');
-                return `${recipe.output_name} ${ingredientNames}`.toLocaleLowerCase('de').includes(query);
-            });
+            const matchingRecipes = allBerufeRecipes.filter(recipe =>
+                recipe.output_name.toLocaleLowerCase('de').includes(query)
+            );
             if (!matchingRecipes.length) {
                 const empty = document.createElement('p');
                 empty.className = 'berufe-recipe-search-empty';
@@ -266,7 +265,7 @@
             const table = document.createElement('table');
             const header = document.createElement('thead');
             const headerRow = document.createElement('tr');
-            ['Rezept', 'Beruf', 'Zutaten', 'Aktion'].forEach(label => {
+            ['Endprodukt', 'Beruf', 'Aktion'].forEach(label => {
                 const heading = document.createElement('th');
                 heading.textContent = label;
                 headerRow.appendChild(heading);
@@ -283,19 +282,15 @@
                 recipeName.textContent = recipe.output_name;
                 const profession = document.createElement('td');
                 profession.textContent = tab.name;
-                const ingredients = document.createElement('td');
-                ingredients.textContent = (recipe.ingredients || [])
-                    .map(item => `${item.qty}x ${item.name}`)
-                    .join(', ') || 'Keine Zutaten';
                 const action = document.createElement('td');
                 const openButton = document.createElement('button');
                 openButton.type = 'button';
                 openButton.className = 'btn btn-secondary';
                 openButton.dataset.permissionView = 'true';
-                openButton.textContent = 'Untertab öffnen';
-                openButton.addEventListener('click', () => selectBerufeTab(String(tab.id)));
+                openButton.textContent = 'Infopanel anzeigen';
+                openButton.addEventListener('click', () => showBerufeCraftingPanel(recipe));
                 action.appendChild(openButton);
-                row.append(recipeName, profession, ingredients, action);
+                row.append(recipeName, profession, action);
                 body.appendChild(row);
             });
 
@@ -326,7 +321,10 @@
         const rawMaterials = {};
 
         function getRecipe(name) {
-            return berufeRecipes.find(item => item.output_name.toLowerCase() === name.toLowerCase());
+            return allBerufeRecipes.find(item =>
+                String(item.berufe_tab_id) === String(recipe.berufe_tab_id)
+                && item.output_name.toLowerCase() === name.toLowerCase()
+            );
         }
 
         function resolveMaterials(itemName, neededQty, currentPath = []) {
