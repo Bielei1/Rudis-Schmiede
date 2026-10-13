@@ -62,8 +62,21 @@
 
     async function loadCashbook() {
         const form = document.getElementById('cashbook-transaction-form');
-        const allowedToEdit = typeof window.canEditTab === 'function' && window.canEditTab('kassenbuch');
+        const canDeposit = typeof window.canCashbookTransaction === 'function' && window.canCashbookTransaction('deposit');
+        const canWithdraw = typeof window.canCashbookTransaction === 'function' && window.canCashbookTransaction('withdrawal');
+        const allowedToEdit = canDeposit || canWithdraw;
         if (form) form.hidden = !allowedToEdit;
+        const depositOption = document.querySelector('#cashbook-transaction-type option[value="deposit"]');
+        const withdrawOption = document.querySelector('#cashbook-transaction-type option[value="withdrawal"]');
+        if (depositOption) depositOption.disabled = !canDeposit;
+        if (withdrawOption) withdrawOption.disabled = !canWithdraw;
+        const typeInput = document.getElementById('cashbook-transaction-type');
+        if (typeInput && (
+            typeof window.canCashbookTransaction !== 'function'
+            || !window.canCashbookTransaction(typeInput.value)
+        )) {
+            typeInput.value = canDeposit ? 'deposit' : 'withdrawal';
+        }
         setStatus('Kassenbuch wird geladen ...', false);
 
         try {
@@ -108,6 +121,12 @@
         const amount = Number(amountInput.value);
         const description = descriptionInput.value.trim();
 
+        if (typeof window.canCashbookTransaction !== 'function' || !window.canCashbookTransaction(typeInput.value)) {
+            setStatus(typeInput.value === 'deposit'
+                ? 'Du hast keine Berechtigung zum Einzahlen.'
+                : 'Du hast keine Berechtigung zum Auszahlen.', true);
+            return;
+        }
         if (!Number.isFinite(amount) || amount <= 0 || amount > 9999999999.99) {
             setStatus('Bitte einen gültigen positiven Betrag eingeben.', true);
             return;

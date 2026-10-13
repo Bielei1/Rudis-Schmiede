@@ -113,6 +113,7 @@
     let appUsersList = [];    // nur für Admin geladen
     let editingPermissionUser = null;
     let editingPermissionDraft = null;
+    let editingCashbookPermissionDraft = null;
     let passwordResetStatusTimer = null;
 
     function showLoginForm() {
@@ -514,6 +515,10 @@
     function canViewTab(tabName) {
         if (!currentUser) return false;
         if (currentUser.isSystemAdmin || canSpecialAction('administrator_rechte')) return true;
+        if (tabName === 'kassenbuch') {
+            const permissions = currentUser.cashbookPermissions || {};
+            return !!(permissions.canView || permissions.canDeposit || permissions.canWithdraw);
+        }
         if (tabName === 'benutzer') {
             return canSpecialAction('benutzer_sperren') || canSpecialAction('benutzer_loeschen');
         }
@@ -526,9 +531,22 @@
     function canEditTab(tabName) {
         if (!currentUser) return false;
         if (currentUser.isSystemAdmin || canSpecialAction('administrator_rechte')) return true;
+        if (tabName === 'kassenbuch') {
+            const permissions = currentUser.cashbookPermissions || {};
+            return !!(permissions.canDeposit || permissions.canWithdraw);
+        }
         if (ADMIN_ONLY_TABS.has(tabName)) return false;
         const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
         return !!(p && p.edit);
+    }
+
+    function canCashbookTransaction(transactionType) {
+        if (!currentUser) return false;
+        if (currentUser.isSystemAdmin || canSpecialAction('administrator_rechte')) return true;
+        const permissions = currentUser.cashbookPermissions || {};
+        return transactionType === 'deposit'
+            ? !!permissions.canDeposit
+            : transactionType === 'withdrawal' && !!permissions.canWithdraw;
     }
 
     function canDeleteTab(tabName) {
@@ -553,6 +571,7 @@
 
     async function loadUserTabPermissions() {
         currentUser.tabPermissions = normalizeTabPermissions(null);
+        currentUser.cashbookPermissions = { canView: false, canDeposit: false, canWithdraw: false };
         if (!currentUser.id) return;
 
         try {
@@ -577,8 +596,25 @@
                     }
                 });
             }
+
+            const { data: cashbookPermission, error: cashbookError } = await supabaseClient
+                .from('cashbook_user_permissions')
+                .select('can_view, can_deposit, can_withdraw')
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
+            if (cashbookError) {
+                console.warn('Kassenbuch-Rechte konnten nicht geladen werden; Zugriff wird verweigert.', cashbookError.message);
+                return;
+            }
+            if (cashbookPermission) {
+                currentUser.cashbookPermissions = {
+                    canView: !!cashbookPermission.can_view,
+                    canDeposit: !!cashbookPermission.can_deposit,
+                    canWithdraw: !!cashbookPermission.can_withdraw
+                };
+            }
         } catch (e) {
-            console.warn('Tab-Rechte konnten nicht geladen werden.', e);
+            console.warn('Benutzerrechte konnten nicht vollständig geladen werden; Kassenbuchzugriff wird verweigert.', e);
         }
     }
 
@@ -700,17 +736,47 @@
 
         editingPermissionUser = user;
         editingPermissionDraft = normalizeTabPermissions(null);
+        editingCashbookPermissionDraft = { canView: false, canDeposit: false, canWithdraw: false };
 
-        loadPermissionsForAdminUser(user.id).then(perms => {
+        Promise.all([
+            loadPermissionsForAdminUser(user.id),
+            loadCashbookPermissionsForAdminUser(user.id)
+        ]).then(([perms, cashbookPermissions]) => {
             const normalized = Object.keys(perms).length
                 ? normalizeTabPermissions(perms)
                 : (user.is_admin ? getAdminTabPermissions() : normalizeTabPermissions(perms));
             normalized.special = normalizeSpecialPermissions(editingPermissionUser.special_permissions, !!editingPermissionUser.is_admin);
             editingPermissionUser.tabPermissions = normalized;
             editingPermissionDraft = normalized;
+            editingCashbookPermissionDraft = cashbookPermissions;
+            editingPermissionUser.cashbookPermissions = cashbookPermissions;
             renderPermissionModal();
             document.getElementById('permission-modal-backdrop').classList.add('open');
         });
+    }
+
+    async function loadCashbookPermissionsForAdminUser(userId) {
+        try {
+            const targetUser = appUsersList.find(user => String(user.id) === String(userId));
+            if (targetUser && (targetUser.is_admin || (targetUser.special_permissions && targetUser.special_permissions.administrator_rechte))) {
+                return { canView: true, canDeposit: true, canWithdraw: true };
+            }
+            const { data, error } = await supabaseClient
+                .from('cashbook_user_permissions')
+                .select('can_view, can_deposit, can_withdraw')
+                .eq('user_id', userId)
+                .maybeSingle();
+            if (error) throw error;
+            return {
+                canView: !!(data && data.can_view),
+                canDeposit: !!(data && data.can_deposit),
+                canWithdraw: !!(data && data.can_withdraw)
+            };
+        } catch (error) {
+            console.error('Kassenbuch-Rechte konnten nicht geladen werden:', error);
+            showToast('Kassenbuch-Rechte konnten nicht geladen werden. Bitte SQL-Setup prüfen.', 'danger');
+            return { canView: false, canDeposit: false, canWithdraw: false };
+        }
     }
 
     async function loadPermissionsForAdminUser(userId) {
@@ -744,10 +810,9 @@
         grid.innerHTML = '<div class="head">Tab</div><div class="head">Anschauen</div><div class="head">Bearbeiten</div><div class="head">Löschen</div>';
         renderSpecialPermissionModal();
 
-        TAB_DEFINITIONS.forEach(tab => {
+        TAB_DEFINITIONS.filter(tab => tab.key !== 'kassenbuch').forEach(tab => {
             const p = editingPermissionDraft[tab.key] || { view: false, edit: false, del: false };
             const supportsDelete = DELETE_PERMISSION_TABS.has(tab.key);
-            const editPermissionLabel = tab.key === 'kassenbuch' ? 'Ein-/Auszahlen' : 'Bearbeiten';
             grid.insertAdjacentHTML('beforeend', `
                 <div class="tab-name">${tab.label}</div>
                 <div>
@@ -757,7 +822,6 @@
                 <div>
                     <input type="checkbox" id="perm-edit-${tab.key}" ${p.edit ? 'checked' : ''}
                            onchange="syncPermissionCheckboxes('${tab.key}')">
-                    ${tab.key === 'kassenbuch' ? `<span class="permission-cell-caption">${editPermissionLabel}</span>` : ''}
                 </div>
                 <div>
                     ${supportsDelete ? `<input type="checkbox" id="perm-delete-${tab.key}" ${p.del ? 'checked' : ''}
@@ -765,6 +829,10 @@
                 </div>
             `);
         });
+        const cashbookPermissions = editingCashbookPermissionDraft || { canView: false, canDeposit: false, canWithdraw: false };
+        document.getElementById('perm-cashbook-view').checked = cashbookPermissions.canView;
+        document.getElementById('perm-cashbook-deposit').checked = cashbookPermissions.canDeposit;
+        document.getElementById('perm-cashbook-withdraw').checked = cashbookPermissions.canWithdraw;
     }
 
     function renderSpecialPermissionModal() {
@@ -802,11 +870,25 @@
         if (del.checked) view.checked = true;
     }
 
+    function syncCashbookPermissionCheckboxes() {
+        const view = document.getElementById('perm-cashbook-view');
+        const deposit = document.getElementById('perm-cashbook-deposit');
+        const withdraw = document.getElementById('perm-cashbook-withdraw');
+        if (!view || !deposit || !withdraw) return;
+        if (deposit.checked || withdraw.checked) {
+            view.checked = true;
+        } else if (!view.checked) {
+            deposit.checked = false;
+            withdraw.checked = false;
+        }
+    }
+
     function closePermissionModal() {
         const modal = document.getElementById('permission-modal-backdrop');
         if (modal) modal.classList.remove('open');
         editingPermissionUser = null;
         editingPermissionDraft = null;
+        editingCashbookPermissionDraft = null;
     }
 
     function closePermissionModalOnBackdrop(event) {
@@ -815,7 +897,7 @@
 
     function summarizePermissionChanges(previousPermissions, nextPermissions) {
         const changes = [];
-        TAB_DEFINITIONS.forEach(tab => {
+        TAB_DEFINITIONS.filter(tab => tab.key !== 'kassenbuch').forEach(tab => {
             const oldp = previousPermissions && previousPermissions[tab.key]
                 ? previousPermissions[tab.key]
                 : { view: false, edit: false, del: false };
@@ -857,6 +939,13 @@
             ? JSON.parse(JSON.stringify(editingPermissionUser.tabPermissions))
             : normalizeTabPermissions(await loadPermissionsForAdminUser(permissionUserId));
 
+        const cashbookPermissions = {
+            canView: !!document.getElementById('perm-cashbook-view').checked,
+            canDeposit: !!document.getElementById('perm-cashbook-deposit').checked,
+            canWithdraw: !!document.getElementById('perm-cashbook-withdraw').checked
+        };
+        cashbookPermissions.canView = cashbookPermissions.canView || cashbookPermissions.canDeposit || cashbookPermissions.canWithdraw;
+
         const permissions = {};
         TAB_DEFINITIONS.forEach(tab => {
             const view = document.getElementById(`perm-view-${tab.key}`);
@@ -869,6 +958,11 @@
             };
             if (permissions[tab.key].edit || permissions[tab.key].del) permissions[tab.key].view = true;
         });
+        permissions.kassenbuch = {
+            view: cashbookPermissions.canView,
+            edit: cashbookPermissions.canDeposit || cashbookPermissions.canWithdraw,
+            del: false
+        };
 
         permissions.special = collectSpecialPermissions();
 
@@ -892,6 +986,14 @@
                 .insert(rows);
             if (insertError) throw insertError;
 
+            const { error: cashbookPermissionError } = await supabaseClient.rpc('cashbook_set_user_permissions', {
+                p_user_id: permissionUserId,
+                p_can_view: cashbookPermissions.canView,
+                p_can_deposit: cashbookPermissions.canDeposit,
+                p_can_withdraw: cashbookPermissions.canWithdraw
+            });
+            if (cashbookPermissionError) throw cashbookPermissionError;
+
             const isAdmin = !!permissions.special.administrator_rechte;
             const { error: userError } = await supabaseClient
                 .from('app_users')
@@ -900,6 +1002,14 @@
             if (userError) throw userError;
 
             const changedTabSummary = summarizePermissionChanges(previousPermissions, permissions);
+            const previousCashbookPermissions = editingPermissionUser.cashbookPermissions || { canView: false, canDeposit: false, canWithdraw: false };
+            const cashbookChanges = [
+                ['canView', 'Kassenbuch ansehen'],
+                ['canDeposit', 'Einzahlen'],
+                ['canWithdraw', 'Auszahlen']
+            ].filter(([key]) => !!previousCashbookPermissions[key] !== !!cashbookPermissions[key])
+                .map(([key, label]) => `${label}: ${cashbookPermissions[key] ? 'hinzugefügt' : 'entfernt'}`);
+            if (cashbookChanges.length) changedTabSummary.push(`Kassenbuch: ${cashbookChanges.join(', ')}`);
             const specialChanges = SPECIAL_PERMISSION_DEFINITIONS.map(item => {
                 const oldValue = !!(previousPermissions.special && previousPermissions.special[item.key]);
                 const newValue = !!(permissions.special && permissions.special[item.key]);
@@ -913,6 +1023,7 @@
                 editingPermissionUser.is_admin = isAdmin;
                 editingPermissionUser.special_permissions = permissions.special;
                 editingPermissionUser.specialPermissions = permissions.special;
+                editingPermissionUser.cashbookPermissions = cashbookPermissions;
             }
             if (typeof broadcastPermissionsUpdated === 'function') {
                 try {
@@ -927,6 +1038,7 @@
             if (typeof broadcastDataChange === 'function') {
                 await broadcastDataChange('app_user_tab_permissions');
                 await broadcastDataChange('app_users');
+                await broadcastDataChange('cashbook_user_permissions');
             }
             try {
                 await logActivity('Benutzerverwaltung', detailText);

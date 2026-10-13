@@ -163,9 +163,18 @@
             <div class="permission-grid" id="permission-grid">
                 <div class="head">Tab</div><div class="head">Anschauen</div><div class="head">Bearbeiten</div><div class="head">Löschen</div>
             </div>
+            <section class="cashbook-permission-section" aria-labelledby="cashbook-permission-title">
+                <h3 id="cashbook-permission-title">Kassenbuch-Rechte</h3>
+                <div class="cashbook-permission-options">
+                    <label><input type="checkbox" id="perm-cashbook-view" onchange="syncCashbookPermissionCheckboxes()"> Kassenbuch ansehen</label>
+                    <label><input type="checkbox" id="perm-cashbook-deposit" onchange="syncCashbookPermissionCheckboxes()"> Einzahlen</label>
+                    <label><input type="checkbox" id="perm-cashbook-withdraw" onchange="syncCashbookPermissionCheckboxes()"> Auszahlen</label>
+                </div>
+            </section>
             <div class="permission-help">
                 <b>Anschauen</b> = Tab sichtbar und lesbar. &nbsp; <b>Bearbeiten</b> = Änderungen und neue Einträge. &nbsp; <b>Löschen</b> = eigene Löschaktionen in diesem Tab.
                 „Bearbeiten“ aktiviert automatisch „Anschauen“. Löschrechte sind unabhängig von Bearbeitungsrechten.
+                Für das Kassenbuch gelten stattdessen die drei getrennten Rechte oben.
             </div>
             <div class="permission-special-box">
                 <div class="permission-special-title">Sonderrechte</div>
@@ -1408,7 +1417,7 @@
 </div>
 
 <script src="js/config.js?v=20260826-3"></script>
-<script src="js/auth.js?v=20261013-2"></script>
+<script src="js/auth.js?v=20261013-3"></script>
 <script src="js/presence.js?v=20260826-6"></script>
 <script src="js/ui-helpers.js"></script>
 <script src="js/log.js"></script>
@@ -1429,6 +1438,6 @@
 <script src="js/erweiterte-funktionen.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/karte.js?v=20261013-27"></script>
-<script src="js/kassenbuch.js?v=20261013-1"></script>
+<script src="js/kassenbuch.js?v=20261013-2"></script>
 </body>
 </html>

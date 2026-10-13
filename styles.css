@@ -2831,6 +2831,33 @@
             cursor: pointer;
         }
         .permission-grid .disabled-row { opacity: .45; }
+        .cashbook-permission-section {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--card-bg);
+        }
+        .cashbook-permission-section h3 {
+            margin: 0 0 12px;
+            font-size: 0.95rem;
+        }
+        .cashbook-permission-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 24px;
+        }
+        .cashbook-permission-options label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .cashbook-permission-options input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color);
+        }
         .permission-modal-actions {
             display: flex;
             justify-content: flex-end;
