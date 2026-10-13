@@ -405,7 +405,7 @@
                     <span><span class="map-category-icon" style="--map-marker-color:${getCategoryConfig(marker.category).color}">${getCategoryConfig(marker.category).icon}</span>${escapeHtml(marker.category || 'Sonstiges')}</span>
                     ${marker.notes ? `<small>${escapeHtml(marker.notes)}</small>` : ''}
                 </button>
-                ${String(marker.created_by) === String(currentUser?.id) && canDeleteTab('karte')
+                ${(currentUser?.isAdmin || (String(marker.created_by) === String(currentUser?.id) && canDeleteTab('karte')))
                     ? `<button type="button" class="map-place-delete" data-map-delete-id="${Number(marker.id)}" aria-label="Markierung löschen">×</button>`
                     : ''}
             </article>
@@ -460,12 +460,12 @@
     }
 
     async function deleteMapMarker(markerId) {
-        if (!canDeleteTab('karte')) {
+        if (!currentUser || (!currentUser.isAdmin && !canDeleteTab('karte'))) {
             showToast('Du hast keine Löschrechte für Kartenmarkierungen.', 'danger');
             return;
         }
         const marker = markers.find(item => String(item.id) === String(markerId));
-        if (!marker || String(marker.created_by) !== String(currentUser.id)) return;
+        if (!marker || (!currentUser.isAdmin && String(marker.created_by) !== String(currentUser.id))) return;
         if (!await customConfirm(`Markierung „${marker.title}“ löschen?`)) return;
         const { error } = await supabaseClient.from('map_markers').delete().eq('id', marker.id);
         if (error) {
