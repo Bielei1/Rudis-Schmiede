@@ -2,7 +2,7 @@
     const MAP_BUCKET = 'shared-family-map';
     const MAP_IMAGE_PATH = 'background-v2';
     const LEGACY_MAP_IMAGE_PATH = 'background';
-    const DEFAULT_MAP_IMAGE_URL = './map-default.jpg';
+    const DEFAULT_MAP_IMAGE_URL = './map-default.jpg?v=20261013-2';
     const DEFAULT_MAP_IMAGE_KEY = 'project-default';
     const MAX_MAP_IMAGE_BYTES = 25 * 1024 * 1024;
     const ALLOWED_MAP_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
