@@ -25,6 +25,7 @@
         const description = document.getElementById('berufe-panel-description');
         const panel = document.getElementById('berufe-panel');
         const recipeCreateArea = document.getElementById('berufe-recipe-create-area');
+        const recipesTableArea = document.getElementById('berufe-recipes-table-area');
         if (!nav || !title || !description || !panel) return;
 
         const selectedTab = berufeTabs.find(tab => String(tab.id) === String(activeBerufeTabId));
@@ -89,6 +90,7 @@
         if (recipeCreateArea) {
             recipeCreateArea.hidden = !isTemplate || !canEditBerufe();
         }
+        if (recipesTableArea) recipesTableArea.hidden = isTemplate;
         updateRecipeDestinationOptions();
         renderBerufeRecipes();
     }

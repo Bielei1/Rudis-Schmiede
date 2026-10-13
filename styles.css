@@ -2360,7 +2360,15 @@
         }
 
         .berufe-recipe-search {
-            margin-bottom: 16px;
+            margin-bottom: 0;
+        }
+
+        .berufe-recipe-search h3 {
+            margin: 0 0 14px;
+        }
+
+        #berufe-recipes-table-area[hidden] {
+            display: none !important;
         }
 
         .berufe-recipe-search label {
