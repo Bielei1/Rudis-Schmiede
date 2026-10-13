@@ -227,7 +227,7 @@
     const LIVE_SYNC_TABLES = [
         'inventory', 'orders', 'archive', 'customer_prices', 'sales_prices',
         'purchase_prices', 'recipes', 'notes', 'members', 'app_users',
-        'app_user_tab_permissions', 'password_reset_requests', 'activity_log'
+        'app_user_tab_permissions', 'password_reset_requests', 'activity_log', 'contacts'
     ];
     let liveSyncChannel = null;
     let liveSyncDebounceTimer = null;
@@ -329,6 +329,13 @@
         clearTimeout(liveSyncDebounceTimer);
         liveSyncDebounceTimer = setTimeout(async () => {
             try {
+                if (table === 'contacts') {
+                    if (currentUser && canViewTab('kontakte') && typeof loadContacts === 'function') {
+                        await loadContacts();
+                    }
+                    updateLiveSyncStatus(`Live · ${new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`);
+                    return;
+                }
                 const refreshed = await runLiveDataRefresh();
                 if (!refreshed) return;
                 if (table === 'app_users' && currentUser && currentUser.isAdmin) {
@@ -385,6 +392,7 @@
                     updateTabVisibility();
                     applyPermissionUI();
                     ensureAllowedTabSelected();
+                    if (typeof renderContacts === 'function') renderContacts();
                 }
                 if (table === 'password_reset_requests' && currentUser && currentUser.isAdmin) {
                     await loadPasswordResetRequests();

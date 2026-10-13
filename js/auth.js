@@ -68,6 +68,7 @@
         { key: 'herstellungskosten', label: 'Herstellungskosten' },
         { key: 'archiv', label: 'Bestellung Archiv' },
         { key: 'notizen', label: 'Notizen' },
+        { key: 'kontakte', label: 'Kontakte' },
         { key: 'mitglieder', label: 'Mitglieder' },
         { key: 'berufe', label: 'Berufe' },
         { key: 'karte', label: 'Karte' },
@@ -77,7 +78,7 @@
     // Diese Rechte sind bewusst unabhängig von „Bearbeiten“.
     const DELETE_PERMISSION_TABS = new Set([
         'lagerbestand', 'bestellungen', 'archiv', 'kunden',
-        'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen', 'karte'
+        'verkaufspreise', 'einkaufspreise', 'herstellung', 'notizen', 'kontakte', 'karte'
     ]);
     const ADMIN_ONLY_TABS = new Set(['log', 'benutzer', 'avatarlogs']);
 

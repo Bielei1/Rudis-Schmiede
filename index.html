@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=20261013-chat-fix-1">
+    <link rel="stylesheet" href="styles.css?v=20261014-kontakte-1">
 </head>
 <body>
 
@@ -394,6 +394,10 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3h9L19 6.5V20a1 1 0 01-1 1h-11a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M15.5 3v3.5H19"/><path d="M9 11.5h6M9 15h4"/></svg>
                 <span>Notizen</span>
                 <!-- <span class="nav-badge" id="notizen-badge">0</span> -->
+            </button>
+            <button class="tab-btn" draggable="true" data-tab="kontakte" onclick="switchTab('kontakte')">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.2 2.5-5.5 6-5.5s6 2.3 6 5.5"/><path d="M17 8h4M19 6v4M17 15h4M17 19h4"/></svg>
+                <span>Kontakte</span>
             </button>
             <button class="tab-btn" draggable="true" data-tab="mitglieder" onclick="switchTab('mitglieder')">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20c0-3.3 2.9-5.8 6.5-5.8s6.5 2.5 6.5 5.8"/><path d="M17 8a2.6 2.6 0 110-5"/><path d="M20 20c0-2.4-1.7-4.4-4-5.2"/></svg>
@@ -1197,6 +1201,61 @@
         </div>
     </div>
 
+    <!-- TAB: KONTAKTE -->
+    <div id="tab-kontakte" class="tab-content">
+        <h2 style="margin-bottom: 8px;">Kontakte</h2>
+        <p style="color: var(--text-muted); margin-bottom: 18px;">Gemeinsame Kontaktliste für alle freigeschalteten Benutzer.</p>
+        <details id="contact-form-details">
+            <summary id="contact-form-summary">+ Kontakt hinzufügen</summary>
+            <div class="add-card" style="margin-top: 10px; margin-bottom: 0;">
+                <h2 id="contact-form-title">+ Kontakt hinzufügen</h2>
+                <form id="contact-form" onsubmit="saveContact(event)">
+                    <input type="hidden" id="contact-edit-id" value="">
+                    <div class="form-group">
+                        <label for="contact-first-name">Vorname</label>
+                        <input id="contact-first-name" type="text" maxlength="80" required autocomplete="given-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="contact-last-name">Nachname</label>
+                        <input id="contact-last-name" type="text" maxlength="80" required autocomplete="family-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="contact-nickname">Spitzname</label>
+                        <input id="contact-nickname" type="text" maxlength="80">
+                    </div>
+                    <div class="form-group">
+                        <label for="contact-telegram">Telegram-Nummer</label>
+                        <input id="contact-telegram" type="tel" maxlength="80" autocomplete="tel" placeholder="+49 …">
+                    </div>
+                    <div class="form-group" style="flex: 100%;">
+                        <label for="contact-notes">Notiz</label>
+                        <textarea id="contact-notes" maxlength="5000" rows="3"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="submit" class="btn btn-success" id="contact-submit-btn">Kontakt speichern</button>
+                        <button type="button" class="btn btn-secondary" id="contact-cancel-btn" onclick="cancelContactEdit()" hidden>Abbrechen</button>
+                    </div>
+                </form>
+            </div>
+        </details>
+        <div class="table-container-scrollable" style="margin-top: 22px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Spitzname</th>
+                        <th>Telegram-Nummer</th>
+                        <th>Notiz</th>
+                        <th>Aktion</th>
+                    </tr>
+                </thead>
+                <tbody id="contacts-table-body">
+                    <tr><td colspan="5" style="color: var(--text-muted);">Kontakte werden geladen …</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- TAB: MITGLIEDER -->
     <div id="tab-mitglieder" class="tab-content">
         <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">Zeigt automatisch alle bestehenden Benutzer-Logins. Rang und Notiz kannst du hier bearbeiten. Das Beitrittsdatum wird beim Anlegen des Benutzers automatisch gesetzt.</p>
@@ -1511,8 +1570,8 @@
 </div>
 
 <script src="js/config.js?v=20260826-3"></script>
-<script src="js/auth.js?v=20261013-8"></script>
-<script src="js/presence.js?v=20261013-presence-payload-1"></script>
+<script src="js/auth.js?v=20261014-kontakte-1"></script>
+<script src="js/presence.js?v=20261014-kontakte-1"></script>
 <script src="js/ui-helpers.js"></script>
 <script src="js/log.js"></script>
 <script src="js/tabs-dashboard.js"></script>
@@ -1526,6 +1585,7 @@
 <script src="js/einkaufsliste.js"></script>
 <script src="js/herstellung.js"></script>
 <script src="js/notizen.js"></script>
+<script src="js/kontakte.js?v=20261014-1"></script>
 <script src="js/mitglieder.js"></script>
 <script src="js/profile.js?v=20261013-presence-payload-1"></script>
 <script src="js/main.js"></script>

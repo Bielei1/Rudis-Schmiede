@@ -68,6 +68,8 @@
             renderNotes();
             markAllSeen(LS_KEY_NOTES, notesList);
             updateUnseenBadges();
+        } else if (tabName === 'kontakte') {
+            if (typeof loadContacts === 'function') loadContacts();
         }
     }
 
