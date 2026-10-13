@@ -87,6 +87,7 @@
             return false;
         }
     }
+    window.logActivity = logActivity;
 
     function categorySlug(cat) {
         return String(cat).toLowerCase()

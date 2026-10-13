@@ -114,17 +114,43 @@
         if (typeof window.customConfirm !== 'function' || !await window.customConfirm('Möchtest du diese Kassenbuch-Buchung wirklich löschen?')) return;
 
         try {
-            const { error } = await window.supabaseClient.rpc('cashbook_delete_entry', {
+            const { data: entry, error: entryError } = await window.supabaseClient
+                .from('cashbook_entries')
+                .select('transaction_type, amount, description, created_by_username, created_at')
+                .eq('id', entryId)
+                .maybeSingle();
+            if (entryError) throw entryError;
+            if (!entry) {
+                setStatus('Die Buchung wurde nicht gefunden oder bereits gelöscht.', true);
+                return;
+            }
+
+            const { data: deleted, error } = await window.supabaseClient.rpc('cashbook_delete_entry', {
                 p_entry_id: entryId
             });
             if (error) throw error;
+            if (!deleted) {
+                setStatus('Die Buchung wurde nicht gefunden oder bereits gelöscht.', true);
+                return;
+            }
             await loadCashbook();
             if (typeof window.loadCashbookDashboardBalance === 'function') await window.loadCashbookDashboardBalance();
-            if (typeof window.showToast === 'function') window.showToast('Buchung wurde gelöscht.', 'success');
+
+            const transactionLabel = entry.transaction_type === 'deposit' ? 'Einzahlung' : 'Auszahlung';
+            const amount = Number(entry.amount);
+            const logged = await window.logActivity(
+                'Kassenbuch',
+                `${transactionLabel} aus dem Kassenbuch gelöscht`,
+                `Aktion: Einzelne Buchung gelöscht\nBuchung: ${transactionLabel}\nBetrag: ${currencyFormatter.format(amount)}\nVerwendungszweck: ${entry.description}\nGebucht von: ${entry.created_by_username || 'Unbekannt'}\nBuchungsdatum: ${dateFormatter.format(new Date(entry.created_at))}`
+            );
+            if (!logged) throw new Error('Buchung wurde gelöscht, aber der Vorgang konnte nicht im Änderungsprotokoll gespeichert werden.');
         } catch (error) {
             console.error('Kassenbuch-Buchung konnte nicht gelöscht werden:', error);
-            setStatus('Buchung konnte nicht gelöscht werden.', true);
-            if (typeof window.showToast === 'function') window.showToast('Buchung konnte nicht gelöscht werden.', 'danger');
+            const message = error && error.message
+                ? `Buchung wurde gelöscht, aber das Protokollieren ist fehlgeschlagen: ${error.message}`
+                : 'Buchung konnte nicht gelöscht werden.';
+            setStatus(message, true);
+            if (typeof window.showToast === 'function') window.showToast(message, 'danger');
         }
     }
 
@@ -137,20 +163,40 @@
 
         const button = document.getElementById('cashbook-clear-history');
         if (button) button.disabled = true;
+        let historyCleared = false;
         try {
+            const { data: existingEntries, error: entriesError } = await window.supabaseClient
+                .from('cashbook_entries')
+                .select('transaction_type, amount');
+            if (entriesError) throw entriesError;
+            const previousBalance = formatBalance(existingEntries || []);
             const { data, error } = await window.supabaseClient.rpc('cashbook_clear_history');
             if (error) throw error;
+            historyCleared = true;
+            const deletedCount = Number(data) || 0;
             await loadCashbook();
             if (typeof window.loadCashbookDashboardBalance === 'function') await window.loadCashbookDashboardBalance();
-            const deletedCount = Number(data) || 0;
-            if (typeof window.showToast === 'function') {
+
+            if (deletedCount > 0) {
+                const logged = await window.logActivity(
+                    'Kassenbuch',
+                    'Buchungsverlauf des Kassenbuchs geleert',
+                    `Aktion: Gesamten Buchungsverlauf geleert\nGelöschte Buchungen: ${deletedCount}\nKassenstand vor dem Leeren: ${currencyFormatter.format(previousBalance)}`
+                );
+                if (!logged) throw new Error('Verlauf wurde geleert, aber der Vorgang konnte nicht im Änderungsprotokoll gespeichert werden.');
+            }
+            if (deletedCount === 0 && typeof window.showToast === 'function') {
+                window.showToast('Der Buchungsverlauf war bereits leer.', 'success');
+            } else if (deletedCount > 0 && typeof window.showToast === 'function') {
                 window.showToast(`${deletedCount} Buchung${deletedCount === 1 ? '' : 'en'} gelöscht.`, 'success');
             }
         } catch (error) {
             console.error('Kassenbuch-Verlauf konnte nicht geleert werden:', error);
             const message = error && error.message
-                ? `Der Buchungsverlauf konnte nicht geleert werden: ${error.message}`
-                : 'Der Buchungsverlauf konnte nicht geleert werden.';
+                ? `${historyCleared ? 'Der Verlauf wurde geleert, aber' : 'Der Buchungsverlauf konnte nicht geleert werden:'} ${error.message}`
+                : historyCleared
+                    ? 'Der Verlauf wurde geleert, aber der Vorgang konnte nicht vollständig protokolliert werden.'
+                    : 'Der Buchungsverlauf konnte nicht geleert werden.';
             setStatus(message, true);
             if (typeof window.showToast === 'function') window.showToast(message, 'danger');
         } finally {

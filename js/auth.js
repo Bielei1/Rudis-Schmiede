@@ -556,6 +556,8 @@
             || canSpecialAction('administrator_rechte')
         ));
     }
+    window.canCashbookDelete = canCashbookDelete;
+    window.canCashbookTransaction = canCashbookTransaction;
 
     function canDeleteTab(tabName) {
         if (!currentUser) return false;
