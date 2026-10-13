@@ -26,6 +26,8 @@
     let cachedSignedMapUrl = null;
     let cachedSignedUrlExpiresAt = 0;
     let mapLoadInProgress = false;
+    let mapDataLoadedAt = 0;
+    let mapDataLoadedForUser = null;
     let pendingWheelZoom = 0;
     let pendingWheelAnchor = null;
     let wheelZoomFrame = 0;
@@ -36,8 +38,10 @@
         return document.getElementById(id);
     }
 
-    async function loadMapTab() {
+    async function loadMapTab(forceRefresh = false) {
         if (!currentUser || !supabaseClient || mapLoadInProgress) return;
+        if (!forceRefresh && mapDataLoadedForUser === currentUser.id
+            && mapDataLoadedAt && Date.now() - mapDataLoadedAt < 30000) return;
         mapLoadInProgress = true;
         const status = getElement('map-status');
         if (status) status.textContent = 'Lade gemeinsame Karte ...';
@@ -101,6 +105,8 @@
             renderMapCategoryControls();
             if (status) status.textContent = `${markers.length} gemeinsame Markierung${markers.length === 1 ? '' : 'en'}`;
             renderMapMarkers();
+            mapDataLoadedAt = Date.now();
+            mapDataLoadedForUser = currentUser.id;
         } catch (error) {
             if (status) status.textContent = 'Karte konnte nicht geladen werden.';
             console.error('Karte konnte nicht geladen werden:', error);
@@ -209,7 +215,7 @@
         input.value = '';
         if (status) status.textContent = `${markers.length} gemeinsame Markierung${markers.length === 1 ? '' : 'en'}`;
         showToast('Das gemeinsame Kartenbild wurde aktualisiert.', 'success');
-        await loadMapTab();
+        await loadMapTab(true);
     }
 
     function toggleMapAddMode() {
@@ -270,7 +276,7 @@
         }
 
         closeMapMarkerModal();
-        await loadMapTab();
+        await loadMapTab(true);
         showToast('Ort wurde auf der gemeinsamen Karte markiert.', 'success');
     }
 
@@ -466,7 +472,7 @@
             showToast('Markierung konnte nicht gelöscht werden: ' + error.message, 'danger');
             return;
         }
-        await loadMapTab();
+        await loadMapTab(true);
         showToast('Markierung wurde gelöscht.', 'success');
     }
 
