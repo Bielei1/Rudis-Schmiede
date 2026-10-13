@@ -515,8 +515,22 @@
 
     <div id="tab-berufe" class="tab-content">
         <h2 style="margin-bottom: 18px;">Berufe</h2>
-        <div class="dashboard-empty">
-            Der Bereich für Berufe ist vorbereitet. Die Funktionen können später ergänzt werden.
+        <div class="berufe-workspace">
+            <form id="berufe-create-form" class="berufe-create-form" onsubmit="createBerufeTab(event)" hidden>
+                <div class="form-group">
+                    <label for="berufe-new-tab-name">Neuen Untertab erstellen</label>
+                    <input id="berufe-new-tab-name" type="text" maxlength="50" placeholder="Name des Berufs" autocomplete="off" required>
+                </div>
+                <button type="submit" id="berufe-create-button" class="btn btn-success">Untertab hinzufügen</button>
+            </form>
+            <div id="berufe-status" class="map-status" role="status" hidden></div>
+            <nav id="berufe-subtabs" class="berufe-subtabs" role="tablist" aria-label="Berufe">
+                <button type="button" id="berufe-template-tab" class="berufe-subtab active" role="tab" aria-selected="true" aria-controls="berufe-panel" onclick="selectBerufeTab('template')">Vorlage</button>
+            </nav>
+            <section id="berufe-panel" class="berufe-panel" role="tabpanel" aria-labelledby="berufe-template-tab">
+                <h3 id="berufe-panel-title">Vorlage</h3>
+                <p id="berufe-panel-description">Die Vorlage ist vorbereitet. Ihr Inhalt wird später ergänzt.</p>
+            </section>
         </div>
     </div>
 
@@ -1432,7 +1446,7 @@
 </div>
 
 <script src="js/config.js?v=20260826-3"></script>
-<script src="js/auth.js?v=20261013-6"></script>
+<script src="js/auth.js?v=20261013-7"></script>
 <script src="js/presence.js?v=20260826-6"></script>
 <script src="js/ui-helpers.js"></script>
 <script src="js/log.js"></script>
@@ -1454,5 +1468,6 @@
 <script src="js/chat.js"></script>
 <script src="js/karte.js?v=20261013-27"></script>
 <script src="js/kassenbuch.js?v=20261013-8"></script>
+<script src="js/berufe.js?v=20261013-1"></script>
 </body>
 </html>

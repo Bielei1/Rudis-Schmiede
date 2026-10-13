@@ -22,6 +22,8 @@
             renderDashboard();
         } else if (tabName === 'kassenbuch') {
             if (typeof loadCashbook === 'function') loadCashbook();
+        } else if (tabName === 'berufe') {
+            if (typeof loadBerufeTab === 'function') loadBerufeTab();
         } else if (tabName === 'log') {
             renderActivityLog();
         } else if (tabName === 'benutzer') {

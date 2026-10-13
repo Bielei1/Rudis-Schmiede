@@ -2228,6 +2228,75 @@
             background: var(--danger-color);
         }
 
+        .berufe-workspace {
+            display: grid;
+            gap: 16px;
+        }
+
+        .berufe-create-form {
+            display: flex;
+            align-items: end;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--card-bg);
+        }
+
+        .berufe-create-form .form-group {
+            flex: 1 1 240px;
+            margin: 0;
+        }
+
+        .berufe-subtabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .berufe-subtab {
+            padding: 9px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--tab-inactive-bg);
+            color: var(--text-muted);
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .berufe-subtab:hover,
+        .berufe-subtab.active {
+            border-color: var(--primary-color);
+            background: var(--primary-soft);
+            color: var(--primary-bright);
+        }
+
+        .berufe-panel {
+            min-height: 180px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--card-bg);
+        }
+
+        .berufe-panel h3 {
+            margin: 0 0 10px;
+        }
+
+        .berufe-panel p {
+            margin: 0;
+            color: var(--text-muted);
+        }
+
+        #berufe-create-form[hidden],
+        #berufe-status[hidden] {
+            display: none !important;
+        }
+
         #cashbook-clear-history[hidden],
         #cashbook-actions-header[hidden] {
             display: none !important;

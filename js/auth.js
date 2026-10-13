@@ -559,6 +559,7 @@
     }
     window.canCashbookDelete = canCashbookDelete;
     window.canCashbookTransaction = canCashbookTransaction;
+    window.canManageBerufe = canCashbookDelete;
 
     function canDeleteTab(tabName) {
         if (!currentUser) return false;
