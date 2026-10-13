@@ -40,22 +40,14 @@
         if (status) status.textContent = 'Lade gemeinsame Karte ...';
 
         try {
-            const [markerResult, settingsResult] = await Promise.all([
-                supabaseClient.from('map_markers')
-                    .select('id, title, category, notes, x, y, created_by, created_at')
-                    .order('created_at', { ascending: false }),
-                supabaseClient.from('map_settings')
-                    .select('image_path')
-                    .eq('id', 1)
-                    .maybeSingle()
-            ]);
+            const markerPromise = supabaseClient.from('map_markers')
+                .select('id, title, category, notes, x, y, created_by, created_at')
+                .order('created_at', { ascending: false });
+            const settingsResult = await supabaseClient.from('map_settings')
+                .select('image_path')
+                .eq('id', 1)
+                .maybeSingle();
 
-            if (markerResult.error) {
-                if (status) status.textContent = 'Kartendatenbank fehlt oder ist nicht erreichbar. Bitte zuerst das Karten-SQL einrichten.';
-                console.error('Kartenmarkierungen konnten nicht geladen werden:', markerResult.error.message);
-                showToast('Kartenmarkierungen konnten nicht geladen werden: ' + markerResult.error.message, 'danger');
-                return;
-            }
             if (settingsResult.error) {
                 if (status) status.textContent = 'Karteneinstellungen konnten nicht geladen werden.';
                 console.error('Karteneinstellungen konnten nicht geladen werden:', settingsResult.error.message);
@@ -63,33 +55,43 @@
                 return;
             }
 
-            markers = markerResult.data || [];
-            renderMapCategoryControls();
-            if (status) status.textContent = `${markers.length} gemeinsame Markierung${markers.length === 1 ? '' : 'en'}`;
-            renderMapMarkers();
-
             const imagePath = settingsResult.data && settingsResult.data.image_path;
             if (!imagePath) {
                 cachedMapImagePath = null;
                 showEmptyMap();
+            } else {
+                const image = getElement('map-background-image');
+                const imageAlreadyLoaded = imagePath === cachedMapImagePath
+                    && image && image.complete && image.naturalWidth > 0;
+
+                if (!imageAlreadyLoaded) {
+                    if (imagePath !== cachedMapImagePath || !cachedSignedMapUrl || Date.now() >= cachedSignedUrlExpiresAt) {
+                        const { data, error } = await supabaseClient.storage.from(MAP_BUCKET).createSignedUrl(imagePath, 3600);
+                        if (error) {
+                            showEmptyMap();
+                            showToast('Kartenbild konnte nicht geladen werden: ' + error.message, 'danger');
+                        } else {
+                            cachedMapImagePath = imagePath;
+                            cachedSignedMapUrl = data.signedUrl;
+                            cachedSignedUrlExpiresAt = Date.now() + 55 * 60 * 1000;
+                        }
+                    }
+                    if (cachedSignedMapUrl) displayMapImage(cachedSignedMapUrl, imagePath);
+                }
+            }
+
+            const markerResult = await markerPromise;
+            if (markerResult.error) {
+                if (status) status.textContent = 'Kartendatenbank fehlt oder ist nicht erreichbar. Bitte zuerst das Karten-SQL einrichten.';
+                console.error('Kartenmarkierungen konnten nicht geladen werden:', markerResult.error.message);
+                showToast('Kartenmarkierungen konnten nicht geladen werden: ' + markerResult.error.message, 'danger');
                 return;
             }
 
-            const image = getElement('map-background-image');
-            if (imagePath === cachedMapImagePath && image && image.complete && image.naturalWidth > 0) return;
-
-            if (imagePath !== cachedMapImagePath || !cachedSignedMapUrl || Date.now() >= cachedSignedUrlExpiresAt) {
-                const { data, error } = await supabaseClient.storage.from(MAP_BUCKET).createSignedUrl(imagePath, 3600);
-                if (error) {
-                    showEmptyMap();
-                    showToast('Kartenbild konnte nicht geladen werden: ' + error.message, 'danger');
-                    return;
-                }
-                cachedMapImagePath = imagePath;
-                cachedSignedMapUrl = data.signedUrl;
-                cachedSignedUrlExpiresAt = Date.now() + 55 * 60 * 1000;
-            }
-            displayMapImage(cachedSignedMapUrl, imagePath);
+            markers = markerResult.data || [];
+            renderMapCategoryControls();
+            if (status) status.textContent = `${markers.length} gemeinsame Markierung${markers.length === 1 ? '' : 'en'}`;
+            renderMapMarkers();
         } catch (error) {
             if (status) status.textContent = 'Karte konnte nicht geladen werden.';
             console.error('Karte konnte nicht geladen werden:', error);
@@ -147,8 +149,8 @@
         const input = event.target;
         const file = input.files && input.files[0];
         if (!file) return;
-        if (!canEditTab('karte')) {
-            showToast('Du hast keine Bearbeitungsrechte für die Karte.', 'danger');
+        if (!currentUser || !currentUser.isAdmin) {
+            showToast('Nur Administratoren dürfen das Kartenbild ändern oder hochladen.', 'danger');
             input.value = '';
             return;
         }

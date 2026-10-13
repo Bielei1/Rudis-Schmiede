@@ -1076,7 +1076,7 @@
                 <p>Markiere Orte für alle Benutzer. Klicke auf einen Ort, um Details zu sehen.</p>
             </div>
             <div class="map-toolbar">
-                <label class="btn btn-secondary map-upload-button" for="map-image-upload">Kartenbild festlegen</label>
+                <label class="btn btn-secondary map-upload-button" data-admin-only for="map-image-upload">Kartenbild festlegen</label>
                 <input id="map-image-upload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onchange="uploadSharedMapImage(event)">
                 <div class="map-zoom-controls" aria-label="Kartenzoom">
                     <button type="button" onclick="zoomMapOut()" aria-label="Karte verkleinern">−</button>
@@ -1377,6 +1377,6 @@
 <script src="js/main.js"></script>
 <script src="js/erweiterte-funktionen.js"></script>
 <script src="js/chat.js"></script>
-<script src="js/karte.js?v=20261013-7"></script>
+<script src="js/karte.js?v=20261013-9"></script>
 </body>
 </html>
