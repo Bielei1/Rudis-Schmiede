@@ -25,15 +25,17 @@
                 refreshCurrentUserPermissions();
             })
             .subscribe(async (status) => {
-                if (status === 'SUBSCRIBED') {
+                if (status === 'SUBSCRIBED' && currentUser) {
                     await presenceChannel.track({
                         username: currentUser.username,
                         isAdmin: !!currentUser.isAdmin,
                         avatar: currentUser.avatar || null, lastSeen: new Date().toISOString()
                     });
-                    await updateLastSeen();
+                    if (!presenceHeartbeatTimer) {
+                        presenceHeartbeatTimer = setInterval(updateLastSeen, 5 * 60 * 1000);
+                        await updateLastSeen();
+                    }
                     renderOnlineUsers();
-                    presenceHeartbeatTimer = setInterval(updateLastSeen, 60000);
                     startPermissionsRefresh();
                 }
             });
@@ -83,7 +85,7 @@
             refreshCurrentUserPermissions().catch(error => {
                 console.warn('Rechte konnten nicht automatisch aktualisiert werden:', error.message);
             });
-        }, 3000);
+        }, 30000);
     }
 
     async function broadcastPermissionsUpdated(userId) {
