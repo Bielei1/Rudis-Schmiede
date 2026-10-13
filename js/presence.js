@@ -29,7 +29,7 @@
                     await presenceChannel.track({
                         username: currentUser.username,
                         isAdmin: !!currentUser.isAdmin,
-                        avatar: currentUser.avatar || null, lastSeen: new Date().toISOString()
+                        lastSeen: new Date().toISOString()
                     });
                     if (!presenceHeartbeatTimer) {
                         presenceHeartbeatTimer = setInterval(updateLastSeen, 5 * 60 * 1000);
@@ -103,7 +103,9 @@
         return Object.keys(state).map(name => {
             const entries = state[name] || [];
             const meta = entries.length ? entries[entries.length - 1] : {};
-            return { username: meta.username || name, avatar: meta.avatar || null, isAdmin: !!meta.isAdmin, lastSeen: meta.lastSeen || null };
+            const username = meta.username || name;
+            const profile = typeof getUserByUsername === 'function' ? getUserByUsername(username) : null;
+            return { username, avatar: profile?.avatar || meta.avatar || null, isAdmin: !!meta.isAdmin, lastSeen: meta.lastSeen || null };
         }).sort((a,b) => a.username.localeCompare(b.username));
     };
 
@@ -115,7 +117,9 @@
         const onlineUsers = Object.keys(state).map(name => {
             const entries = state[name] || [];
             const meta = entries.length ? entries[entries.length - 1] : {};
-            return { ...meta, username: meta.username || name };
+            const username = meta.username || name;
+            const profile = typeof getUserByUsername === 'function' ? getUserByUsername(username) : null;
+            return { ...meta, username, avatar: profile?.avatar || meta.avatar || null };
         }).sort((a, b) => a.username.localeCompare(b.username));
         const allUsers = typeof memberUsernamesList !== 'undefined' && Array.isArray(memberUsernamesList)
             ? memberUsernamesList
@@ -353,7 +357,6 @@
                                 await presenceChannel.track({
                                     username: currentUser.username,
                                     isAdmin: !!currentUser.isAdmin,
-                                    avatar: currentUser.avatar || null,
                                     lastSeen: new Date().toISOString()
                                 });
                             }

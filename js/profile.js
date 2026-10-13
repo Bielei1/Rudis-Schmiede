@@ -213,8 +213,7 @@
         if (typeof presenceChannel !== 'undefined' && presenceChannel) {
             await presenceChannel.track({
                 username: currentUser.username,
-                isAdmin: !!currentUser.isAdmin,
-                avatar: currentUser.avatar || null
+                isAdmin: !!currentUser.isAdmin
             });
             if (typeof syncPresenceAvatars === 'function') syncPresenceAvatars();
             renderOnlineUsers();
