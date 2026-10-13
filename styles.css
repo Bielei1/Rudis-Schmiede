@@ -969,12 +969,17 @@
             width: 27px;
             height: 27px;
             border: 2px solid #fff2cc;
-            border-radius: 50%;
+            border-radius: 50% 50% 50% 0;
             background: var(--map-marker-color, var(--primary-color));
             color: #fffaf0;
             box-shadow: 0 1px 5px rgba(0,0,0,.65);
             font-size: 0.82rem;
             font-weight: 700;
+            transform: rotate(-45deg);
+        }
+
+        .map-marker-pin > span {
+            transform: rotate(45deg);
         }
 
         .map-marker-label {

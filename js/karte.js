@@ -318,7 +318,7 @@
             <button type="button" class="map-marker" data-map-marker-id="${Number(marker.id)}"
                 style="left:${Number(marker.x) * 100}%;top:${Number(marker.y) * 100}%;--map-marker-color:${getCategoryConfig(marker.category).color}"
                 title="${escapeHtml(marker.title)}" aria-label="${escapeHtml(marker.title)}">
-                <span class="map-marker-pin">${getCategoryConfig(marker.category).icon}</span><span class="map-marker-label">${escapeHtml(marker.title)}</span>
+                <span class="map-marker-pin"><span>${getCategoryConfig(marker.category).icon}</span></span><span class="map-marker-label">${escapeHtml(marker.title)}</span>
             </button>
         `).join('');
         markerLayer.querySelectorAll('[data-map-marker-id]').forEach(button => {
