@@ -69,6 +69,7 @@
         { key: 'archiv', label: 'Bestellung Archiv' },
         { key: 'notizen', label: 'Notizen' },
         { key: 'mitglieder', label: 'Mitglieder' },
+        { key: 'berufe', label: 'Berufe' },
         { key: 'karte', label: 'Karte' },
         { key: 'kassenbuch', label: 'Kassenbuch' }
     ];

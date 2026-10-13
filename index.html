@@ -399,6 +399,10 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7.5" r="3"/><path d="M2.5 20c0-3.3 2.9-5.8 6.5-5.8s6.5 2.5 6.5 5.8"/><path d="M17 8a2.6 2.6 0 110-5"/><path d="M20 20c0-2.4-1.7-4.4-4-5.2"/></svg>
                 <span>Mitglieder</span>
             </button>
+            <button class="tab-btn" draggable="true" data-tab="berufe" onclick="switchTab('berufe')">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M3 12h18M10 12v2h4v-2"/></svg>
+                <span>Berufe</span>
+            </button>
             <button class="tab-btn" draggable="true" data-tab="karte" onclick="switchTab('karte')">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/><path d="M12 8.5a2.5 2.5 0 00-5 0c0 2 2.5 4.5 2.5 4.5S12 10.5 12 8.5z"/></svg>
                 <span>Karte</span>
@@ -506,6 +510,13 @@
                 </thead>
                 <tbody id="cashbook-entries-body"></tbody>
             </table>
+        </div>
+    </div>
+
+    <div id="tab-berufe" class="tab-content">
+        <h2 style="margin-bottom: 18px;">Berufe</h2>
+        <div class="dashboard-empty">
+            Der Bereich für Berufe ist vorbereitet. Die Funktionen können später ergänzt werden.
         </div>
     </div>
 
@@ -1421,7 +1432,7 @@
 </div>
 
 <script src="js/config.js?v=20260826-3"></script>
-<script src="js/auth.js?v=20261013-5"></script>
+<script src="js/auth.js?v=20261013-6"></script>
 <script src="js/presence.js?v=20260826-6"></script>
 <script src="js/ui-helpers.js"></script>
 <script src="js/log.js"></script>
