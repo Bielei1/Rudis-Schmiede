@@ -19,6 +19,13 @@
     let pendingPosition = null;
     let zoom = 1;
     let imageLoadId = 0;
+    let cachedMapImagePath = null;
+    let cachedSignedMapUrl = null;
+    let cachedSignedUrlExpiresAt = 0;
+    let mapLoadInProgress = false;
+    let pendingWheelZoom = 0;
+    let pendingWheelAnchor = null;
+    let wheelZoomFrame = 0;
     let mapDrag = null;
     let suppressMapClick = false;
 
@@ -27,49 +34,69 @@
     }
 
     async function loadMapTab() {
-        if (!currentUser || !supabaseClient) return;
+        if (!currentUser || !supabaseClient || mapLoadInProgress) return;
+        mapLoadInProgress = true;
         const status = getElement('map-status');
         if (status) status.textContent = 'Lade gemeinsame Karte ...';
 
-        const [markerResult, settingsResult] = await Promise.all([
-            supabaseClient.from('map_markers')
-                .select('id, title, category, notes, x, y, created_by, created_at')
-                .order('created_at', { ascending: false }),
-            supabaseClient.from('map_settings')
-                .select('image_path')
-                .eq('id', 1)
-                .maybeSingle()
-        ]);
+        try {
+            const [markerResult, settingsResult] = await Promise.all([
+                supabaseClient.from('map_markers')
+                    .select('id, title, category, notes, x, y, created_by, created_at')
+                    .order('created_at', { ascending: false }),
+                supabaseClient.from('map_settings')
+                    .select('image_path')
+                    .eq('id', 1)
+                    .maybeSingle()
+            ]);
 
-        if (markerResult.error) {
-            if (status) status.textContent = 'Kartendatenbank fehlt oder ist nicht erreichbar. Bitte zuerst das Karten-SQL einrichten.';
-            console.error('Kartenmarkierungen konnten nicht geladen werden:', markerResult.error.message);
-            return showToast('Kartenmarkierungen konnten nicht geladen werden: ' + markerResult.error.message, 'danger');
-        }
-        if (settingsResult.error) {
-            if (status) status.textContent = 'Karteneinstellungen konnten nicht geladen werden.';
-            console.error('Karteneinstellungen konnten nicht geladen werden:', settingsResult.error.message);
-            return showToast('Karteneinstellungen konnten nicht geladen werden: ' + settingsResult.error.message, 'danger');
-        }
+            if (markerResult.error) {
+                if (status) status.textContent = 'Kartendatenbank fehlt oder ist nicht erreichbar. Bitte zuerst das Karten-SQL einrichten.';
+                console.error('Kartenmarkierungen konnten nicht geladen werden:', markerResult.error.message);
+                showToast('Kartenmarkierungen konnten nicht geladen werden: ' + markerResult.error.message, 'danger');
+                return;
+            }
+            if (settingsResult.error) {
+                if (status) status.textContent = 'Karteneinstellungen konnten nicht geladen werden.';
+                console.error('Karteneinstellungen konnten nicht geladen werden:', settingsResult.error.message);
+                showToast('Karteneinstellungen konnten nicht geladen werden: ' + settingsResult.error.message, 'danger');
+                return;
+            }
 
-        markers = markerResult.data || [];
-        renderMapCategoryControls();
-        if (status) status.textContent = `${markers.length} gemeinsame Markierung${markers.length === 1 ? '' : 'en'}`;
-        renderMapMarkers();
+            markers = markerResult.data || [];
+            renderMapCategoryControls();
+            if (status) status.textContent = `${markers.length} gemeinsame Markierung${markers.length === 1 ? '' : 'en'}`;
+            renderMapMarkers();
 
-        const imagePath = settingsResult.data && settingsResult.data.image_path;
-        if (!imagePath) {
-            showEmptyMap();
-            return;
-        }
+            const imagePath = settingsResult.data && settingsResult.data.image_path;
+            if (!imagePath) {
+                cachedMapImagePath = null;
+                showEmptyMap();
+                return;
+            }
 
-        const { data, error } = await supabaseClient.storage.from(MAP_BUCKET).createSignedUrl(imagePath, 3600);
-        if (error) {
-            showEmptyMap();
-            showToast('Kartenbild konnte nicht geladen werden: ' + error.message, 'danger');
-            return;
+            const image = getElement('map-background-image');
+            if (imagePath === cachedMapImagePath && image && image.complete && image.naturalWidth > 0) return;
+
+            if (imagePath !== cachedMapImagePath || !cachedSignedMapUrl || Date.now() >= cachedSignedUrlExpiresAt) {
+                const { data, error } = await supabaseClient.storage.from(MAP_BUCKET).createSignedUrl(imagePath, 3600);
+                if (error) {
+                    showEmptyMap();
+                    showToast('Kartenbild konnte nicht geladen werden: ' + error.message, 'danger');
+                    return;
+                }
+                cachedMapImagePath = imagePath;
+                cachedSignedMapUrl = data.signedUrl;
+                cachedSignedUrlExpiresAt = Date.now() + 55 * 60 * 1000;
+            }
+            displayMapImage(cachedSignedMapUrl, imagePath);
+        } catch (error) {
+            if (status) status.textContent = 'Karte konnte nicht geladen werden.';
+            console.error('Karte konnte nicht geladen werden:', error);
+            showToast('Karte konnte nicht geladen werden.', 'danger');
+        } finally {
+            mapLoadInProgress = false;
         }
-        displayMapImage(data.signedUrl);
     }
 
     function showEmptyMap() {
@@ -83,9 +110,11 @@
         if (button) button.disabled = true;
     }
 
-    function displayMapImage(url) {
+    function displayMapImage(url, imagePath) {
         const image = getElement('map-background-image');
         if (!image) return;
+        if (image.dataset.mapPath === imagePath && image.src === url
+            && (!image.complete || image.naturalWidth > 0)) return;
         const loadId = ++imageLoadId;
         image.onload = () => {
             if (loadId !== imageLoadId) return;
@@ -99,13 +128,18 @@
             if (button) button.disabled = !canEditTab('karte');
             applyMapZoom(zoom);
             updateAddModeButton();
-            renderMapMarkers();
+            image.dataset.mapPath = imagePath;
         };
         image.onerror = () => {
             if (loadId !== imageLoadId) return;
+            cachedMapImagePath = null;
+            cachedSignedMapUrl = null;
+            cachedSignedUrlExpiresAt = 0;
             showEmptyMap();
             showToast('Das Kartenbild ist beschädigt oder nicht lesbar.', 'danger');
         };
+        image.dataset.mapPath = imagePath;
+        image.decoding = 'async';
         image.src = url;
     }
 
@@ -151,6 +185,11 @@
             return;
         }
 
+        cachedMapImagePath = null;
+        cachedSignedMapUrl = null;
+        cachedSignedUrlExpiresAt = 0;
+        const image = getElement('map-background-image');
+        if (image) delete image.dataset.mapPath;
         input.value = '';
         if (status) status.textContent = `${markers.length} gemeinsame Markierung${markers.length === 1 ? '' : 'en'}`;
         showToast('Das gemeinsame Kartenbild wurde aktualisiert.', 'success');
@@ -238,26 +277,40 @@
         const stage = getElement('map-stage');
         if (!stage || !viewport) return;
 
-        const oldWidth = stage.getBoundingClientRect().width;
-        const oldHeight = stage.getBoundingClientRect().height;
+        const stageRect = stage.getBoundingClientRect();
+        const oldWidth = stageRect.width;
+        const oldHeight = stageRect.height;
         const viewportRect = viewport.getBoundingClientRect();
         const pointerX = anchorX ?? viewportRect.left + viewport.clientWidth / 2;
         const pointerY = anchorY ?? viewportRect.top + viewport.clientHeight / 2;
         const mapX = oldWidth ? (viewport.scrollLeft + pointerX - viewportRect.left) / oldWidth : 0;
         const mapY = oldHeight ? (viewport.scrollTop + pointerY - viewportRect.top) / oldHeight : 0;
 
+        const previousZoom = zoom;
         zoom = Math.min(12, Math.max(0.5, nextZoom));
+        if (zoom === previousZoom) return;
+        const scale = zoom / previousZoom;
         stage.style.width = `${zoom * 100}%`;
-        viewport.scrollLeft = mapX * stage.getBoundingClientRect().width - (pointerX - viewportRect.left);
-        viewport.scrollTop = mapY * stage.getBoundingClientRect().height - (pointerY - viewportRect.top);
+        viewport.scrollLeft = mapX * oldWidth * scale - (pointerX - viewportRect.left);
+        viewport.scrollTop = mapY * oldHeight * scale - (pointerY - viewportRect.top);
     }
 
     function handleMapWheel(event) {
         if (addMode) return;
         event.preventDefault();
-        const direction = event.deltaY < 0 ? 1 : -1;
-        const step = event.deltaMode === 0 ? 0.25 : 0.4;
-        applyMapZoom(zoom + direction * step, event.clientX, event.clientY);
+        const deltaScale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 800 : 1;
+        pendingWheelZoom += -event.deltaY * deltaScale / 400;
+        pendingWheelAnchor = { x: event.clientX, y: event.clientY };
+        if (!wheelZoomFrame) {
+            wheelZoomFrame = requestAnimationFrame(() => {
+                const anchor = pendingWheelAnchor;
+                const change = pendingWheelZoom;
+                pendingWheelZoom = 0;
+                pendingWheelAnchor = null;
+                wheelZoomFrame = 0;
+                if (anchor) applyMapZoom(zoom + change, anchor.x, anchor.y);
+            });
+        }
     }
 
     function startMapDrag(event) {
@@ -321,14 +374,6 @@
                 <span class="map-marker-pin"><span>${getCategoryConfig(marker.category).icon}</span></span><span class="map-marker-label">${escapeHtml(marker.title)}</span>
             </button>
         `).join('');
-        markerLayer.querySelectorAll('[data-map-marker-id]').forEach(button => {
-            button.addEventListener('click', event => {
-                event.stopPropagation();
-                const marker = filtered.find(item => String(item.id) === button.dataset.mapMarkerId);
-                if (marker) selectMapMarker(marker.id);
-            });
-        });
-
         const count = getElement('map-place-count');
         if (count) count.textContent = `${filtered.length} von ${markers.length} Ort${markers.length === 1 ? '' : 'e'}`;
         list.innerHTML = filtered.length ? filtered.map(marker => `
@@ -344,12 +389,6 @@
             </article>
         `).join('') : '<div class="map-empty-list">Keine passenden Markierungen.</div>';
 
-        list.querySelectorAll('[data-map-place-id]').forEach(button => {
-            button.addEventListener('click', () => selectMapMarker(button.dataset.mapPlaceId));
-        });
-        list.querySelectorAll('[data-map-delete-id]').forEach(button => {
-            button.addEventListener('click', () => deleteMapMarker(button.dataset.mapDeleteId));
-        });
     }
 
     function getCategoryConfig(name) {
@@ -431,6 +470,25 @@
         mapViewport.addEventListener('mousedown', startMapDrag);
         document.addEventListener('mousemove', moveMapDrag);
         document.addEventListener('mouseup', stopMapDrag);
+        const markerLayer = getElement('map-markers-layer');
+        markerLayer.addEventListener('click', event => {
+            const button = event.target.closest('[data-map-marker-id]');
+            if (!button) return;
+            event.stopPropagation();
+            selectMapMarker(button.dataset.mapMarkerId);
+        });
+    }
+    const placeItems = getElement('map-place-items');
+    if (placeItems) {
+        placeItems.addEventListener('click', event => {
+            const deleteButton = event.target.closest('[data-map-delete-id]');
+            if (deleteButton) {
+                deleteMapMarker(deleteButton.dataset.mapDeleteId);
+                return;
+            }
+            const placeButton = event.target.closest('[data-map-place-id]');
+            if (placeButton) selectMapMarker(placeButton.dataset.mapPlaceId);
+        });
     }
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && addMode) {
