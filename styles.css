@@ -971,13 +971,11 @@
 
         .map-marker {
             position: absolute;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            max-width: 180px;
+            display: block;
+            width: 0;
+            height: 0;
+            max-width: none;
             padding: 0;
-            transform: translate(-50%, -100%) scale(var(--map-marker-scale, 1));
-            transform-origin: center bottom;
             border: 0;
             background: transparent;
             color: #21170c;
@@ -986,30 +984,49 @@
         }
 
         .map-marker-pin {
+            position: absolute;
+            top: -35px;
+            left: -13.5px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            flex: 0 0 27px;
             width: 27px;
             height: 27px;
+            box-sizing: border-box;
             border: 2px solid #fff2cc;
-            border-radius: 50% 50% 50% 0;
+            border-radius: 50%;
             background: var(--map-marker-color, var(--primary-color));
             color: #fffaf0;
             box-shadow: 0 1px 5px rgba(0,0,0,.65);
             font-size: 0.82rem;
             font-weight: 700;
-            transform: rotate(-45deg);
+        }
+
+        .map-marker-pin::after {
+            position: absolute;
+            top: calc(100% - 1px);
+            left: 50%;
+            width: 0;
+            height: 0;
+            transform: translateX(-50%);
+            border-top: 9px solid var(--map-marker-color, var(--primary-color));
+            border-right: 6px solid transparent;
+            border-left: 6px solid transparent;
+            content: "";
         }
 
         .map-marker-pin > span {
-            transform: rotate(45deg);
+            line-height: 1;
         }
 
         .map-marker-label {
+            position: absolute;
+            top: -27px;
+            left: 10px;
             overflow: hidden;
             max-width: 150px;
             padding: 3px 6px;
+            transform: translateY(-50%);
             border-radius: 4px;
             background: rgba(255, 242, 204, .94);
             box-shadow: 0 1px 5px rgba(0,0,0,.4);
