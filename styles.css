@@ -2297,6 +2297,35 @@
             color: var(--primary-bright);
         }
 
+        .berufe-subtab-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .berufe-subtab-row .berufe-subtab {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .berufe-subtab-delete {
+            width: 30px;
+            height: 34px;
+            flex: 0 0 30px;
+            border: 1px solid transparent;
+            border-radius: 7px;
+            background: transparent;
+            color: var(--danger-color);
+            font-size: 1.2rem;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .berufe-subtab-delete:hover {
+            border-color: var(--danger-color);
+            background: color-mix(in srgb, var(--danger-color) 12%, transparent);
+        }
+
         .berufe-panel {
             min-height: 180px;
             padding: 20px;

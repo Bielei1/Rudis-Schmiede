@@ -23,14 +23,22 @@
         const panel = document.getElementById('berufe-panel');
         if (!nav || !title || !description || !panel) return;
 
+        const isTemplate = activeBerufeTabId === templateTabId;
         if (form) {
-            const canManage = canManageBerufe();
+            const canManage = isTemplate && canManageBerufe();
             form.hidden = !canManage;
             form.style.display = canManage ? 'flex' : 'none';
         }
 
-        nav.querySelectorAll('[data-berufe-tab]').forEach(button => button.remove());
-        berufeTabs.forEach(tab => {
+        nav.querySelectorAll('[data-berufe-row]').forEach(row => row.remove());
+        const orderedTabs = [...berufeTabs].sort((first, second) =>
+            String(first.name).localeCompare(String(second.name), 'de', { sensitivity: 'base' })
+        );
+        orderedTabs.forEach(tab => {
+            const row = document.createElement('div');
+            row.className = 'berufe-subtab-row';
+            row.dataset.berufeRow = String(tab.id);
+
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'berufe-subtab';
@@ -41,14 +49,27 @@
             button.id = `berufe-tab-${tab.id}`;
             button.textContent = tab.name;
             button.addEventListener('click', () => selectBerufeTab(String(tab.id)));
-            nav.appendChild(button);
+            row.appendChild(button);
+
+            if (canManageBerufe()) {
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'berufe-subtab-delete';
+                deleteButton.textContent = '×';
+                deleteButton.setAttribute('aria-label', `Beruf-Untertab „${tab.name}“ löschen`);
+                deleteButton.title = 'Untertab löschen';
+                deleteButton.addEventListener('click', () => deleteBerufeTab(String(tab.id)));
+                row.appendChild(deleteButton);
+            }
+
+            nav.appendChild(row);
         });
 
         const templateTab = document.getElementById('berufe-template-tab');
         if (templateTab) {
-            const isActive = activeBerufeTabId === templateTabId;
-            templateTab.classList.toggle('active', isActive);
-            templateTab.setAttribute('aria-selected', String(isActive));
+            templateTab.classList.toggle('active', isTemplate);
+            templateTab.setAttribute('aria-selected', String(isTemplate));
+            nav.appendChild(templateTab);
         }
         nav.querySelectorAll('[data-berufe-tab]').forEach(button => {
             button.classList.toggle('active', button.dataset.berufeTab === String(activeBerufeTabId));
@@ -61,11 +82,15 @@
         }
 
         const selectedTab = berufeTabs.find(tab => String(tab.id) === String(activeBerufeTabId));
-        const isTemplate = activeBerufeTabId === templateTabId || !selectedTab;
-        const activeTitle = isTemplate ? 'Vorlage' : selectedTab.name;
+        const selectedIsTemplate = isTemplate || !selectedTab;
+        if (form && selectedIsTemplate && canManageBerufe()) {
+            form.hidden = false;
+            form.style.display = 'flex';
+        }
+        const activeTitle = selectedIsTemplate ? 'Vorlage' : selectedTab.name;
         title.textContent = activeTitle;
-        panel.setAttribute('aria-labelledby', isTemplate ? 'berufe-template-tab' : `berufe-tab-${selectedTab.id}`);
-        description.textContent = isTemplate
+        panel.setAttribute('aria-labelledby', selectedIsTemplate ? 'berufe-template-tab' : `berufe-tab-${selectedTab.id}`);
+        description.textContent = selectedIsTemplate
             ? 'Die Vorlage ist vorbereitet. Ihr Inhalt wird später ergänzt.'
             : 'Dieser Berufs-Untertab ist angelegt. Sein Inhalt wird später aus der Vorlage übernommen.';
     }
@@ -162,9 +187,53 @@
         }
     }
 
+    async function deleteBerufeTab(tabId) {
+        if (!canManageBerufe()) {
+            setStatus('Nur Administratoren dürfen Berufs-Untertabs löschen.', true);
+            return;
+        }
+
+        const tab = berufeTabs.find(item => String(item.id) === String(tabId));
+        if (!tab) {
+            setStatus('Der Beruf-Untertab wurde nicht gefunden.', true);
+            return;
+        }
+        if (typeof window.customConfirm !== 'function'
+            || !await window.customConfirm(`Möchtest du den Beruf-Untertab „${tab.name}“ wirklich löschen?`)) {
+            return;
+        }
+
+        try {
+            const { data: deleted, error } = await window.supabaseClient.rpc('berufe_delete_tab', {
+                p_tab_id: tab.id
+            });
+            if (error) throw error;
+            if (!deleted) {
+                setStatus('Der Beruf-Untertab wurde nicht gefunden oder bereits gelöscht.', true);
+                return;
+            }
+
+            if (String(activeBerufeTabId) === String(tabId)) activeBerufeTabId = templateTabId;
+            await loadBerufeTab();
+            if (typeof window.logActivity === 'function') {
+                const logged = await window.logActivity('Berufe', `Berufe-Untertab „${tab.name}“ gelöscht`);
+                if (!logged && typeof window.showToast === 'function') {
+                    window.showToast('Der Untertab wurde gelöscht, aber die Aktion konnte nicht protokolliert werden.', 'danger');
+                }
+            }
+        } catch (error) {
+            console.error('Berufe-Untertab konnte nicht gelöscht werden:', error);
+            setStatus('Beruf-Untertab konnte nicht gelöscht werden. Bitte Administratorrechte und Supabase-Setup prüfen.', true);
+            if (typeof window.showToast === 'function') {
+                window.showToast('Beruf-Untertab konnte nicht gelöscht werden.', 'danger');
+            }
+        }
+    }
+
     window.loadBerufeTab = loadBerufeTab;
     window.selectBerufeTab = selectBerufeTab;
     window.openBerufeNavigation = openBerufeNavigation;
     window.setBerufeNavigationExpanded = setBerufeNavigationExpanded;
     window.createBerufeTab = createBerufeTab;
+    window.deleteBerufeTab = deleteBerufeTab;
 })();
