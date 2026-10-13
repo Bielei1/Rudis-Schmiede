@@ -1,6 +1,9 @@
 (() => {
     const MAP_BUCKET = 'shared-family-map';
-    const MAP_IMAGE_PATH = 'background';
+    const MAP_IMAGE_PATH = 'background-v2';
+    const LEGACY_MAP_IMAGE_PATH = 'background';
+    const DEFAULT_MAP_IMAGE_URL = './map-default.jpg';
+    const DEFAULT_MAP_IMAGE_KEY = 'project-default';
     const MAX_MAP_IMAGE_BYTES = 25 * 1024 * 1024;
     const ALLOWED_MAP_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
     const MAP_CATEGORIES = [
@@ -38,6 +41,10 @@
         mapLoadInProgress = true;
         const status = getElement('map-status');
         if (status) status.textContent = 'Lade gemeinsame Karte ...';
+        const currentImage = getElement('map-background-image');
+        if (!currentImage || currentImage.hidden || !currentImage.complete || !currentImage.naturalWidth) {
+            displayMapImage(DEFAULT_MAP_IMAGE_URL, DEFAULT_MAP_IMAGE_KEY);
+        }
 
         try {
             const markerPromise = supabaseClient.from('map_markers')
@@ -52,31 +59,33 @@
                 if (status) status.textContent = 'Karteneinstellungen konnten nicht geladen werden.';
                 console.error('Karteneinstellungen konnten nicht geladen werden:', settingsResult.error.message);
                 showToast('Karteneinstellungen konnten nicht geladen werden: ' + settingsResult.error.message, 'danger');
-                return;
-            }
-
-            const imagePath = settingsResult.data && settingsResult.data.image_path;
-            if (!imagePath) {
-                cachedMapImagePath = null;
-                showEmptyMap();
             } else {
-                const image = getElement('map-background-image');
-                const imageAlreadyLoaded = imagePath === cachedMapImagePath
-                    && image && image.complete && image.naturalWidth > 0;
+                const imagePath = settingsResult.data && settingsResult.data.image_path;
+                if (!imagePath || imagePath === LEGACY_MAP_IMAGE_PATH) {
+                    cachedMapImagePath = null;
+                    cachedSignedMapUrl = null;
+                    cachedSignedUrlExpiresAt = 0;
+                    displayMapImage(DEFAULT_MAP_IMAGE_URL, DEFAULT_MAP_IMAGE_KEY);
+                } else {
+                    const image = getElement('map-background-image');
+                    const imageAlreadyLoaded = imagePath === cachedMapImagePath
+                        && image && image.complete && image.naturalWidth > 0;
 
-                if (!imageAlreadyLoaded) {
-                    if (imagePath !== cachedMapImagePath || !cachedSignedMapUrl || Date.now() >= cachedSignedUrlExpiresAt) {
-                        const { data, error } = await supabaseClient.storage.from(MAP_BUCKET).createSignedUrl(imagePath, 3600);
-                        if (error) {
-                            showEmptyMap();
-                            showToast('Kartenbild konnte nicht geladen werden: ' + error.message, 'danger');
-                        } else {
-                            cachedMapImagePath = imagePath;
-                            cachedSignedMapUrl = data.signedUrl;
-                            cachedSignedUrlExpiresAt = Date.now() + 55 * 60 * 1000;
+                    if (!imageAlreadyLoaded) {
+                        if (imagePath !== cachedMapImagePath || !cachedSignedMapUrl || Date.now() >= cachedSignedUrlExpiresAt) {
+                            const { data, error } = await supabaseClient.storage.from(MAP_BUCKET).createSignedUrl(imagePath, 3600);
+                            if (error) {
+                                showToast('Hochgeladenes Kartenbild konnte nicht geladen werden: ' + error.message, 'danger');
+                            } else {
+                                cachedMapImagePath = imagePath;
+                                cachedSignedMapUrl = data.signedUrl;
+                                cachedSignedUrlExpiresAt = Date.now() + 55 * 60 * 1000;
+                            }
+                        }
+                        if (imagePath === cachedMapImagePath && cachedSignedMapUrl) {
+                            displayMapImage(cachedSignedMapUrl, imagePath);
                         }
                     }
-                    if (cachedSignedMapUrl) displayMapImage(cachedSignedMapUrl, imagePath);
                 }
             }
 
@@ -115,7 +124,7 @@
     function displayMapImage(url, imagePath) {
         const image = getElement('map-background-image');
         if (!image) return;
-        if (image.dataset.mapPath === imagePath && image.src === url
+        if (image.dataset.mapPath === imagePath && image.getAttribute('src') === url
             && (!image.complete || image.naturalWidth > 0)) return;
         const loadId = ++imageLoadId;
         image.onload = () => {
@@ -137,8 +146,13 @@
             cachedMapImagePath = null;
             cachedSignedMapUrl = null;
             cachedSignedUrlExpiresAt = 0;
-            showEmptyMap();
-            showToast('Das Kartenbild ist beschädigt oder nicht lesbar.', 'danger');
+            if (imagePath !== DEFAULT_MAP_IMAGE_KEY) {
+                displayMapImage(DEFAULT_MAP_IMAGE_URL, DEFAULT_MAP_IMAGE_KEY);
+                showToast('Das hochgeladene Kartenbild konnte nicht geladen werden. Die eingebaute Karte wird angezeigt.', 'danger');
+            } else {
+                showEmptyMap();
+                showToast('Die eingebaute Kartendatei konnte nicht geladen werden.', 'danger');
+            }
         };
         image.dataset.mapPath = imagePath;
         image.decoding = 'async';
