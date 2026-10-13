@@ -215,11 +215,6 @@
         });
     }
 
-    function getBerufeRecipeStockAmount(name) {
-        const item = inventoryList.find(entry => entry.name.toLowerCase() === name.toLowerCase());
-        return item ? item.quantity : 0;
-    }
-
     function showBerufeCraftingPanel(recipe) {
         const panel = document.getElementById('berufe-crafting-action-box');
         const content = document.getElementById('berufe-crafting-action-content');
@@ -286,19 +281,11 @@
 
                     step.ingredients.forEach(ingredient => {
                         const needed = ingredient.qty * step.multiplier;
-                        const stock = getBerufeRecipeStockAmount(ingredient.name);
-                        const sufficient = stock >= needed;
                         const line = document.createElement('div');
                         line.style.cssText = 'margin-left: 8px; font-size: 0.85rem; margin-bottom: 2px;';
                         const amount = document.createElement('strong');
                         amount.textContent = `${needed}x`;
-                        const stockText = document.createElement('span');
-                        stockText.style.cssText = 'font-size: 0.8rem; color: var(--text-muted);';
-                        const stockValue = document.createElement('span');
-                        stockValue.style.cssText = `color: ${sufficient ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 600;`;
-                        stockValue.textContent = stock;
-                        stockText.append(' (Lager: ', stockValue, ')');
-                        line.append('• ', amount, ` ${ingredient.name}`, stockText);
+                        line.append('• ', amount, ` ${ingredient.name}`);
                         card.appendChild(line);
                     });
                     stepsContainer.appendChild(card);
@@ -313,31 +300,14 @@
         rawTitle.textContent = `📦 Benötigte Rohmaterialien für ${targetAmount}x ${recipe.output_name}:`;
         rawBox.appendChild(rawTitle);
 
-        let allMaterialsOk = true;
         Object.entries(rawMaterials).forEach(([materialName, quantity]) => {
-            const stock = getBerufeRecipeStockAmount(materialName);
-            const enough = stock >= quantity;
-            if (!enough) allMaterialsOk = false;
             const line = document.createElement('div');
             line.style.cssText = 'margin-bottom: 4px; font-size: 0.95rem;';
             const amount = document.createElement('strong');
             amount.textContent = `${quantity}x`;
-            const stockText = document.createElement('span');
-            stockText.style.color = 'var(--text-muted)';
-            const stockValue = document.createElement('span');
-            stockValue.style.cssText = `color: ${stock === 0 ? 'var(--danger-color)' : (enough ? 'var(--accent-green)' : 'var(--accent-red)')}; font-weight: 600;`;
-            stockValue.textContent = stock;
-            stockText.append(' (Lagerbestand: ', stockValue, ')');
-            line.append('• ', amount, ` ${materialName}`, stockText);
+            line.append('• ', amount, ` ${materialName}`);
             rawBox.appendChild(line);
         });
-
-        const summary = document.createElement('div');
-        summary.style.cssText = `margin-top: 12px; font-weight: 700; color: ${allMaterialsOk ? 'var(--accent-green)' : 'var(--accent-red)'};`;
-        summary.textContent = allMaterialsOk
-            ? '✓ Du hast alle benötigten Rohmaterialien auf Lager!'
-            : '✕ Dir fehlen einige Rohmaterialien im Lager!';
-        rawBox.appendChild(summary);
         content.appendChild(rawBox);
         panel.style.display = 'block';
         panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -697,5 +667,6 @@
     window.editBerufeRecipe = editBerufeRecipe;
     window.deleteBerufeRecipe = deleteBerufeRecipe;
     window.cancelBerufeRecipeEdit = cancelBerufeRecipeEdit;
+    window.hideBerufeCraftingPanel = hideBerufeCraftingPanel;
     window.addEventListener('DOMContentLoaded', initBerufeRecipeInputs);
 })();
