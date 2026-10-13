@@ -148,8 +148,11 @@
             }
         } catch (error) {
             console.error('Kassenbuch-Verlauf konnte nicht geleert werden:', error);
-            setStatus('Der Buchungsverlauf konnte nicht geleert werden.', true);
-            if (typeof window.showToast === 'function') window.showToast('Der Buchungsverlauf konnte nicht geleert werden.', 'danger');
+            const message = error && error.message
+                ? `Der Buchungsverlauf konnte nicht geleert werden: ${error.message}`
+                : 'Der Buchungsverlauf konnte nicht geleert werden.';
+            setStatus(message, true);
+            if (typeof window.showToast === 'function') window.showToast(message, 'danger');
         } finally {
             if (button) button.disabled = false;
         }
