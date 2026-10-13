@@ -35,7 +35,8 @@
     let mapNaturalWidth = 0;
     let mapNaturalHeight = 0;
     let mapUsesTiles = false;
-    let mapTileRefreshTimer = 0;
+    let mapUsesUploadedImage = false;
+    let mapTileRefreshFrame = 0;
     let mapTiles = new Map();
     let mapDesiredTileKeys = new Set();
     let imageLoadId = 0;
@@ -85,11 +86,13 @@
             } else {
                 const imagePath = settingsResult.data && settingsResult.data.image_path;
                 if (!imagePath || imagePath === LEGACY_MAP_IMAGE_PATH) {
+                    mapUsesUploadedImage = false;
                     cachedMapImagePath = null;
                     cachedSignedMapUrl = null;
                     cachedSignedUrlExpiresAt = 0;
                     displayDefaultTiledMap();
                 } else {
+                    mapUsesUploadedImage = true;
                     const image = getElement('map-background-image');
                     const imageAlreadyLoaded = imagePath === cachedMapImagePath
                         && image && image.complete && image.naturalWidth > 0;
@@ -122,7 +125,10 @@
 
             markers = markerResult.data || [];
             renderMapCategoryControls();
-            if (status) status.textContent = `${markers.length} gemeinsame Markierung${markers.length === 1 ? '' : 'en'}`;
+            if (status) {
+                const imageMode = mapUsesUploadedImage ? 'Hochgeladenes Kartenbild' : 'Eingebaute Kachelkarte';
+                status.textContent = `${markers.length} gemeinsame Markierung${markers.length === 1 ? '' : 'en'} · ${imageMode}`;
+            }
             renderMapMarkers();
             mapDataLoadedAt = Date.now();
             mapDataLoadedForUser = currentUser.id;
@@ -218,6 +224,7 @@
         image.onload = null;
         image.onerror = null;
         mapUsesTiles = true;
+        mapUsesUploadedImage = false;
         mapNaturalWidth = DEFAULT_MAP_WIDTH;
         mapNaturalHeight = DEFAULT_MAP_HEIGHT;
         mapBaseWidth = viewport.clientWidth;
@@ -240,7 +247,7 @@
         const button = getElement('map-add-mode-button');
         if (button) button.disabled = !canEditTab('karte');
         syncMapSurfaceZoom();
-        queueMapTiles(0);
+        queueMapTiles();
         updateAddModeButton();
     }
 
@@ -403,11 +410,19 @@
         if (!stage || !mapBaseWidth || !mapBaseHeight) return;
         stage.style.width = `${mapBaseWidth * zoom}px`;
         stage.style.height = `${mapBaseHeight * zoom}px`;
-        if (image) image.style.transform = `scale(${zoom})`;
-        if (tileLayer) tileLayer.style.transform = `scale(${zoom})`;
-        if (markerLayer) markerLayer.style.transform = `scale(${zoom})`;
-        stage.style.setProperty('--map-marker-inverse-zoom', String(1 / zoom));
-        if (mapUsesTiles) queueMapTiles(120);
+        if (image) image.style.transform = mapUsesTiles ? 'none' : `scale(${zoom})`;
+        if (tileLayer) {
+            tileLayer.style.width = `${mapBaseWidth * zoom}px`;
+            tileLayer.style.height = `${mapBaseHeight * zoom}px`;
+            tileLayer.style.transform = 'none';
+        }
+        if (markerLayer) {
+            markerLayer.style.width = `${mapBaseWidth * zoom}px`;
+            markerLayer.style.height = `${mapBaseHeight * zoom}px`;
+            markerLayer.style.transform = 'none';
+        }
+        stage.style.setProperty('--map-marker-scale', String(Math.max(0.85, Math.min(zoom, 4))));
+        if (mapUsesTiles) queueMapTiles();
     }
 
     function resizeMapSurface() {
@@ -441,14 +456,16 @@
             syncMapSurfaceZoom();
             viewport.scrollLeft = centerX * mapBaseWidth * zoom - viewport.clientWidth / 2;
             viewport.scrollTop = centerY * mapBaseHeight * zoom - viewport.clientHeight / 2;
-            if (mapUsesTiles) queueMapTiles(0);
+            if (mapUsesTiles) queueMapTiles();
         });
     }
 
-    function queueMapTiles(delay = 100) {
-        if (!mapUsesTiles) return;
-        clearTimeout(mapTileRefreshTimer);
-        mapTileRefreshTimer = setTimeout(renderVisibleMapTiles, delay);
+    function queueMapTiles() {
+        if (!mapUsesTiles || mapTileRefreshFrame) return;
+        mapTileRefreshFrame = requestAnimationFrame(() => {
+            mapTileRefreshFrame = 0;
+            renderVisibleMapTiles();
+        });
     }
 
     function renderVisibleMapTiles() {
@@ -457,8 +474,9 @@
         const tileLayer = getElement('map-tile-layer');
         if (!viewport || !tileLayer) return;
 
-        const desiredSourceWidth = mapBaseWidth * zoom;
-        const levelIndex = MAP_TILE_LEVELS.findIndex(level => level.width >= desiredSourceWidth);
+        const pixelRatio = Math.max(1, window.devicePixelRatio || 1);
+        const desiredSourceWidth = mapBaseWidth * zoom * pixelRatio;
+        const levelIndex = MAP_TILE_LEVELS.findIndex(level => level.width >= desiredSourceWidth * 1.3);
         const selectedLevel = Math.max(0, levelIndex < 0 ? MAP_TILE_LEVELS.length - 1 : levelIndex);
         const level = MAP_TILE_LEVELS[selectedLevel];
         const fractionPerTileX = MAP_TILE_SIZE / level.width;
@@ -472,42 +490,59 @@
         const lastX = Math.min(Math.ceil(level.width / MAP_TILE_SIZE) - 1, Math.floor(visibleRight * level.width / MAP_TILE_SIZE));
         const lastY = Math.min(Math.ceil(level.height / MAP_TILE_SIZE) - 1, Math.floor(visibleBottom * level.height / MAP_TILE_SIZE));
         const desired = new Set();
+        const ensureTile = (tileLevel, x, y, tileDimensions, isFallback) => {
+            const key = `${tileLevel}/${x}_${y}`;
+            desired.add(key);
+            let tile = mapTiles.get(key);
+            if (!tile) {
+                tile = document.createElement('img');
+                tile.className = 'map-tile';
+                tile.alt = '';
+                tile.draggable = false;
+                tile.decoding = 'async';
+                tile.dataset.tileKey = key;
+                tile.dataset.tileReady = 'false';
+                tile.onload = () => {
+                    tile.dataset.tileReady = 'true';
+                    cleanupMapTiles();
+                };
+                tile.onerror = () => {
+                    console.error(`Kartenkachel konnte nicht geladen werden: ${tile.src}`);
+                    tile.remove();
+                    mapTiles.delete(key);
+                    if (isFallback) showToast('Eine Kartenkachel fehlt. Bitte den vollständigen Ordner map-tiles veröffentlichen.', 'danger');
+                };
+                tile.src = `./map-tiles/${tileLevel}/${x}_${y}.jpg?v=20261013-2`;
+                mapTiles.set(key, tile);
+            } else if (tile.complete && tile.naturalWidth) {
+                tile.dataset.tileReady = 'true';
+            }
+            const tileX = x * MAP_TILE_SIZE;
+            const tileY = y * MAP_TILE_SIZE;
+            const tileWidth = Math.min(MAP_TILE_SIZE, tileDimensions.width - tileX);
+            const tileHeight = Math.min(MAP_TILE_SIZE, tileDimensions.height - tileY);
+            tile.style.left = `${tileX / tileDimensions.width * mapBaseWidth * zoom}px`;
+            tile.style.top = `${tileY / tileDimensions.height * mapBaseHeight * zoom}px`;
+            tile.style.width = `${tileWidth / tileDimensions.width * mapBaseWidth * zoom}px`;
+            tile.style.height = `${tileHeight / tileDimensions.height * mapBaseHeight * zoom}px`;
+            tile.style.zIndex = isFallback ? '0' : '1';
+            if (tile.parentElement !== tileLayer) tileLayer.appendChild(tile);
+        };
+
+        if (selectedLevel > 0) {
+            const fallbackLevel = MAP_TILE_LEVELS[0];
+            const fallbackColumns = Math.ceil(fallbackLevel.width / MAP_TILE_SIZE);
+            const fallbackRows = Math.ceil(fallbackLevel.height / MAP_TILE_SIZE);
+            for (let y = 0; y < fallbackRows; y++) {
+                for (let x = 0; x < fallbackColumns; x++) {
+                    ensureTile(0, x, y, fallbackLevel, true);
+                }
+            }
+        }
 
         for (let y = firstY; y <= lastY; y++) {
             for (let x = firstX; x <= lastX; x++) {
-                const key = `${selectedLevel}/${x}_${y}`;
-                desired.add(key);
-                let tile = mapTiles.get(key);
-                if (!tile) {
-                    tile = document.createElement('img');
-                    tile.className = 'map-tile';
-                    tile.alt = '';
-                    tile.draggable = false;
-                    tile.dataset.tileKey = key;
-                    tile.dataset.tileReady = 'false';
-                    tile.onload = () => {
-                        tile.dataset.tileReady = 'true';
-                        cleanupMapTiles();
-                    };
-                    tile.onerror = () => {
-                        console.error(`Kartenkachel konnte nicht geladen werden: ${tile.src}`);
-                        tile.remove();
-                        mapTiles.delete(key);
-                    };
-                    tile.src = `./map-tiles/${selectedLevel}/${x}_${y}.jpg`;
-                    mapTiles.set(key, tile);
-                } else if (tile.complete && tile.naturalWidth) {
-                    tile.dataset.tileReady = 'true';
-                }
-                const tileX = x * MAP_TILE_SIZE;
-                const tileY = y * MAP_TILE_SIZE;
-                const tileWidth = Math.min(MAP_TILE_SIZE, level.width - tileX);
-                const tileHeight = Math.min(MAP_TILE_SIZE, level.height - tileY);
-                tile.style.left = `${tileX / level.width * mapBaseWidth}px`;
-                tile.style.top = `${tileY / level.height * mapBaseHeight}px`;
-                tile.style.width = `${tileWidth / level.width * mapBaseWidth}px`;
-                tile.style.height = `${tileHeight / level.height * mapBaseHeight}px`;
-                if (tile.parentElement !== tileLayer) tileLayer.appendChild(tile);
+                ensureTile(selectedLevel, x, y, level, false);
             }
         }
         mapDesiredTileKeys = desired;
@@ -573,7 +608,7 @@
         if (!mapDrag.moved) return;
         viewport.scrollLeft = mapDrag.scrollLeft - deltaX;
         viewport.scrollTop = mapDrag.scrollTop - deltaY;
-        if (mapUsesTiles) queueMapTiles(80);
+        if (mapUsesTiles) queueMapTiles();
         event.preventDefault();
     }
 
@@ -702,7 +737,7 @@
     window.addEventListener('resize', resizeMapSurface);
     if (mapViewport) {
         mapViewport.addEventListener('wheel', handleMapWheel, { passive: false });
-        mapViewport.addEventListener('scroll', () => queueMapTiles(100), { passive: true });
+        mapViewport.addEventListener('scroll', () => queueMapTiles(), { passive: true });
         mapViewport.addEventListener('mousedown', startMapDrag);
         document.addEventListener('mousemove', moveMapDrag);
         document.addEventListener('mouseup', stopMapDrag);
