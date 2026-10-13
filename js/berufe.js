@@ -311,10 +311,22 @@
         }
     }
 
-    function showBerufeCraftingPanel(recipe) {
+    async function showBerufeCraftingPanel(recipe) {
         const panel = document.getElementById('berufe-crafting-action-box');
         const content = document.getElementById('berufe-crafting-action-content');
         if (!panel || !content) return;
+        content.textContent = 'Rezeptschritte werden geladen ...';
+        panel.style.display = 'block';
+
+        try {
+            await ensureBerufeSearchRecipesLoaded();
+        } catch (error) {
+            console.error('Berufe-Rezeptschritte konnten nicht geladen werden:', error);
+            content.textContent = 'Die Rezeptschritte konnten nicht geladen werden. Bitte Supabase-Verbindung und Tabellenrechte prüfen.';
+            setStatus('Die Rezeptschritte konnten nicht geladen werden.', true);
+            return;
+        }
+
         const targetAmount = recipe.output_qty;
         const productionSteps = [];
         const rawMaterials = {};
@@ -351,6 +363,7 @@
 
         resolveMaterials(recipe.output_name, targetAmount);
         content.replaceChildren();
+        setStatus('', false);
 
         if (productionSteps.length <= 1) {
             const intro = document.createElement('div');
