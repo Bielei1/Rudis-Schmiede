@@ -910,8 +910,26 @@
         }
 
         #map-background-image[hidden],
+        #map-tile-layer[hidden],
         #map-empty-state[hidden] {
             display: none;
+        }
+
+        .map-tile-layer {
+            position: absolute;
+            inset: 0 auto auto 0;
+            transform-origin: top left;
+            will-change: transform;
+            pointer-events: none;
+        }
+
+        .map-tile {
+            position: absolute;
+            display: block;
+            max-width: none;
+            user-select: none;
+            pointer-events: none;
+            -webkit-user-drag: none;
         }
 
         .map-stage > img {
