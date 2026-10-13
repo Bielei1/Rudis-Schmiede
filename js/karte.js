@@ -8,6 +8,8 @@
     let pendingPosition = null;
     let zoom = 1;
     let imageLoadId = 0;
+    let mapDrag = null;
+    let suppressMapClick = false;
 
     function getElement(id) {
         return document.getElementById(id);
@@ -232,7 +234,7 @@
         const mapX = oldWidth ? (viewport.scrollLeft + pointerX - viewportRect.left) / oldWidth : 0;
         const mapY = oldHeight ? (viewport.scrollTop + pointerY - viewportRect.top) / oldHeight : 0;
 
-        zoom = Math.min(2.5, Math.max(0.5, nextZoom));
+        zoom = Math.min(12, Math.max(0.5, nextZoom));
         stage.style.width = `${zoom * 100}%`;
         viewport.scrollLeft = mapX * stage.getBoundingClientRect().width - (pointerX - viewportRect.left);
         viewport.scrollTop = mapY * stage.getBoundingClientRect().height - (pointerY - viewportRect.top);
@@ -242,8 +244,49 @@
         if (addMode) return;
         event.preventDefault();
         const direction = event.deltaY < 0 ? 1 : -1;
-        const step = event.deltaMode === 0 ? 0.12 : 0.2;
+        const step = event.deltaMode === 0 ? 0.25 : 0.4;
         applyMapZoom(zoom + direction * step, event.clientX, event.clientY);
+    }
+
+    function startMapDrag(event) {
+        if (event.button !== 0 || addMode || event.target.closest('button, input, select, textarea')) return;
+        const image = getElement('map-background-image');
+        const viewport = getElement('map-viewport');
+        if (!image || image.hidden || !viewport) return;
+
+        mapDrag = {
+            startX: event.clientX,
+            startY: event.clientY,
+            scrollLeft: viewport.scrollLeft,
+            scrollTop: viewport.scrollTop,
+            moved: false
+        };
+        viewport.classList.add('map-dragging');
+        event.preventDefault();
+    }
+
+    function moveMapDrag(event) {
+        if (!mapDrag) return;
+        const viewport = getElement('map-viewport');
+        if (!viewport) return;
+        const deltaX = event.clientX - mapDrag.startX;
+        const deltaY = event.clientY - mapDrag.startY;
+        if (!mapDrag.moved && Math.hypot(deltaX, deltaY) > 3) mapDrag.moved = true;
+        if (!mapDrag.moved) return;
+        viewport.scrollLeft = mapDrag.scrollLeft - deltaX;
+        viewport.scrollTop = mapDrag.scrollTop - deltaY;
+        event.preventDefault();
+    }
+
+    function stopMapDrag() {
+        if (!mapDrag) return;
+        const viewport = getElement('map-viewport');
+        if (viewport) viewport.classList.remove('map-dragging');
+        if (mapDrag.moved) {
+            suppressMapClick = true;
+            setTimeout(() => { suppressMapClick = false; }, 0);
+        }
+        mapDrag = null;
     }
 
     function renderMapMarkers() {
@@ -327,11 +370,22 @@
     }
 
     document.addEventListener('click', event => {
+        if (suppressMapClick) {
+            event.preventDefault();
+            event.stopPropagation();
+            suppressMapClick = false;
+            return;
+        }
         const stage = getElement('map-stage');
         if (stage && stage.contains(event.target)) handleMapClick(event);
     });
     const mapViewport = getElement('map-viewport');
-    if (mapViewport) mapViewport.addEventListener('wheel', handleMapWheel, { passive: false });
+    if (mapViewport) {
+        mapViewport.addEventListener('wheel', handleMapWheel, { passive: false });
+        mapViewport.addEventListener('mousedown', startMapDrag);
+        document.addEventListener('mousemove', moveMapDrag);
+        document.addEventListener('mouseup', stopMapDrag);
+    }
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && addMode) {
             addMode = false;
