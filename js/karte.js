@@ -326,11 +326,14 @@
     function handleMapClick(event) {
         if (!addMode || event.target.closest('.map-marker')) return;
         const stage = getElement('map-stage');
-        if (!stage || !stage.classList.contains('map-image-ready')) return;
-        const rect = stage.getBoundingClientRect();
+        const viewport = getElement('map-viewport');
+        if (!stage || !stage.classList.contains('map-image-ready') || !viewport || !mapBaseWidth || !mapBaseHeight) return;
+        const viewportRect = viewport.getBoundingClientRect();
+        const mapX = viewport.scrollLeft + event.clientX - viewportRect.left - viewport.clientLeft;
+        const mapY = viewport.scrollTop + event.clientY - viewportRect.top - viewport.clientTop;
         pendingPosition = {
-            x: Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)),
-            y: Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height))
+            x: Math.min(1, Math.max(0, mapX / (mapBaseWidth * zoom))),
+            y: Math.min(1, Math.max(0, mapY / (mapBaseHeight * zoom)))
         };
         addMode = false;
         updateAddModeButton();
@@ -421,7 +424,6 @@
             markerLayer.style.height = `${mapBaseHeight * zoom}px`;
             markerLayer.style.transform = 'none';
         }
-        stage.style.setProperty('--map-marker-scale', String(Math.max(0.85, Math.min(zoom, 4))));
         if (mapUsesTiles) queueMapTiles();
     }
 
