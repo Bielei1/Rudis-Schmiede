@@ -55,7 +55,7 @@
         contacts.forEach(contact => {
             const row = document.createElement('tr');
             const nameCell = document.createElement('td');
-            nameCell.textContent = `${contact.first_name} ${contact.last_name}`.trim();
+            nameCell.textContent = [contact.first_name, contact.last_name].filter(Boolean).join(' ') || contact.nickname || '–';
             row.appendChild(nameCell);
             row.appendChild(createContactCell(contact.nickname));
             row.appendChild(createContactCell(contact.telegram_number));
@@ -132,8 +132,11 @@
             telegram_number: document.getElementById('contact-telegram').value.trim() || null,
             notes: document.getElementById('contact-notes').value.trim() || null
         };
-        if (!values.first_name || !values.last_name) {
-            showToast('Bitte Vor- und Nachnamen eingeben.', 'danger');
+        values.first_name = values.first_name || null;
+        values.last_name = values.last_name || null;
+        values.nickname = values.nickname || null;
+        if (!values.first_name && !values.last_name && !values.nickname) {
+            showToast('Bitte mindestens Vorname, Nachname oder Spitzname eingeben.', 'danger');
             return;
         }
 
@@ -151,7 +154,10 @@
                 contacts.push(data);
                 showToast('Kontakt wurde hinzugefügt.', 'success');
             }
-            contacts.sort((a, b) => a.last_name.localeCompare(b.last_name, 'de') || a.first_name.localeCompare(b.first_name, 'de'));
+            contacts.sort((a, b) =>
+                (a.last_name || a.nickname || a.first_name || '').localeCompare(b.last_name || b.nickname || b.first_name || '', 'de')
+                || (a.first_name || '').localeCompare(b.first_name || '', 'de')
+            );
             renderContacts();
             resetContactForm();
             await broadcastDataChange('contacts');
@@ -166,7 +172,9 @@
             return;
         }
         const contact = contacts.find(item => String(item.id) === String(id));
-        if (!contact || !confirm(`Kontakt „${contact.first_name} ${contact.last_name}“ wirklich löschen?`)) return;
+        const contactName = [contact && contact.first_name, contact && contact.last_name].filter(Boolean).join(' ')
+            || (contact && contact.nickname) || id;
+        if (!contact || !confirm(`Kontakt „${contactName}“ wirklich löschen?`)) return;
 
         try {
             const { data, error } = await supabaseClient.from('contacts').delete().eq('id', id).select('id').maybeSingle();
