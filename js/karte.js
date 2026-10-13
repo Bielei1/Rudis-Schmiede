@@ -3,7 +3,18 @@
     const MAP_IMAGE_PATH = 'background';
     const MAX_MAP_IMAGE_BYTES = 25 * 1024 * 1024;
     const ALLOWED_MAP_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+    const MAP_CATEGORIES = [
+        { name: 'Händler', icon: '🛒', color: '#d6a653' },
+        { name: 'Ärzte & Medizin', icon: '✚', color: '#cf625c' },
+        { name: 'Rohstoffe', icon: '🌿', color: '#6ea75c' },
+        { name: 'Rezepte & Herstellung', icon: '⚗', color: '#9874b8' },
+        { name: 'Anwesen & Lager', icon: '⌂', color: '#658fb3' },
+        { name: 'Geheime Orte', icon: '★', color: '#c3944c' },
+        { name: 'Kontakte', icon: '♟', color: '#bd7785' },
+        { name: 'Sonstiges', icon: '●', color: '#858b7a' }
+    ];
     let markers = [];
+    let activeCategories = new Set(MAP_CATEGORIES.map(category => category.name));
     let addMode = false;
     let pendingPosition = null;
     let zoom = 1;
@@ -42,6 +53,7 @@
         }
 
         markers = markerResult.data || [];
+        renderMapCategoryControls();
         if (status) status.textContent = `${markers.length} gemeinsame Markierung${markers.length === 1 ? '' : 'en'}`;
         renderMapMarkers();
 
@@ -297,15 +309,16 @@
         const search = (getElement('map-place-search')?.value || '').trim().toLocaleLowerCase('de');
         const category = getElement('map-category-filter')?.value || '';
         const filtered = markers.filter(marker =>
-            (!category || marker.category === category)
+            activeCategories.has(getCategoryConfig(marker.category).name)
+            && (!category || marker.category === category)
             && (!search || `${marker.title} ${marker.notes || ''} ${marker.category}`.toLocaleLowerCase('de').includes(search))
         );
 
         markerLayer.innerHTML = filtered.map(marker => `
             <button type="button" class="map-marker" data-map-marker-id="${Number(marker.id)}"
-                style="left:${Number(marker.x) * 100}%;top:${Number(marker.y) * 100}%"
+                style="left:${Number(marker.x) * 100}%;top:${Number(marker.y) * 100}%;--map-marker-color:${getCategoryConfig(marker.category).color}"
                 title="${escapeHtml(marker.title)}" aria-label="${escapeHtml(marker.title)}">
-                <span class="map-marker-pin"></span><span class="map-marker-label">${escapeHtml(marker.title)}</span>
+                <span class="map-marker-pin">${getCategoryConfig(marker.category).icon}</span><span class="map-marker-label">${escapeHtml(marker.title)}</span>
             </button>
         `).join('');
         markerLayer.querySelectorAll('[data-map-marker-id]').forEach(button => {
@@ -322,7 +335,7 @@
             <article class="map-place-card">
                 <button type="button" class="map-place-open" data-map-place-id="${Number(marker.id)}">
                     <strong>${escapeHtml(marker.title)}</strong>
-                    <span>${escapeHtml(marker.category || 'Sonstiges')}</span>
+                    <span><span class="map-category-icon" style="--map-marker-color:${getCategoryConfig(marker.category).color}">${getCategoryConfig(marker.category).icon}</span>${escapeHtml(marker.category || 'Sonstiges')}</span>
                     ${marker.notes ? `<small>${escapeHtml(marker.notes)}</small>` : ''}
                 </button>
                 ${String(marker.created_by) === String(currentUser?.id) && canDeleteTab('karte')
@@ -336,6 +349,39 @@
         });
         list.querySelectorAll('[data-map-delete-id]').forEach(button => {
             button.addEventListener('click', () => deleteMapMarker(button.dataset.mapDeleteId));
+        });
+    }
+
+    function getCategoryConfig(name) {
+        return MAP_CATEGORIES.find(category => category.name === name) || MAP_CATEGORIES[MAP_CATEGORIES.length - 1];
+    }
+
+    function renderMapCategoryControls() {
+        const select = getElement('map-category-filter');
+        const toggleContainer = getElement('map-category-toggles');
+        if (select) {
+            const selected = select.value;
+            select.innerHTML = '<option value="">Alle Kategorien</option>' + MAP_CATEGORIES.map(category =>
+                `<option value="${escapeHtml(category.name)}">${category.icon} ${escapeHtml(category.name)}</option>`
+            ).join('');
+            if (MAP_CATEGORIES.some(category => category.name === selected)) select.value = selected;
+        }
+        if (!toggleContainer) return;
+        toggleContainer.innerHTML = MAP_CATEGORIES.map((category, index) => `
+            <label class="map-category-toggle">
+                <input type="checkbox" data-map-category="${index}" ${activeCategories.has(category.name) ? 'checked' : ''}>
+                <span class="map-category-icon" style="--map-marker-color:${category.color}">${category.icon}</span>
+                <span>${escapeHtml(category.name)}</span>
+            </label>
+        `).join('');
+        toggleContainer.querySelectorAll('[data-map-category]').forEach(input => {
+            input.addEventListener('change', () => {
+                const category = MAP_CATEGORIES[Number(input.dataset.mapCategory)];
+                if (!category) return;
+                if (input.checked) activeCategories.add(category.name);
+                else activeCategories.delete(category.name);
+                renderMapMarkers();
+            });
         });
     }
 

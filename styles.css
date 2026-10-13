@@ -754,6 +754,59 @@
             font-size: 0.75rem;
         }
 
+        .map-category-heading {
+            margin-top: 3px;
+            color: var(--text-muted);
+            font-size: 0.74rem;
+            font-weight: 600;
+        }
+
+        .map-category-toggles {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px 9px;
+        }
+
+        .map-category-toggle {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            min-width: 0;
+            color: var(--text-color);
+            font-size: 0.72rem;
+            cursor: pointer;
+        }
+
+        .map-category-toggle input {
+            flex: 0 0 auto;
+            width: 14px;
+            height: 14px;
+            margin: 0;
+            accent-color: var(--primary-color);
+        }
+
+        .map-category-toggle > span:last-child {
+            overflow-wrap: anywhere;
+        }
+
+        .map-category-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 18px;
+            width: 18px;
+            height: 18px;
+            margin-right: 3px;
+            border: 1px solid rgba(255, 244, 219, .9);
+            border-radius: 50%;
+            background: var(--map-marker-color, #858b7a);
+            color: #fffaf0 !important;
+            font-size: 0.7rem !important;
+            font-weight: 700;
+            line-height: 1;
+            box-shadow: 0 1px 4px rgba(0,0,0,.35);
+        }
+
         .map-place-items {
             display: flex;
             flex-direction: column;
@@ -909,15 +962,19 @@
         }
 
         .map-marker-pin {
-            display: block;
-            flex: 0 0 15px;
-            width: 15px;
-            height: 15px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 27px;
+            width: 27px;
+            height: 27px;
             border: 2px solid #fff2cc;
-            border-radius: 50% 50% 50% 0;
-            background: var(--primary-color);
+            border-radius: 50%;
+            background: var(--map-marker-color, var(--primary-color));
+            color: #fffaf0;
             box-shadow: 0 1px 5px rgba(0,0,0,.65);
-            transform: rotate(-45deg);
+            font-size: 0.82rem;
+            font-weight: 700;
         }
 
         .map-marker-label {

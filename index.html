@@ -1092,12 +1092,9 @@
                 <input id="map-place-search" type="search" placeholder="Orte oder Notizen suchen ..." oninput="renderMapMarkers()">
                 <select id="map-category-filter" aria-label="Kategorie filtern" onchange="renderMapMarkers()">
                     <option value="">Alle Kategorien</option>
-                    <option>Händler</option>
-                    <option>Rohstoffe</option>
-                    <option>Gefahren</option>
-                    <option>Kontakte</option>
-                    <option>Sonstiges</option>
                 </select>
+                <div class="map-category-heading">Kategorien ein-/ausblenden</div>
+                <div id="map-category-toggles" class="map-category-toggles"></div>
                 <div id="map-place-count" class="map-place-count">0 Orte</div>
                 <div id="map-place-items" class="map-place-items"></div>
             </aside>
@@ -1124,7 +1121,14 @@
                 <div class="login-field"><label for="map-marker-name">Name</label><input id="map-marker-name" type="text" maxlength="100" required></div>
                 <div class="login-field"><label for="map-marker-category">Kategorie</label>
                     <select id="map-marker-category">
-                        <option>Sonstiges</option><option>Händler</option><option>Rohstoffe</option><option>Gefahren</option><option>Kontakte</option>
+                        <option>Händler</option>
+                        <option>Ärzte &amp; Medizin</option>
+                        <option>Rohstoffe</option>
+                        <option>Rezepte &amp; Herstellung</option>
+                        <option>Anwesen &amp; Lager</option>
+                        <option>Geheime Orte</option>
+                        <option>Kontakte</option>
+                        <option selected>Sonstiges</option>
                     </select>
                 </div>
                 <div class="login-field"><label for="map-marker-notes">Notiz</label><textarea id="map-marker-notes" rows="3" maxlength="1000"></textarea></div>
@@ -1373,6 +1377,6 @@
 <script src="js/main.js"></script>
 <script src="js/erweiterte-funktionen.js"></script>
 <script src="js/chat.js"></script>
-<script src="js/karte.js?v=20261013-4"></script>
+<script src="js/karte.js?v=20261013-5"></script>
 </body>
 </html>
