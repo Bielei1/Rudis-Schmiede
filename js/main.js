@@ -42,4 +42,3 @@
 
     updateLiveClock();
     setInterval(updateLiveClock, 1000);
-

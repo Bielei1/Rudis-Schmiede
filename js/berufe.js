@@ -1,5 +1,6 @@
 (function () {
     let berufeTabs = [];
+    let berufeRecipes = [];
     let activeBerufeTabId = null;
 
     function canManageBerufe() {
@@ -20,6 +21,7 @@
         const title = document.getElementById('berufe-panel-title');
         const description = document.getElementById('berufe-panel-description');
         const panel = document.getElementById('berufe-panel');
+        const recipeCreateArea = document.getElementById('berufe-recipe-create-area');
         if (!nav || !title || !description || !panel) return;
 
         const selectedTab = berufeTabs.find(tab => String(tab.id) === String(activeBerufeTabId));
@@ -79,8 +81,222 @@
         title.textContent = activeTitle;
         panel.setAttribute('aria-labelledby', isTemplate ? 'berufe-nav-button' : `berufe-tab-${selectedTab.id}`);
         description.textContent = isTemplate
-            ? 'Die Vorlage ist vorbereitet. Ihr Inhalt wird später ergänzt.'
-            : 'Dieser Berufs-Untertab ist angelegt. Sein Inhalt wird später aus der Vorlage übernommen.';
+            ? 'Erstelle hier Rezepte und ordne sie einem Berufs-Untertab zu.'
+            : `Rezepte für ${selectedTab.name}.`;
+        if (recipeCreateArea) {
+            recipeCreateArea.hidden = !isTemplate || !canEditBerufe();
+        }
+        updateRecipeDestinationOptions();
+        renderBerufeRecipes();
+    }
+
+    function canEditBerufe() {
+        return typeof window.canEditTab === 'function' && window.canEditTab('berufe');
+    }
+
+    function updateRecipeDestinationOptions() {
+        const select = document.getElementById('berufe-recipe-destination');
+        if (!select) return;
+        const selectedId = select.value;
+        select.replaceChildren();
+        berufeTabs.forEach(tab => {
+            const option = document.createElement('option');
+            option.value = String(tab.id);
+            option.textContent = tab.name;
+            select.appendChild(option);
+        });
+        if (berufeTabs.some(tab => String(tab.id) === selectedId)) {
+            select.value = selectedId;
+        }
+        select.disabled = !berufeTabs.length;
+    }
+
+    function renderBerufeRecipes() {
+        const list = document.getElementById('berufe-recipes-list');
+        if (!list) return;
+        list.replaceChildren();
+
+        if (activeBerufeTabId === null) {
+            const hint = document.createElement('p');
+            hint.textContent = berufeTabs.length
+                ? 'Wähle oben den Ziel-Untertab aus, in dem das Rezept angezeigt werden soll.'
+                : 'Erstelle zuerst einen Berufs-Untertab, damit du Rezepte zuordnen kannst.';
+            list.appendChild(hint);
+            return;
+        }
+
+        const recipes = berufeRecipes
+            .filter(recipe => String(recipe.berufe_tab_id) === String(activeBerufeTabId))
+            .sort((first, second) => String(first.output_name).localeCompare(String(second.output_name), 'de'));
+        if (!recipes.length) {
+            const empty = document.createElement('p');
+            empty.textContent = 'Für diesen Beruf wurden noch keine Rezepte angelegt.';
+            list.appendChild(empty);
+            return;
+        }
+
+        recipes.forEach(recipe => {
+            const card = document.createElement('article');
+            card.className = 'berufe-recipe-card';
+            const heading = document.createElement('h4');
+            heading.textContent = recipe.output_name;
+            card.appendChild(heading);
+
+            const yieldText = document.createElement('p');
+            yieldText.textContent = `Ertrag: ${recipe.output_qty} Stk.`;
+            card.appendChild(yieldText);
+
+            const ingredientTitle = document.createElement('strong');
+            ingredientTitle.textContent = 'Benötigte Zutaten';
+            card.appendChild(ingredientTitle);
+            const ingredients = document.createElement('ul');
+            (recipe.ingredients || []).forEach(ingredient => {
+                const item = document.createElement('li');
+                item.textContent = `${ingredient.qty}x ${ingredient.name}`;
+                ingredients.appendChild(item);
+            });
+            if (!ingredients.childElementCount) {
+                const item = document.createElement('li');
+                item.textContent = 'Keine Zutaten definiert';
+                ingredients.appendChild(item);
+            }
+            card.appendChild(ingredients);
+            list.appendChild(card);
+        });
+    }
+
+    function isValidBerufeTabId(tabId) {
+        return berufeTabs.some(tab => String(tab.id) === String(tabId));
+    }
+
+    function initBerufeRecipeInputs() {
+        const container = document.getElementById('berufe-recipe-ingredients-container');
+        if (!container) return;
+        container.replaceChildren();
+        addBerufeRecipeIngredientInput();
+    }
+
+    function addBerufeRecipeIngredientInput() {
+        const container = document.getElementById('berufe-recipe-ingredients-container');
+        if (!container) return;
+        const row = document.createElement('div');
+        row.className = 'recipe-ingredient-row';
+        row.style.cssText = 'display: flex; gap: 8px; align-items: center; margin-bottom: 8px;';
+
+        const name = document.createElement('input');
+        name.type = 'text';
+        name.className = 'rec-ing-name';
+        name.placeholder = 'Zutatenartikel';
+        name.required = true;
+        name.style.flex = '2';
+
+        const quantity = document.createElement('input');
+        quantity.type = 'number';
+        quantity.className = 'rec-ing-qty';
+        quantity.placeholder = 'Anzahl';
+        quantity.min = '1';
+        quantity.value = '1';
+        quantity.required = true;
+        quantity.style.cssText = 'flex: 1; max-width: 100px;';
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'btn btn-danger';
+        remove.textContent = '×';
+        remove.title = 'Zutat entfernen';
+        remove.style.height = '40px';
+        remove.addEventListener('click', () => row.remove());
+
+        row.append(name, quantity, remove);
+        container.appendChild(row);
+    }
+
+    async function createBerufeRecipe(event) {
+        event.preventDefault();
+        if (!canEditBerufe()) {
+            setStatus('Du hast keine Bearbeitungsrechte für Berufe-Rezepte.', true);
+            return;
+        }
+
+        const form = event.currentTarget;
+        const tabId = form.querySelector('#berufe-recipe-destination').value;
+        const outputName = capitalizeText(form.querySelector('.recipe-output-input').value.trim());
+        const outputQty = Number.parseInt(form.querySelector('.recipe-output-qty').value, 10);
+        const ingredients = [...form.querySelectorAll('.recipe-ingredient-row')].map(row => ({
+            name: capitalizeText(row.querySelector('.rec-ing-name').value.trim()),
+            qty: Number.parseInt(row.querySelector('.rec-ing-qty').value, 10)
+        })).filter(item => item.name && Number.isInteger(item.qty) && item.qty > 0);
+
+        if (!isValidBerufeTabId(tabId)) {
+            setStatus('Bitte wähle einen gültigen Berufs-Untertab aus.', true);
+            return;
+        }
+        if (!outputName || !Number.isInteger(outputQty) || outputQty < 1 || !ingredients.length) {
+            setStatus('Bitte Endprodukt, gültigen Ertrag und mindestens eine Zutat angeben.', true);
+            return;
+        }
+
+        const saveButton = form.querySelector('[type="submit"]');
+        saveButton.disabled = true;
+        setStatus('', false);
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('berufe_recipes')
+                .insert([{
+                    berufe_tab_id: Number(tabId),
+                    output_name: outputName,
+                    output_qty: outputQty,
+                    ingredients
+                }])
+                .select()
+                .single();
+            if (error) throw error;
+            if (!data) throw new Error('Supabase hat das gespeicherte Rezept nicht zurückgegeben.');
+
+            if (String(activeBerufeTabId) === String(data.berufe_tab_id)) {
+                berufeRecipes.push(data);
+                renderBerufeRecipes();
+            }
+            form.querySelector('.recipe-output-input').value = '';
+            form.querySelector('.recipe-output-qty').value = '1';
+            initBerufeRecipeInputs();
+            if (typeof window.logActivity === 'function') {
+                await window.logActivity('Berufe', `Rezept „${outputName}“ für „${berufeTabs.find(tab => String(tab.id) === String(tabId)).name}“ erstellt`);
+            }
+            if (typeof window.showToast === 'function') {
+                window.showToast(`Rezept „${outputName}“ wurde im ausgewählten Beruf gespeichert.`, 'success');
+            }
+        } catch (error) {
+            console.error('Berufe-Rezept konnte nicht gespeichert werden:', error);
+            const message = error && error.code === '23505'
+                ? 'In diesem Berufs-Untertab gibt es bereits ein Rezept mit diesem Endprodukt.'
+                : `Rezept konnte nicht gespeichert werden: ${error.message || 'Unbekannter Fehler'}`;
+            setStatus(message, true);
+            if (typeof window.showToast === 'function') window.showToast(message, 'danger');
+        } finally {
+            saveButton.disabled = false;
+        }
+    }
+
+    async function loadBerufeRecipes(tabId) {
+        if (!tabId) {
+            berufeRecipes = [];
+            renderBerufeRecipes();
+            return;
+        }
+        const { data, error } = await window.supabaseClient
+            .from('berufe_recipes')
+            .select('id, berufe_tab_id, output_name, output_qty, ingredients')
+            .eq('berufe_tab_id', tabId)
+            .order('output_name', { ascending: true });
+        if (error) {
+            console.error('Berufe-Rezepte konnten nicht geladen werden:', error);
+            setStatus('Rezepte für diesen Untertab konnten nicht geladen werden. Bitte Supabase-Setup prüfen.', true);
+            return;
+        }
+        if (String(activeBerufeTabId) !== String(tabId)) return;
+        berufeRecipes = Array.isArray(data) ? data : [];
+        renderBerufeRecipes();
     }
 
     function setBerufeNavigationExpanded(expanded) {
@@ -97,6 +313,7 @@
         }
         activeBerufeTabId = tabId;
         renderBerufeTabs();
+        loadBerufeRecipes(tabId);
     }
 
     function openBerufeNavigation() {
@@ -124,6 +341,7 @@
         }
         setStatus('', false);
         renderBerufeTabs();
+        if (activeBerufeTabId !== null) await loadBerufeRecipes(activeBerufeTabId);
     }
 
     async function createBerufeTab(event) {
@@ -223,4 +441,7 @@
     window.setBerufeNavigationExpanded = setBerufeNavigationExpanded;
     window.createBerufeTab = createBerufeTab;
     window.deleteBerufeTab = deleteBerufeTab;
+    window.addBerufeRecipeIngredientInput = addBerufeRecipeIngredientInput;
+    window.createBerufeRecipe = createBerufeRecipe;
+    window.addEventListener('DOMContentLoaded', initBerufeRecipeInputs);
 })();

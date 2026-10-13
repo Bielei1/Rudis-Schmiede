@@ -2343,6 +2343,50 @@
             color: var(--text-muted);
         }
 
+        #berufe-recipe-create-area {
+            margin-top: 22px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--card-bg-raised);
+        }
+
+        #berufe-recipe-create-area[hidden] {
+            display: none;
+        }
+
+        #berufe-recipe-create-area h4 {
+            margin: 0 0 14px;
+        }
+
+        #berufe-recipes-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .berufe-recipe-card {
+            padding: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--card-bg-raised);
+        }
+
+        .berufe-recipe-card h4 {
+            margin: 0 0 8px;
+            color: var(--accent-blue);
+        }
+
+        .berufe-recipe-card p {
+            margin-bottom: 10px;
+        }
+
+        .berufe-recipe-card ul {
+            margin: 6px 0 0;
+            padding-left: 20px;
+        }
+
         #berufe-create-form[hidden],
         #berufe-status[hidden] {
             display: none !important;

@@ -540,6 +540,7 @@
         const p = currentUser.tabPermissions && currentUser.tabPermissions[tabName];
         return !!(p && p.edit);
     }
+    window.canEditTab = canEditTab;
 
     function canCashbookTransaction(transactionType) {
         if (!currentUser) return false;
@@ -662,7 +663,10 @@
         if (!(el instanceof HTMLElement)) return;
         const tabContent = el.closest('.tab-content');
         if (!tabContent) return;
-        const tabName = tabContent.id.replace(/^tab-/, '');
+        const permissionOverride = el.closest('[data-permission-tab]');
+        const tabName = permissionOverride
+            ? permissionOverride.dataset.permissionTab
+            : tabContent.id.replace(/^tab-/, '');
         const specialAction = el.dataset.permissionSpecial;
         if (specialAction && canSpecialAction(specialAction)) {
             el.classList.remove('view-locked');

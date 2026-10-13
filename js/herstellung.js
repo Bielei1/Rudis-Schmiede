@@ -66,7 +66,7 @@
 
         if (!outputName || isNaN(outputQty) || outputQty < 1) return alert("Bitte gültiges Endprodukt und Ertrag eingeben.");
 
-        const rows = document.querySelectorAll('.recipe-ingredient-row');
+        const rows = document.querySelectorAll('#recipe-ingredients-container .recipe-ingredient-row');
         const ingredients = [];
 
         rows.forEach(row => {
