@@ -145,7 +145,9 @@
         document.getElementById('chat-group-members').hidden = true;
         await loadConversation();
         if (chatRefreshTimer) clearInterval(chatRefreshTimer);
-        chatRefreshTimer = setInterval(loadConversation, 5000);
+        chatRefreshTimer = setInterval(() => {
+            if (!document.hidden) loadConversation();
+        }, 60000);
         document.getElementById('chat-message-input').focus();
     }
 
@@ -162,7 +164,9 @@
         await loadGroupMembers(group.id);
         await loadGroupConversation();
         if (chatRefreshTimer) clearInterval(chatRefreshTimer);
-        chatRefreshTimer = setInterval(loadGroupConversation, 5000);
+        chatRefreshTimer = setInterval(() => {
+            if (!document.hidden) loadGroupConversation();
+        }, 60000);
         document.getElementById('chat-message-input').focus();
     }
 
@@ -497,6 +501,13 @@
     window.loadUnreadChatCount = loadUnreadChatCount;
     window.refreshChatUserBadges = refreshChatUserBadges;
     setInterval(() => {
-        if (currentUser) loadUnreadChatCount();
-    }, 10000);
+        if (currentUser && !document.hidden) loadUnreadChatCount();
+    }, 60000);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden || !currentUser) return;
+        loadUnreadChatCount();
+        if (selectedChatGroup) loadGroupConversation();
+        else if (selectedChatUser) loadConversation();
+    });
 })();

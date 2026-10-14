@@ -5,7 +5,6 @@
     // wieder aus der Liste (kein Cleanup/Timeout selbst programmiert nötig).
     let presenceChannel = null;
     let presenceHeartbeatTimer = null;
-    let permissionsRefreshTimer = null;
 
     function startPresence() {
         if (!currentUser || !supabaseClient) return;
@@ -36,7 +35,6 @@
                         await updateLastSeen();
                     }
                     renderOnlineUsers();
-                    startPermissionsRefresh();
                 }
             });
     }
@@ -77,15 +75,6 @@
         updateTabVisibility();
         applyPermissionUI();
         ensureAllowedTabSelected();
-    }
-
-    function startPermissionsRefresh() {
-        if (permissionsRefreshTimer || !currentUser || !currentUser.id) return;
-        permissionsRefreshTimer = setInterval(() => {
-            refreshCurrentUserPermissions().catch(error => {
-                console.warn('Rechte konnten nicht automatisch aktualisiert werden:', error.message);
-            });
-        }, 30000);
     }
 
     async function broadcastPermissionsUpdated(userId) {
