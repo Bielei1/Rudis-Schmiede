@@ -2,7 +2,6 @@
     // Dauerhaftes Protokoll in Supabase. Die lokale Liste ist nur für die
     // sofortige Darstellung zuständig; die Datenbank ist die eigentliche Quelle.
     let activityLogList = [];
-    let activityLogRefreshTimer = null;
     let activityLogLoadInProgress = false;
 
     async function loadActivityLog(showError = false) {
@@ -31,13 +30,6 @@
         } finally {
             activityLogLoadInProgress = false;
         }
-    }
-
-    function startActivityLogRefresh() {
-        if (activityLogRefreshTimer) clearInterval(activityLogRefreshTimer);
-        activityLogRefreshTimer = setInterval(() => {
-            if (currentUser && currentUser.isAdmin) loadActivityLog(false);
-        }, 5000);
     }
 
     function buildDetailedLogMessage(summary, details) {

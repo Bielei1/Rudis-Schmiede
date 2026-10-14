@@ -329,6 +329,13 @@
         clearTimeout(liveSyncDebounceTimer);
         liveSyncDebounceTimer = setTimeout(async () => {
             try {
+                if (table === 'activity_log') {
+                    const activeTab = document.querySelector('.tab-content.active');
+                    if (currentUser && canViewTab('log') && activeTab && activeTab.id === 'tab-log') {
+                        await loadActivityLog(false);
+                    }
+                    return;
+                }
                 if (table === 'contacts') {
                     if (currentUser && canViewTab('kontakte') && typeof loadContacts === 'function') {
                         await loadContacts();
@@ -396,9 +403,6 @@
                 }
                 if (table === 'password_reset_requests' && currentUser && currentUser.isAdmin) {
                     await loadPasswordResetRequests();
-                }
-                if (table === 'activity_log') {
-                    await loadActivityLog(false);
                 }
             } catch (e) {
                 console.warn('Live-Sync: Daten konnten nicht aktualisiert werden:', e);

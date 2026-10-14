@@ -137,9 +137,6 @@
         pendingProfileBio = bioValue;
         const avatarChanged = pendingAvatarBase64 !== profileModalOriginalAvatar;
         const bioChanged = bioValue !== profileModalOriginalBio;
-        const previousAvatar = profileModalOriginalAvatar;
-        const newAvatar = pendingAvatarBase64;
-        const previousBio = profileModalOriginalBio;
 
         const localProfile = {
             avatar: pendingAvatarBase64,
@@ -223,14 +220,8 @@
 
         if (avatarChanged || bioChanged) {
             const changed = [];
-            if (avatarChanged) {
-                changed.push('Avatar geändert');
-                changed.push(`Avatar vorher: ${previousAvatar || '__NO_AVATAR__'}`);
-                changed.push(`Avatar nachher: ${newAvatar || '__NO_AVATAR__'}`);
-            }
-            if (bioChanged) {
-                changed.push(`Bio geändert: „${previousBio || '-'}“ → „${bioValue || '-'}“`);
-            }
+            if (avatarChanged) changed.push('Avatar geändert');
+            if (bioChanged) changed.push('Profiltext geändert');
             await logActivity(
                 'Profil',
                 `Profil von „${currentUser.username}“ wurde geändert`,

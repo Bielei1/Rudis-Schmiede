@@ -28,7 +28,8 @@
         } else if (tabName === 'berufe') {
             if (typeof loadBerufeTab === 'function') loadBerufeTab();
         } else if (tabName === 'log') {
-            renderActivityLog();
+            if (typeof loadActivityLog === 'function') loadActivityLog(false);
+            else renderActivityLog();
         } else if (tabName === 'benutzer') {
             loadAppUsers();
         } else if (tabName === 'avatarlogs') {
@@ -154,13 +155,7 @@
 
             if (canRead('mitglieder') || canRead('benutzer')) await loadMemberUsernames();
             else if (typeof memberUsernamesList !== 'undefined') memberUsernamesList = [];
-
-            if (canRead('log')) {
-                await loadActivityLog(false);
-                if (currentUser && currentUser.isAdmin) startActivityLogRefresh();
-            } else if (typeof activityLogList !== 'undefined') {
-                activityLogList = [];
-            }
+            if (!canRead('log') && typeof activityLogList !== 'undefined') activityLogList = [];
 
             renderTables();
 			updateStockAddDropdown();
